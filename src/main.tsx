@@ -70,6 +70,8 @@ import {
 import EpisodeTracker from "./EpisodeTracker";
 import Recommendations from "./Recommendations";
 import WebRecommendationsNotice from "./WebRecommendationsNotice";
+import SignInRequired from "./SignInRequired";
+import { defaultServices } from "./service-config";
 import { personalizeHome } from "./home-personalization";
 import { readRecommendationSession } from "./recommendation-session";
 import { toneStyle, useArtworkTone } from "./useArtworkTone";
@@ -172,8 +174,12 @@ function App() {
       }),
     [light],
   );
+  const recommendationLibrary = React.useMemo(
+    () => (cloud && !user ? {} : library),
+    [library, user?.id],
+  );
   useDailyRecommendations(
-    library,
+    recommendationLibrary,
     filmList,
     (title) => {
       setPage("recommendations");
@@ -503,7 +509,7 @@ function App() {
       ? e.lists?.includes(listFilter.slice(5))
       : Boolean(e[listFilter as keyof Entry]);
   const home = React.useMemo(() => {
-    if (page !== "discover")
+    if (page !== "discover" || (cloud && !user))
       return {
         movies: filmList,
         series: showList,
@@ -599,7 +605,12 @@ function App() {
             <Settings size={18} />
             Réglages
           </button>
-          <button className="account" onClick={() => navigate("profile")}>
+          <button
+            className="account"
+            onClick={() =>
+              cloud && !user ? setAuth(true) : navigate("profile")
+            }
+          >
             <Avatar
               profile={personal.profile}
               name={
@@ -610,9 +621,13 @@ function App() {
               size={34}
             />
             <span>
-              {user ? "Mon espace" : "Votre espace"}
+              {user ? "Mon espace" : cloud ? "Se connecter" : "Votre espace"}
               <small>
-                {user ? "Connecté à Supabase" : "Collection locale"}
+                {user
+                  ? "Compte Vela"
+                  : cloud
+                    ? "Compte Vela"
+                    : "Collection locale"}
               </small>
             </span>
             <ChevronRight size={16} />
@@ -621,7 +636,9 @@ function App() {
       </aside>
       <main
         className={
-          page === "recommendations" && Capacitor.isNativePlatform()
+          page === "recommendations" &&
+          Capacitor.isNativePlatform() &&
+          (!cloud || user)
             ? "is-feed"
             : undefined
         }
@@ -659,6 +676,7 @@ function App() {
             account={user?.id || "local"}
             backup={backup}
             close={closeSettings}
+            signIn={() => setAuth(true)}
           />
         )}
         {(page === "discover" || page === "search") && !tmdbEnabled() && (
@@ -942,18 +960,29 @@ function App() {
         )}
         {page === "recommendations" &&
           (Capacitor.isNativePlatform() ? (
-            <Recommendations
-              key={`${user?.id || "local"}:${feedSession}`}
-              account={user?.id || "local"}
-              paused={Boolean(selected || auth)}
-              library={library}
-              fallback={filmList}
-              open={setSelected}
-              update={update}
-              configure={() => openSettings()}
-            />
+            cloud && !user ? (
+              <SignInRequired
+                title="Pour vous"
+                message="Connectez-vous pour accéder à vos recommandations personnalisées."
+                signIn={() => setAuth(true)}
+              />
+            ) : (
+              <Recommendations
+                key={`${user?.id || "local"}:${feedSession}`}
+                account={user?.id || "local"}
+                paused={Boolean(selected || auth)}
+                library={library}
+                fallback={filmList}
+                open={setSelected}
+                update={update}
+                configure={() => openSettings()}
+              />
+            )
           ) : (
-            <WebRecommendationsNotice explore={() => navigate("search")} />
+            <WebRecommendationsNotice
+              explore={() => navigate("search")}
+              signIn={cloud && !user ? () => setAuth(true) : undefined}
+            />
           ))}
         {page === "library" && (
           <section className="page-section">
@@ -989,149 +1018,168 @@ function App() {
             )}
           </section>
         )}
-        {page === "edit-profile" && (
-          <ProfileEditor
-            key={user?.id || "local"}
-            initial={personal.profile}
-            library={library}
-            defaultName={user?.email?.split("@")[0] || ""}
-            connected={Boolean(user)}
-            busy={personal.busy}
-            save={personal.save}
-            close={closeProfileEditor}
-            toast={toast}
-          />
-        )}
-        {page === "profile" && (
-          <section className="page-section profile">
-            <h1>Profil</h1>
-            <ProfileOverview
-              profile={personal.profile}
-              library={library}
-              email={user?.email}
-              edit={openProfileEditor}
-              open={setSelected}
-              toast={toast}
-              pending={Boolean(user && personal.pending)}
+        {page === "edit-profile" &&
+          (cloud && !user ? (
+            <SignInRequired
+              title="Profil"
+              message="Connectez-vous pour modifier votre profil et le retrouver sur vos appareils."
+              signIn={() => setAuth(true)}
             />
-            {personal.error && <p className="muted fine">{personal.error}</p>}
-            <div className="profile-panel surface">
-              <div>
-                <h2>Synchronisation</h2>
-                <p className="muted">
-                  {user
-                    ? syncState === "success"
-                      ? "Vos notes et vos listes sont synchronisées."
-                      : syncState === "syncing"
-                        ? "Synchronisation en cours…"
-                        : syncState === "error"
-                          ? "La synchronisation a échoué. Vos données restent sur cet appareil."
-                          : syncState === "pending"
-                            ? "Vos changements sont enregistrés sur cet appareil et attendent la prochaine sauvegarde Supabase."
-                            : "Votre collection est enregistrée sur cet appareil."
-                    : "Connectez Supabase pour retrouver vos listes sur le web et Android."}
-                </p>
-                {user && backup.state.lastSuccess > 0 && (
-                  <p className="muted fine">
-                    Dernière sauvegarde :{" "}
-                    {new Date(backup.state.lastSuccess).toLocaleString("fr-FR")}
-                    .
+          ) : (
+            <ProfileEditor
+              key={user?.id || "local"}
+              initial={personal.profile}
+              library={library}
+              defaultName={user?.email?.split("@")[0] || ""}
+              connected={Boolean(user)}
+              busy={personal.busy}
+              save={personal.save}
+              close={closeProfileEditor}
+              toast={toast}
+            />
+          ))}
+        {page === "profile" &&
+          (cloud && !user ? (
+            <SignInRequired
+              title="Profil"
+              message="Connectez-vous pour retrouver votre profil, vos statistiques et vos sauvegardes."
+              signIn={() => setAuth(true)}
+            />
+          ) : (
+            <section className="page-section profile">
+              <h1>Profil</h1>
+              <ProfileOverview
+                profile={personal.profile}
+                library={library}
+                email={user?.email}
+                edit={openProfileEditor}
+                open={setSelected}
+                toast={toast}
+                pending={Boolean(user && personal.pending)}
+              />
+              {personal.error && <p className="muted fine">{personal.error}</p>}
+              <div className="profile-panel surface">
+                <div>
+                  <h2>Synchronisation</h2>
+                  <p className="muted">
+                    {user
+                      ? syncState === "success"
+                        ? "Vos notes et vos listes sont synchronisées."
+                        : syncState === "syncing"
+                          ? "Synchronisation en cours…"
+                          : syncState === "error"
+                            ? "La synchronisation a échoué. Vos données restent sur cet appareil."
+                            : syncState === "pending"
+                              ? "Vos changements sont enregistrés sur cet appareil et attendent la prochaine sauvegarde Supabase."
+                              : "Votre collection est enregistrée sur cet appareil."
+                      : "Connectez Supabase pour retrouver vos listes sur le web et Android."}
                   </p>
+                  {user && backup.state.lastSuccess > 0 && (
+                    <p className="muted fine">
+                      Dernière sauvegarde :{" "}
+                      {new Date(backup.state.lastSuccess).toLocaleString(
+                        "fr-FR",
+                      )}
+                      .
+                    </p>
+                  )}
+                </div>
+                {user ? (
+                  <>
+                    <button
+                      className="button"
+                      disabled={syncState === "syncing"}
+                      onClick={syncNow}
+                    >
+                      {syncState === "syncing"
+                        ? "Synchronisation…"
+                        : "Synchroniser"}
+                    </button>
+                    <button
+                      className="icon-button"
+                      aria-label="Se déconnecter"
+                      onClick={() => cloud?.auth.signOut()}
+                    >
+                      <LogOut size={20} />
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    className="button primary"
+                    onClick={() => (cloud ? setAuth(true) : openSettings())}
+                  >
+                    {cloud ? "Se connecter" : "Configurer Supabase"}
+                    <ArrowRight size={16} />
+                  </button>
                 )}
               </div>
-              {user ? (
-                <>
+              {syncIssue && (
+                <section className="sync-error" role="alert">
+                  <h3>Synchronisation à rétablir</h3>
+                  <p>{syncIssue.message}</p>
                   <button
-                    className="button"
-                    disabled={syncState === "syncing"}
-                    onClick={syncNow}
+                    className="button tonal"
+                    onClick={() => openSettings()}
                   >
-                    {syncState === "syncing"
-                      ? "Synchronisation…"
-                      : "Synchroniser"}
+                    Corriger Supabase <ArrowRight size={18} />
                   </button>
-                  <button
-                    className="icon-button"
-                    aria-label="Se déconnecter"
-                    onClick={() => cloud?.auth.signOut()}
-                  >
-                    <LogOut size={20} />
-                  </button>
-                </>
-              ) : (
-                <button
-                  className="button primary"
-                  onClick={() => (cloud ? setAuth(true) : openSettings())}
-                >
-                  {cloud ? "Se connecter" : "Configurer Supabase"}
-                  <ArrowRight size={16} />
-                </button>
+                </section>
               )}
-            </div>
-            {syncIssue && (
-              <section className="sync-error" role="alert">
-                <h3>Synchronisation à rétablir</h3>
-                <p>{syncIssue.message}</p>
-                <button className="button tonal" onClick={() => openSettings()}>
-                  Corriger Supabase <ArrowRight size={18} />
+              <div className="profile-panel">
+                <div>
+                  <h3>Sauvegarde locale</h3>
+                  <p className="muted">
+                    Une sauvegarde JSON de vos notes, listes et visionnages.
+                  </p>
+                </div>
+                <button
+                  className="button surface"
+                  onClick={() =>
+                    exportCollection(library).catch(() =>
+                      toast("Export annulé ou indisponible."),
+                    )
+                  }
+                >
+                  <Download size={17} />
+                  Exporter
                 </button>
-              </section>
-            )}
-            <div className="profile-panel">
-              <div>
-                <h3>Sauvegarde locale</h3>
-                <p className="muted">
-                  Une sauvegarde JSON de vos notes, listes et visionnages.
-                </p>
-              </div>
-              <button
-                className="button surface"
-                onClick={() =>
-                  exportCollection(library).catch(() =>
-                    toast("Export annulé ou indisponible."),
-                  )
-                }
-              >
-                <Download size={17} />
-                Exporter
-              </button>
-              <label className="button surface">
-                Importer
-                <input
-                  type="file"
-                  accept="application/json"
-                  hidden
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    try {
-                      const data = parseCollection(await file.text());
-                      const merged = { ...local.current, ...data };
-                      write(merged, user?.id);
-                      setLibrary(merged);
-                      local.current = merged;
-                      if (user) {
-                        try {
-                          backupService.changed(user.id);
-                        } catch {
-                          toast(
-                            "Collection importée. Vérifiez l’espace disponible avant la sauvegarde.",
-                          );
+                <label className="button surface">
+                  Importer
+                  <input
+                    type="file"
+                    accept="application/json"
+                    hidden
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      try {
+                        const data = parseCollection(await file.text());
+                        const merged = { ...local.current, ...data };
+                        write(merged, user?.id);
+                        setLibrary(merged);
+                        local.current = merged;
+                        if (user) {
+                          try {
+                            backupService.changed(user.id);
+                          } catch {
+                            toast(
+                              "Collection importée. Vérifiez l’espace disponible avant la sauvegarde.",
+                            );
+                          }
                         }
+                        toast("Collection importée.");
+                      } catch {
+                        toast(
+                          "Import impossible : vérifiez le fichier JSON ou la connexion.",
+                        );
                       }
-                      toast("Collection importée.");
-                    } catch {
-                      toast(
-                        "Import impossible : vérifiez le fichier JSON ou la connexion.",
-                      );
-                    }
-                    e.target.value = "";
-                  }}
-                />
-              </label>
-            </div>
-          </section>
-        )}
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+              </div>
+            </section>
+          ))}
       </main>
       <nav className="mobile-nav" aria-label="Navigation principale">
         <BottomNavigation
@@ -1645,6 +1693,7 @@ function SettingsPage({
   theme,
   setTheme,
   repairNeeded,
+  signIn,
   library,
   fallback,
   account,
@@ -1658,6 +1707,7 @@ function SettingsPage({
   theme: ThemePreference;
   setTheme: (t: ThemePreference) => void;
   repairNeeded: boolean;
+  signIn: () => void;
 }) {
   const config = getConfig();
   const [url, setUrl] = useState(config.url),
@@ -1712,6 +1762,7 @@ function SettingsPage({
           backup={backup}
           connected={account !== "local"}
           configured={Boolean(cloud)}
+          signIn={signIn}
         />
         <hr />
         <NotificationSettings
@@ -1720,205 +1771,224 @@ function SettingsPage({
           account={account}
         />
         <hr />
-        <h2>Catalogue TMDB</h2>
+        <h2>Compte et catalogue</h2>
         <p className="muted">
-          Films et séries, titres français et originaux, affiches, fiches et
-          épisodes. Une clé API gratuite est nécessaire pour un usage non
-          commercial.
+          {cloud && tmdbEnabled()
+            ? "Le catalogue et la synchronisation sont configurés. Aucune clé n’est à renseigner."
+            : "Configuration des services du catalogue et du compte."}
         </p>
-        <ol className="catalog-help">
-          <li>
-            Créez un compte sur{" "}
-            <a
-              href="https://www.themoviedb.org/signup"
-              target="_blank"
-              rel="noreferrer"
-            >
-              themoviedb.org
-            </a>
-            .
-          </li>
-          <li>
-            Dans le navigateur, ouvrez{" "}
-            <a
-              href="https://www.themoviedb.org/settings/api"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Paramètres → API
-            </a>
-            , puis demandez une clé développeur. Sur téléphone, activez au
-            besoin « site pour ordinateur ».
-          </li>
-          <li>
-            Collez ici le jeton de lecture API ou la clé API v3. Ne les envoyez
-            pas dans ChatGPT.
-          </li>
-        </ol>
-        <form
-          onSubmit={async (e) => {
-            e.preventDefault();
-            setCheckingTmdb(true);
-            setTmdbError("");
-            try {
-              await saveTmdbCredential(tmdbToken);
-            } catch (error) {
-              setTmdbError(
-                error instanceof Error
-                  ? error.message
-                  : "TMDB n’est pas joignable. Vérifiez la connexion et réessayez.",
-              );
-            } finally {
-              setCheckingTmdb(false);
-            }
-          }}
-        >
-          <label className="field">
-            Jeton de lecture TMDB ou clé API
-            <input
-              type="password"
-              autoComplete="off"
-              spellCheck={false}
-              value={tmdbToken}
-              onChange={(e) => setTmdbToken(e.target.value)}
-              required
-              placeholder="Jeton eyJ… ou clé API v3"
-            />
-          </label>
-          <p className="muted fine">
-            Enregistré uniquement sur cet appareil. Ce réglage est indépendant
-            de Supabase ; vos listes et notes sont conservées.
-          </p>
-          {tmdbError && (
-            <p className="error" role="alert">
-              {tmdbError}
-            </p>
-          )}
-          <button className="button primary" disabled={checkingTmdb}>
-            {checkingTmdb ? (
-              <>
-                <LoaderCircle className="spin" size={18} />
-                Vérification…
-              </>
-            ) : (
-              "Activer TMDB"
-            )}
-          </button>
-        </form>
-        {tmdbEnabled() && (
-          <button className="text-button disconnect" onClick={disableTmdb}>
-            Revenir au catalogue limité
+        {cloud && account === "local" && (
+          <button className="button primary" onClick={signIn}>
+            Se connecter
           </button>
         )}
-        <hr />
-        <h2>Connecter Supabase</h2>
-        <p className="muted">
-          Sans configuration, Vela garde vos données sur cet appareil. Pour
-          synchroniser, créez un projet Supabase gratuit, exécutez le fichier{" "}
-          <code>supabase/schema.sql</code> et renseignez les identifiants
-          publics du projet.
-        </p>
-        <details className="sql-guide" open={repairNeeded}>
-          <summary>Corriger l’erreur public.library</summary>
-          <ol>
+        <details
+          className="advanced-services"
+          open={!defaultServices.supabaseUrl || repairNeeded}
+        >
+          <summary>Configuration avancée des services</summary>
+          <h2>Catalogue TMDB</h2>
+          <p className="muted">
+            Films et séries, titres français et originaux, affiches, fiches et
+            épisodes. Une clé API gratuite est nécessaire pour un usage non
+            commercial.
+          </p>
+          <ol className="catalog-help">
             <li>
-              Ouvrez le projet Supabase dont l’URL est renseignée ci-dessous.
+              Créez un compte sur{" "}
+              <a
+                href="https://www.themoviedb.org/signup"
+                target="_blank"
+                rel="noreferrer"
+              >
+                themoviedb.org
+              </a>
+              .
             </li>
             <li>
-              Dans SQL Editor → New query, collez ce script puis appuyez sur
-              Run.
+              Dans le navigateur, ouvrez{" "}
+              <a
+                href="https://www.themoviedb.org/settings/api"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Paramètres → API
+              </a>
+              , puis demandez une clé développeur. Sur téléphone, activez au
+              besoin « site pour ordinateur ».
             </li>
             <li>
-              Revenez dans Profil et appuyez sur Synchroniser. Le site web n’a
-              pas besoin d’être publié.
+              Collez ici le jeton de lecture API ou la clé API v3. Ne les
+              envoyez pas dans ChatGPT.
             </li>
           </ol>
-          <label className="field">
-            Script SQL de réparation
-            <textarea
-              aria-label="Script SQL de réparation"
-              readOnly
-              value={repairSql}
-              rows={8}
-            />
-          </label>
-          <button
-            className="button tonal"
-            onClick={async () => {
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              setCheckingTmdb(true);
+              setTmdbError("");
               try {
-                await Clipboard.write({ string: repairSql });
-                setCopyMessage(
-                  "Script copié. Collez-le dans SQL Editor de Supabase.",
+                await saveTmdbCredential(tmdbToken);
+              } catch (error) {
+                setTmdbError(
+                  error instanceof Error
+                    ? error.message
+                    : "TMDB n’est pas joignable. Vérifiez la connexion et réessayez.",
                 );
-              } catch {
-                setCopyMessage(
-                  "Copie indisponible. Sélectionnez le script ci-dessus pour le copier.",
-                );
+              } finally {
+                setCheckingTmdb(false);
               }
             }}
           >
-            Copier le script SQL
-          </button>
-          {copyMessage && (
-            <p className="muted" role="status">
-              {copyMessage}
+            <label className="field">
+              Jeton de lecture TMDB ou clé API
+              <input
+                type="password"
+                autoComplete="off"
+                spellCheck={false}
+                value={tmdbToken}
+                onChange={(e) => setTmdbToken(e.target.value)}
+                required
+                placeholder="Jeton eyJ… ou clé API v3"
+              />
+            </label>
+            <p className="muted fine">
+              Enregistré uniquement sur cet appareil. Ce réglage est indépendant
+              de Supabase ; vos listes et notes sont conservées.
             </p>
+            {tmdbError && (
+              <p className="error" role="alert">
+                {tmdbError}
+              </p>
+            )}
+            <button className="button primary" disabled={checkingTmdb}>
+              {checkingTmdb ? (
+                <>
+                  <LoaderCircle className="spin" size={18} />
+                  Vérification…
+                </>
+              ) : (
+                "Activer TMDB"
+              )}
+            </button>
+          </form>
+          {tmdbEnabled() && (
+            <button className="text-button disconnect" onClick={disableTmdb}>
+              {defaultServices.tmdbKey
+                ? "Utiliser la configuration Vela"
+                : "Revenir au catalogue limité"}
+            </button>
           )}
-        </details>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            try {
-              saveConfig(url, key);
-            } catch (e: any) {
-              setError(e.message);
-            }
-          }}
-        >
-          <label className="field">
-            URL du projet
-            <input
-              type="url"
-              required
-              placeholder="https://votre-projet.supabase.co"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-            />
-          </label>
-          <label className="field">
-            Clé publique (publishable ou anon)
-            <input
-              required
-              placeholder="sb_publishable_… ou eyJ…"
-              value={key}
-              onChange={(e) => setKey(e.target.value)}
-            />
-          </label>
-          <p className="muted fine">
-            N’utilisez jamais une clé secret ou service_role. Ces identifiants
-            publics restent sur cet appareil. Les politiques de sécurité du
-            schéma protègent votre collection.
+          <hr />
+          <h2>Connecter Supabase</h2>
+          <p className="muted">
+            Sans configuration, Vela garde vos données sur cet appareil. Pour
+            synchroniser, créez un projet Supabase gratuit, exécutez le fichier{" "}
+            <code>supabase/schema.sql</code> et renseignez les identifiants
+            publics du projet.
           </p>
-          {error && (
-            <p className="error" role="alert">
-              {error}
-            </p>
-          )}
-          <button className="button primary">
-            Enregistrer et recharger <ArrowRight size={17} />
-          </button>
-        </form>
-        {config.url && (
-          <button
-            className="text-button disconnect"
-            onClick={() => {
-              localStorage.removeItem("luma-cloud");
-              location.reload();
+          <details className="sql-guide" open={repairNeeded}>
+            <summary>Corriger l’erreur public.library</summary>
+            <ol>
+              <li>
+                Ouvrez le projet Supabase dont l’URL est renseignée ci-dessous.
+              </li>
+              <li>
+                Dans SQL Editor → New query, collez ce script puis appuyez sur
+                Run.
+              </li>
+              <li>
+                Revenez dans Profil et appuyez sur Synchroniser. Le site web n’a
+                pas besoin d’être publié.
+              </li>
+            </ol>
+            <label className="field">
+              Script SQL de réparation
+              <textarea
+                aria-label="Script SQL de réparation"
+                readOnly
+                value={repairSql}
+                rows={8}
+              />
+            </label>
+            <button
+              className="button tonal"
+              onClick={async () => {
+                try {
+                  await Clipboard.write({ string: repairSql });
+                  setCopyMessage(
+                    "Script copié. Collez-le dans SQL Editor de Supabase.",
+                  );
+                } catch {
+                  setCopyMessage(
+                    "Copie indisponible. Sélectionnez le script ci-dessus pour le copier.",
+                  );
+                }
+              }}
+            >
+              Copier le script SQL
+            </button>
+            {copyMessage && (
+              <p className="muted" role="status">
+                {copyMessage}
+              </p>
+            )}
+          </details>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              try {
+                saveConfig(url, key);
+              } catch (e: any) {
+                setError(e.message);
+              }
             }}
           >
-            Réinitialiser la configuration locale
-          </button>
-        )}
+            <label className="field">
+              URL du projet
+              <input
+                type="url"
+                required
+                placeholder="https://votre-projet.supabase.co"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+              />
+            </label>
+            <label className="field">
+              Clé publique (publishable ou anon)
+              <input
+                required
+                placeholder="sb_publishable_… ou eyJ…"
+                value={key}
+                onChange={(e) => setKey(e.target.value)}
+              />
+            </label>
+            <p className="muted fine">
+              N’utilisez jamais une clé secret ou service_role. Ces identifiants
+              publics restent sur cet appareil. Les politiques de sécurité du
+              schéma protègent votre collection.
+            </p>
+            {error && (
+              <p className="error" role="alert">
+                {error}
+              </p>
+            )}
+            <button className="button primary">
+              Enregistrer et recharger <ArrowRight size={17} />
+            </button>
+          </form>
+          {config.url && (
+            <button
+              className="text-button disconnect"
+              onClick={() => {
+                localStorage.removeItem("luma-cloud");
+                location.reload();
+              }}
+            >
+              Réinitialiser la configuration locale
+            </button>
+          )}
+        </details>
       </div>
       <SettingsFooter />
     </section>
@@ -2007,7 +2077,7 @@ function AuthModal({
             ) : signup ? (
               "Créer mon compte"
             ) : (
-              "Me connecter"
+              "Se connecter"
             )}
           </button>
         </form>

@@ -33,7 +33,7 @@ npm ci
 npm run dev
 ```
 
-Production web : `npm run build:web`. Le dossier `dist/` est autonome et inclut le téléchargement Android. Le build embarqué Android utilise `npm run build`. Une clé TMDB est nécessaire pour le catalogue étendu. Sans clé, le catalogue limité iTunes/TVmaze reste utilisable et l’application propose d’activer TMDB. Une connexion Internet est nécessaire pour charger les fiches ; les données de collection déjà enregistrées restent accessibles hors ligne.
+Production web : `npm run build:web`. Le dossier `dist/` est autonome et inclut le téléchargement Android. Le build embarqué Android utilise `npm run build`. TMDB et Supabase sont préconfigurés dans les distributions Vela 2.1 ; aucune clé n’est nécessaire côté utilisateur. Sans clé, le catalogue limité iTunes/TVmaze reste utilisable et l’application propose d’activer TMDB. Une connexion Internet est nécessaire pour charger les fiches ; les données de collection déjà enregistrées restent accessibles hors ligne.
 
 ## Pour vous : fil continu et réactions
 
@@ -179,7 +179,7 @@ npm run build
 npm test
 ```
 
-Les 101 tests Playwright utilisent Chromium et des réponses d’API contrôlées pour vérifier les listes, la persistance, les notes et critiques, les épisodes, l’affichage mobile, les thèmes et les erreurs réseau. Un test supplémentaire exerce le SDK Supabase avec authentification contrôlée : table manquante, enregistrement local pendant l’échec, guide SQL puis synchronisation après réparation simulée. Le fichier `playwright.config.ts` utilise `/usr/bin/chromium` dans ce cloud ; ailleurs définir `CHROMIUM_PATH` ou installer Chromium avec `npx playwright install --with-deps chromium` (sélection automatique en l’absence de Chromium système).
+Les 105 tests Playwright utilisent Chromium et des réponses d’API contrôlées pour vérifier les listes, la persistance, les notes et critiques, les épisodes, l’affichage mobile, les thèmes et les erreurs réseau. Un test supplémentaire exerce le SDK Supabase avec authentification contrôlée : table manquante, enregistrement local pendant l’échec, guide SQL puis synchronisation après réparation simulée. Le fichier `playwright.config.ts` utilise `/usr/bin/chromium` dans ce cloud ; ailleurs définir `CHROMIUM_PATH` ou installer Chromium avec `npx playwright install --with-deps chromium` (sélection automatique en l’absence de Chromium système).
 
 Les tests TMDB couvrent la pagination, les résultats sans affiche, l’authentification v3/v4, la validation/refus de clé, les fiches IMDb/vidéos, les saisons chargées à la demande, les erreurs et la conservation de la progression et des anciennes notes. Ces réponses sont simulées. Un vrai jeton et l’accès réseau sont requis pour une validation réelle de TMDB.
 
@@ -214,6 +214,15 @@ Le titre mis en avant et les rayons de films/séries utilisent un classement lé
 
 ### Disponibilité de « Pour vous » sur le web
 
-Le bouton « Pour vous » reste visible mais le site indique que les recommandations personnalisées sont en cours de développement sur le web. Cette page propose le téléchargement direct de la version Android 2.0.0, sans faux lien vers un store. Le feed et son moteur local restent disponibles dans l’APK.
+Le bouton « Pour vous » reste visible mais le site indique que les recommandations personnalisées sont en cours de développement sur le web. Cette page propose le téléchargement direct de la version Android 2.1.0, sans faux lien vers un store. Le feed et son moteur local restent disponibles dans l’APK.
 
 Pour préparer le site avec ce téléchargement : `npm run build:web`. Le workflow Pages utilise cette commande. Le fichier de l’APK est conservé dans `downloads/`, hors de `public/`, et copié seulement après le build web pour ne pas être embarqué dans les builds Android suivants.
+
+
+## Services préconfigurés depuis 2.1
+
+Le site et l’APK embarquent les identifiants client publics TMDB et Supabase de Vela dans `src/service-config.ts`. Le catalogue fonctionne immédiatement. Le profil, les sauvegardes du compte et la personnalisation de l’accueil/feed nécessitent une connexion ; les recommandations web restent en développement.
+
+Les configurations locales valides sont prioritaires pour conserver les projets existants, et les variables de build restent disponibles pour un autre déploiement. Les anciennes préférences TMDB vides reviennent à la configuration Vela. Les formulaires techniques sont regroupés dans les réglages avancés. Aucune clé serveur Supabase n’est utilisée. Les collections restent sous RLS, les sessions appartiennent à chaque utilisateur, et aucune donnée anonyme n’est transférée silencieusement à un compte.
+
+Le mode test de Vite isole les cas historiques sans identifiants. Les tests du démarrage préconfiguré utilisent un serveur normal séparé et le vrai SDK avec réponses contrôlées.

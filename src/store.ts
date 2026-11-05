@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { serviceDefaults } from "./service-config";
 import type { Title } from "./catalog";
 export type Entry = {
   title: Title;
@@ -96,17 +97,23 @@ export const empty = (title: Title): Entry => ({
   watchedAt: new Date().toISOString().slice(0, 10),
   episodes: [],
 });
-export function getConfig() {
+export function getConfig(): { url: string; key: string } {
+  const fallback = { url: serviceDefaults.url, key: serviceDefaults.key };
   try {
-    return (
-      JSON.parse(localStorage.getItem("luma-cloud") || "null") || {
-        url: import.meta.env.VITE_SUPABASE_URL || "",
-        key: import.meta.env.VITE_SUPABASE_ANON_KEY || "",
-      }
-    );
+    const saved = JSON.parse(localStorage.getItem("luma-cloud") || "null");
+    if (
+      saved &&
+      typeof saved.url === "string" &&
+      /^https:\/\/[a-z0-9.-]+\.supabase\.co\/?$/.test(saved.url.trim()) &&
+      typeof saved.key === "string" &&
+      saved.key.trim()
+    ) {
+      return { url: saved.url.trim(), key: saved.key.trim() };
+    }
   } catch {
-    return { url: "", key: "" };
+    /* A damaged or inaccessible preference must not prevent startup. */
   }
+  return fallback;
 }
 const c = getConfig();
 export const cloud = c.url && c.key ? createClient(c.url, c.key) : null;

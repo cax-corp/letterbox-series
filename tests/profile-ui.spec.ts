@@ -135,12 +135,7 @@ async function setup(page: Page, signed = false) {
   });
   await page.goto("/");
   if (signed)
-    await expect(
-      page.getByRole("button", {
-        name: "Mon espace Connecté à Supabase",
-        includeHidden: true,
-      }),
-    ).toBeAttached();
+    await expect(page.locator(".sidebar .account")).toContainText("Mon espace");
   await page.getByRole("button", { name: "Profil", exact: true }).click();
   return {
     puts: () => puts,

@@ -2945,3 +2945,41 @@ body:has(.feed-ambience) {
     padding-block: 24px;
   }
 }
+
+.sign-in-page {
+  display: grid;
+  place-items: center;
+  min-height: calc(100dvh - 88px - var(--safe-top));
+}
+.sign-in-panel {
+  width: 100%;
+  max-width: 560px;
+  padding: clamp(24px, 5vw, 48px);
+  border-radius: 28px;
+}
+.sign-in-panel > svg {
+  color: var(--blue);
+  margin-bottom: 16px;
+}
+.sign-in-panel h1 {
+  font: 750 36px / 1.15 var(--font);
+  letter-spacing: -1px;
+  margin-bottom: 16px;
+}
+.sign-in-panel .button {
+  margin-top: 24px;
+}
+.advanced-services {
+  margin-top: 24px;
+}
+.advanced-services > summary {
+  cursor: pointer;
+  color: var(--muted);
+  padding-block: 16px;
+  font-size: 13px;
+}
+@media (max-width: 760px) {
+  .sign-in-page {
+    min-height: calc(100dvh - 168px - var(--safe-top) - var(--safe-bottom));
+  }
+}

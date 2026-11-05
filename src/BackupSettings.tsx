@@ -4,10 +4,12 @@ export default function BackupSettings({
   backup,
   connected,
   configured,
+  signIn,
 }: {
   backup: BackupController;
   connected: boolean;
   configured: boolean;
+  signIn?: () => void;
 }) {
   const { state, pending, status, issue } = backup;
   const next = nextAutomaticAt(state);
@@ -24,6 +26,11 @@ export default function BackupSettings({
         copie Supabase est regroupée pour limiter les transferts : seuls les
         éléments nouveaux ou modifiés sont envoyés.
       </p>
+      {!connected && configured && signIn && (
+        <button className="button primary" onClick={signIn}>
+          Se connecter
+        </button>
+      )}
       {connected ? (
         <>
           <label className="field">

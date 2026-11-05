@@ -1,6 +1,6 @@
 # Mettre Vela en ligne sur GitHub Pages
 
-La version web contient les fonctions du Vela 2.0 actuel : films/séries, recherche TMDB, collection, notes et avis, profils et avatars prédéfinis, statistiques et sauvegardes Supabase. Les recommandations personnalisées « Pour vous » sont réservées à l’application mobile pour le moment ; le site affiche un message et propose le téléchargement de l’APK Android. Elle adapte la navigation au PC et au mobile. Les notifications programmées quand l’app est fermée restent une fonction de l’APK Android ; le site ne prétend pas les envoyer navigateur fermé.
+La version web contient les fonctions du Vela 2.1 actuel : films/séries, recherche TMDB, collection, notes et avis, profils et avatars prédéfinis, statistiques et sauvegardes Supabase. Les recommandations personnalisées « Pour vous » sont réservées à l’application mobile pour le moment ; le site affiche un message et propose le téléchargement de l’APK Android. Elle adapte la navigation au PC et au mobile. Les notifications programmées quand l’app est fermée restent une fonction de l’APK Android ; le site ne prétend pas les envoyer navigateur fermé.
 
 La création de liens de partage ouvrant le site ou l’APK est volontairement reportée. Le partage existant de cartes PNG et de texte reste en place. Cette publication ne configure ni Android App Links, ni domaine Cloudflare.
 
@@ -35,11 +35,15 @@ Le job de compilation fournit aussi un artefact **Vela-site-web**, même si une 
 
 ## 3. Retrouver la collection de l’APK
 
-1. Dans l’APK, ouvrir **Profil → Synchroniser** pour envoyer les derniers changements sans attendre la prochaine sauvegarde quotidienne.
-2. Sur le site publié, ouvrir **Réglages → Connecter Supabase**. Utiliser **le même projet existant** : son URL HTTPS et sa clé publique `publishable` ou `anon`. Jamais `service_role` ni une clé `sb_secret_…`.
-3. Enregistrer, laisser la page se recharger, puis se connecter dans **Profil** avec le même compte que dans l’APK.
-4. La première synchronisation de ce navigateur récupère la collection et les métadonnées de profil. Le bouton **Synchroniser** permet aussi de la lancer manuellement.
-5. Dans **Réglages → Catalogue TMDB**, renseigner la même clé/jeton de lecture TMDB que sur le téléphone pour accéder au catalogue complet.
+TMDB et le projet Supabase de Vela sont préconfigurés dans le site et l’APK depuis 2.1. Aucune clé ni URL n’est à saisir pour utiliser Vela.
+
+1. Dans l’APK, se connecter au compte habituel puis ouvrir **Profil → Synchroniser** pour envoyer les derniers changements.
+2. Sur le site publié, cliquer sur **Se connecter** et utiliser le même compte.
+3. La synchronisation récupère la collection et le profil du compte. Le bouton **Synchroniser** reste disponible.
+
+Le catalogue fonctionne sans compte. Le profil personnel et les recommandations personnalisées de l’APK demandent une connexion. La collection locale reste disponible, et les données anonymes ne sont pas importées silencieusement dans un compte. Sur le web, « Pour vous » reste en développement et propose le téléchargement Android.
+
+Les anciennes configurations personnalisées sont conservées. Pour gérer un autre projet, ouvrir **Réglages → Configuration avancée des services**. Réinitialiser la configuration locale restaure celle de Vela.
 
 Les réglages et sessions du navigateur sont distincts de ceux du téléphone. Ils ne sont pas copiés depuis l’APK. Les profils et collections des comptes restent séparés des données anonymes. Aucun nouveau script SQL n’est nécessaire pour un projet déjà configuré avec Vela.
 
@@ -47,7 +51,7 @@ Dans **Supabase → Authentication → URL Configuration**, définir l’adresse
 
 ## Configuration facultative lors du build
 
-La saisie dans Réglages suffit. Pour préconfigurer le site publié, le workflow accepte :
+La configuration publique Vela est intégrée dans `src/service-config.ts`. Pour un déploiement différent, le workflow accepte les substitutions suivantes :
 
 | Réglage GitHub du dépôt | Nom | Valeur |
 | --- | --- | --- |
@@ -70,3 +74,8 @@ Ajouter ensuite `https://vela.thomasbarial.com/` aux URL autorisées de Supabase
 ## Reconstruire le site localement
 
 Avec Node 22 : `npm ci`, puis `npm run build:web`. Le dossier `dist` contient le site et le téléchargement Android. `npm run build` produit les seules ressources de l’application, sans ajouter la copie de l’APK à l’intérieur de celle-ci. Les fichiers de téléchargement sont décrits dans `downloads/README.md`.
+
+
+## Tests isolés
+
+Playwright démarre un serveur Vite en mode `test` sur 5173 pour les cas historiques sans services configurés, et un serveur normal sur 5174 pour tester le démarrage préconfiguré, la connexion et les accès au profil/feed. Les appels sont interceptés avec des réponses contrôlées : les tests ne créent pas de vrais comptes et ne lisent pas les données de production. Le mode test ne doit pas être utilisé pour compiler le site distribué.

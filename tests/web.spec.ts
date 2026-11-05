@@ -87,7 +87,7 @@ test("web : Pour vous présente son indisponibilité et un vrai téléchargement
       .getByRole("link", { name: "Télécharger pour Android", exact: true })
       .click(),
   ]);
-  expect(download.suggestedFilename()).toBe("Vela-2.0.0.apk");
+  expect(download.suggestedFilename()).toBe("Vela-2.1.0.apk");
   expect(await download.failure()).toBeNull();
   const { readFile } = await import("node:fs/promises");
   const apk = await readFile((await download.path())!);
@@ -173,11 +173,7 @@ test("web : les e-mails de confirmation reviennent vers la base du site, sans mo
     },
   );
   await page.goto("/");
-  await page
-    .locator(".sidebar")
-    .getByRole("button", { name: "Votre espace Collection locale" })
-    .click();
-  await page.getByRole("button", { name: "Se connecter", exact: true }).click();
+  await page.locator(".sidebar").locator(".account").click();
   const dialog = page.getByRole("dialog");
   await dialog.getByRole("button", { name: /Créer un compte/ }).click();
   await dialog.getByLabel("E-mail", { exact: true }).fill("web@example.com");

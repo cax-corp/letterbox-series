@@ -1,3 +1,4 @@
+import { serviceDefaults } from "./service-config";
 export type Season = { number: number; name: string; count: number };
 export type Episode = {
   id: number;
@@ -65,12 +66,13 @@ const genres: Record<number, string> = {
   10768: "Guerre & politique",
 };
 export function getTmdbCredential(): string {
-  return (
-    localStorage.getItem("luma-tmdb-token") ??
-    (import.meta.env.VITE_TMDB_READ_TOKEN ||
-      import.meta.env.VITE_TMDB_API_KEY ||
-      "")
-  );
+  try {
+    const saved = localStorage.getItem("luma-tmdb-token")?.trim();
+    if (saved) return saved;
+  } catch {
+    /* The bundled catalogue also works if browser storage is unavailable. */
+  }
+  return serviceDefaults.tmdb;
 }
 export function tmdbEnabled() {
   return Boolean(getTmdbCredential().trim());
@@ -146,7 +148,7 @@ export async function saveTmdbCredential(input: string) {
   location.reload();
 }
 export function disableTmdb() {
-  localStorage.setItem("luma-tmdb-token", "");
+  localStorage.removeItem("luma-tmdb-token");
   location.reload();
 }
 function fromTmdb(x: any, kind: Title["kind"]): Title {

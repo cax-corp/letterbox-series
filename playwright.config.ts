@@ -12,10 +12,17 @@ export default defineConfig({
       args: ["--no-sandbox"],
     },
   },
-  webServer: {
-    command: "npm run dev",
-    url: "http://127.0.0.1:5173",
-    reuseExistingServer: true,
-  },
+  webServer: [
+    {
+      command: "npm run dev -- --mode test",
+      url: "http://127.0.0.1:5173",
+      reuseExistingServer: !process.env.CI,
+    },
+    {
+      command: "npm run dev -- --port 5174",
+      url: "http://127.0.0.1:5174",
+      reuseExistingServer: !process.env.CI,
+    },
+  ],
   reporter: "list",
 });

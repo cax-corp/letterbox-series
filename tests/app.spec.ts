@@ -293,14 +293,13 @@ test("Supabase: table absente, guide de réparation puis synchronisation réussi
     },
   );
   await page.goto("/");
-  await page
-    .getByRole("button", { name: "Votre espace Collection locale" })
-    .click();
-  await page.getByRole("button", { name: "Se connecter", exact: true }).click();
+  await page.locator(".sidebar .account").click();
   const auth = page.getByRole("dialog");
   await auth.getByLabel("E-mail", { exact: true }).fill("test@example.com");
   await auth.getByLabel("Mot de passe", { exact: true }).fill("password-test");
-  await auth.getByRole("button", { name: "Me connecter", exact: true }).click();
+  await auth.getByRole("button", { name: "Se connecter", exact: true }).click();
+  await expect(auth).toHaveCount(0);
+  await page.locator(".sidebar .account").click();
   await expect(page.getByRole("alert")).toContainText(
     "Supabase ne trouve pas la table public.library",
   );
@@ -326,9 +325,7 @@ test("Supabase: table absente, guide de réparation puis synchronisation réussi
   const detail = page.getByRole("dialog");
   await detail.getByRole("button", { name: "À voir", exact: true }).click();
   await detail.getByRole("button", { name: "Fermer", exact: true }).click();
-  await page
-    .getByRole("button", { name: "Mon espace Connecté à Supabase" })
-    .click();
+  await page.locator(".sidebar .account").click();
   await expect(page.getByRole("alert")).toBeVisible();
   repaired = true;
   await page.getByRole("button", { name: "Synchroniser", exact: true }).click();

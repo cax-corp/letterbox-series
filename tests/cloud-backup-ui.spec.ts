@@ -221,7 +221,10 @@ test("une réponse distante arrivée après déconnexion ne remplace pas la coll
     .getByRole("button", { name: "Se déconnecter", exact: true })
     .click();
   await expect(
-    page.getByText("Le premier rôle, c’est vous.", { exact: true }),
+    page.getByText(
+      "Connectez-vous pour retrouver votre profil, vos statistiques et vos sauvegardes.",
+      { exact: true },
+    ),
   ).toBeVisible();
   release();
   await expect
