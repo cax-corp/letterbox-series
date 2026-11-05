@@ -18,7 +18,6 @@ export function SettingsFooter() {
         <span className="footer-brand" aria-label="Vela">
           <Brand />
         </span>
-        <p className="brand-tagline">FAIT POUR AIMER LES HISTOIRES.</p>
       </div>
       <div className="company-endorsement">
         <span className="cax-logo">

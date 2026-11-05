@@ -9,7 +9,6 @@ import {
   buildDailyPayload,
   type DailyState,
 } from "./notifications";
-import { Bell } from "./icons";
 import { Clipboard } from "@capacitor/clipboard";
 export default function NotificationSettings({
   library,
@@ -192,11 +191,7 @@ export default function NotificationSettings({
           : "Aucune alarme enregistrée";
   return (
     <section className="notification-settings">
-      <span className="eyebrow">
-        <Bell size={16} />
-        UNE IDÉE AU BON MOMENT
-      </span>
-      <h2>Votre rendez-vous cinéma</h2>
+      <h2>Notifications</h2>
       {supported ? (
         <>
           <p className="muted">

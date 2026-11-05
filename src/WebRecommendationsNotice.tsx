@@ -11,9 +11,6 @@ export default function WebRecommendationsNotice({
       aria-labelledby="web-recommendations-title"
     >
       <div className="web-recommendations-panel">
-        <div className="eyebrow">
-          <span className="blue-dot" aria-hidden="true" /> DISPONIBLE SUR MOBILE
-        </div>
         <h1 id="web-recommendations-title">Pour vous</h1>
         <p>
           Cette fonctionnalité est en cours de développement sur le web et n’est

@@ -25,13 +25,7 @@ test("web : barre du haut bord à bord et décoration simplifiée sur PC et mobi
   await expect(
     page.getByText("Gardez-en une trace.", { exact: true }),
   ).toHaveCount(0);
-  await expect(page.locator(".breadcrumb")).toHaveText(
-    "Votre dose d’histoires",
-  );
-  await expect(page.locator(".breadcrumb-dot")).toHaveAttribute(
-    "aria-hidden",
-    "true",
-  );
+  await expect(page.locator(".breadcrumb, .nav-caption")).toHaveCount(0);
   for (const width of [1916, 1440, 1024, 768, 390]) {
     await page.setViewportSize({ width, height: 932 });
     const header = (await page.locator(".topbar").boundingBox())!;

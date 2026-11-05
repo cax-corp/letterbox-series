@@ -565,7 +565,6 @@ function App() {
         >
           <Brand />
         </a>
-        <div className="nav-caption">VOTRE UNIVERS</div>
         <nav>
           {(
             [
@@ -631,10 +630,6 @@ function App() {
           <div className="mobile-logo logo">
             <Brand />
           </div>
-          <div className="breadcrumb">
-            Votre dose d’histoires{" "}
-            <span className="breadcrumb-dot" aria-hidden="true" />
-          </div>
           <div className="header-actions">
             <button
               className="icon-button"
@@ -683,23 +678,7 @@ function App() {
         {page === "discover" && (
           <>
             <section className="intro">
-              <div>
-                <div className="eyebrow">
-                  <span className="blue-dot" /> LE MONDE EST UN ÉCRAN
-                </div>
-                <h1>
-                  Votre prochaine
-                  <br />
-                  <em>obsession.</em>
-                </h1>
-              </div>
-              <p>
-                Des films qui bousculent.
-                <br />
-                Des séries qui restent.
-                <br />
-                <span>Et vous, au premier rang.</span>
-              </p>
+              <h1>Films et séries</h1>
             </section>
             <section
               className="hero"
@@ -711,31 +690,40 @@ function App() {
             >
               <div className="hero-grain" />
               <div className="hero-content">
-                <span className="editorial surface">
-                  <Sparkles size={13} /> LE CHOIX VELA
-                </span>
-                <div className="hero-kicker">
-                  {home.personalized
-                    ? "SELON VOS GOÛTS"
-                    : "UNE HISTOIRE À DÉCOUVRIR"}
-                </div>
-                <h2>{hero?.name || "Laissez-vous surprendre."}</h2>
-                <div className="hero-meta">
-                  <span>{hero?.year || "FILMS & SÉRIES"}</span>
-                  <i />
-                  {hero?.genres.slice(0, 2).join(" / ") ||
-                    "Votre cinéma, votre regard"}
-                  {hero?.score && (
-                    <>
-                      <i />
-                      <Star size={13} fill="currentColor" />
-                      {hero.score}/10
-                    </>
-                  )}
-                </div>
+                {hero && (
+                  <div className="hero-kicker">
+                    {home.personalized ? "Selon vos goûts" : "À découvrir"}
+                  </div>
+                )}
+                <h2>
+                  {hero?.name ||
+                    (loading ? "Chargement…" : "Catalogue indisponible")}
+                </h2>
+                {hero && (
+                  <div className="hero-meta">
+                    {hero.year && (
+                      <>
+                        <span>{hero.year}</span>
+                        <i />
+                      </>
+                    )}
+                    {hero.genres.slice(0, 2).join(" / ") ||
+                      (hero.kind === "series" ? "Série" : "Film")}
+                    {hero.score && (
+                      <>
+                        <i />
+                        <Star size={13} fill="currentColor" />
+                        {hero.score}/10
+                      </>
+                    )}
+                  </div>
+                )}
                 <p>
-                  {hero?.summary ||
-                    "Explorez des milliers de films et de séries. Composez votre collection et racontez ce que vous avez ressenti."}
+                  {hero
+                    ? hero.summary || "Synopsis indisponible."
+                    : loading
+                      ? "Chargement des films et séries…"
+                      : "Vérifiez votre connexion ou la configuration du catalogue."}
                 </p>
                 <div className="hero-actions">
                   <button
@@ -773,12 +761,6 @@ function App() {
                   </button>
                 </div>
               </div>
-              <div className="hero-number">
-                01 <span>/ LA SÉLECTION</span>
-              </div>
-              <div className="vertical-note">
-                CURATED BY VELA — FEEL SOMETHING.
-              </div>
             </section>
             <div className="section-bar">
               <div className="tabs surface">
@@ -796,9 +778,6 @@ function App() {
                   </button>
                 ))}
               </div>
-              <span className="catalog-note">
-                <span className="blue-dot" /> À explorer, à ressentir.
-              </span>
             </div>
             {error && (
               <div className="error" role="alert">
@@ -813,12 +792,7 @@ function App() {
                 {kind !== "series" && (
                   <section className="shelf">
                     <div className="section-heading">
-                      <div>
-                        <span className="eyebrow">L’ART DU GRAND ÉCRAN</span>
-                        <h2>
-                          Le cinéma, intensément<span>.</span>
-                        </h2>
-                      </div>
+                      <h2>Films</h2>
                       <button
                         className="text-button"
                         onClick={() => {
@@ -840,12 +814,7 @@ function App() {
                 {kind !== "movie" && (
                   <section className="shelf">
                     <div className="section-heading">
-                      <div>
-                        <span className="eyebrow">ENCORE UN ÉPISODE</span>
-                        <h2>
-                          Impossible de décrocher<span>.</span>
-                        </h2>
-                      </div>
+                      <h2>Séries</h2>
                       <button
                         className="text-button"
                         onClick={() => {
@@ -863,31 +832,11 @@ function App() {
                 )}
               </>
             )}
-            <section className="manifesto">
-              <span>VOTRE REGARD COMPTE.</span>
-              <h2>
-                Ne laissez pas le générique
-                <br />
-                effacer le souvenir.
-              </h2>
-              <button
-                className="button surface"
-                onClick={() => navigate("library")}
-              >
-                Créer ma collection <ArrowRight size={17} />
-              </button>
-              <div className="manifesto-art" aria-hidden="true">
-                v<span>e</span>la
-              </div>
-            </section>
           </>
         )}
         {page === "search" && (
           <section className="page-section">
-            <div className="eyebrow">SUIVEZ VOTRE CURIOSITÉ</div>
-            <h1>
-              Trouvez votre <em>histoire.</em>
-            </h1>
+            <h1>Rechercher</h1>
             <form
               className="large-search surface"
               onSubmit={(e) => e.preventDefault()}
@@ -963,12 +912,11 @@ function App() {
                   </div>
                 )}
                 {!results.length && !error && (
-                  <Empty text="Aucune histoire trouvée. Essayez un autre titre." />
+                  <Empty text="Aucun résultat. Essayez un autre titre." />
                 )}
               </>
             ) : (
               <div className="search-suggestions">
-                <span className="eyebrow">UNE ENVIE ?</span>
                 <div>
                   {[
                     "Interstellar",
@@ -1009,13 +957,7 @@ function App() {
           ))}
         {page === "library" && (
           <section className="page-section">
-            <div className="eyebrow">LES HISTOIRES QUE VOUS GARDEZ</div>
-            <h1>
-              Votre <em>collection.</em>
-            </h1>
-            <p className="muted">
-              Vos envies, vos coups de cœur, votre cinéma.
-            </p>
+            <h1>Collection</h1>
             <div className="tabs inline-tabs">
               {[
                 ["watchlist", "À voir", watchlist.length],
@@ -1041,7 +983,7 @@ function App() {
             </div>
             {!entries.some(inList) && (
               <Empty
-                text="Votre collection commence par une histoire."
+                text="Votre collection est vide."
                 action={() => navigate("search")}
               />
             )}
@@ -1062,10 +1004,7 @@ function App() {
         )}
         {page === "profile" && (
           <section className="page-section profile">
-            <div className="eyebrow">CHAQUE REGARD EST UNIQUE</div>
-            <h1>
-              Votre coin de <em>cinéma.</em>
-            </h1>
+            <h1>Profil</h1>
             <ProfileOverview
               profile={personal.profile}
               library={library}
@@ -1078,11 +1017,7 @@ function App() {
             {personal.error && <p className="muted fine">{personal.error}</p>}
             <div className="profile-panel surface">
               <div>
-                <h2>
-                  {user
-                    ? "Votre collection vous suit."
-                    : "Vos histoires, partout avec vous."}
-                </h2>
+                <h2>Synchronisation</h2>
                 <p className="muted">
                   {user
                     ? syncState === "success"
@@ -1144,7 +1079,7 @@ function App() {
             )}
             <div className="profile-panel">
               <div>
-                <h3>Vos données vous appartiennent.</h3>
+                <h3>Sauvegarde locale</h3>
                 <p className="muted">
                   Une sauvegarde JSON de vos notes, listes et visionnages.
                 </p>
@@ -1321,8 +1256,7 @@ function Empty({ text, action }: { text: string; action?: () => void }) {
   return (
     <div className="empty">
       <Clapperboard size={38} />
-      <h3>La suite reste à écrire.</h3>
-      <p>{text}</p>
+      <h3>{text}</h3>
       {action && (
         <button className="button primary" onClick={action}>
           Explorer le catalogue <ArrowRight size={16} />
@@ -1483,7 +1417,7 @@ function Details({
         </div>
         <div>
           <span className="eyebrow">
-            {title.kind === "movie" ? "LE GRAND ÉCRAN" : "ENCORE UN ÉPISODE"}
+            {title.kind === "movie" ? "Film" : "Série"}
           </span>
           <h2>{title.name}</h2>
           <button
@@ -1555,7 +1489,7 @@ function Details({
             </button>
           </div>
         )}
-        <h3>L’histoire</h3>
+        <h3>Synopsis</h3>
         <p className="synopsis">{title.summary}</p>
         {title.trailer && title.trailerKind === "youtube" && (
           <a
@@ -1613,8 +1547,7 @@ function Details({
           </a>
         )}
         <div className="review-panel">
-          <span className="eyebrow">VOTRE REGARD</span>
-          <h3>Et vous, qu’avez-vous ressenti ?</h3>
+          <h3>Votre avis</h3>
           <Stars
             rating={entry.rating}
             onChange={(rating) =>
@@ -1641,7 +1574,7 @@ function Details({
               maxLength={5000}
               value={review}
               onChange={(e) => setReview(e.target.value)}
-              placeholder="Une scène, une émotion, quelques mots…"
+              placeholder="Écrivez votre avis…"
               rows={4}
             />
           </label>
@@ -1649,7 +1582,7 @@ function Details({
             className="button primary"
             onClick={() => {
               update({ review, watched: true });
-              toast("Votre souvenir est enregistré.");
+              toast("Avis enregistré.");
             }}
           >
             Enregistrer mon avis <ArrowRight size={16} />
@@ -1749,7 +1682,6 @@ function SettingsPage({
         Réglages
       </h1>
       <div className="form-content">
-        <span className="eyebrow">À VOTRE IMAGE</span>
         <h2>Apparence</h2>
         <p className="muted">
           {Capacitor.isNativePlatform()
@@ -1788,7 +1720,6 @@ function SettingsPage({
           account={account}
         />
         <hr />
-        <span className="eyebrow">PLUS D’HISTOIRES</span>
         <h2>Catalogue TMDB</h2>
         <p className="muted">
           Films et séries, titres français et originaux, affiches, fiches et
@@ -1880,10 +1811,7 @@ function SettingsPage({
           </button>
         )}
         <hr />
-        <span className="eyebrow">VOTRE ESPACE, PARTOUT</span>
-        <h2>
-          Connecter Supabase<span>.</span>
-        </h2>
+        <h2>Connecter Supabase</h2>
         <p className="muted">
           Sans configuration, Vela garde vos données sur cet appareil. Pour
           synchroniser, créez un projet Supabase gratuit, exécutez le fichier{" "}
@@ -2011,12 +1939,7 @@ function AuthModal({
   return (
     <Modal label="Connexion" close={close}>
       <div className="form-content">
-        <span className="eyebrow">BIENVENUE CHEZ VOUS</span>
-        <h2>
-          {signup
-            ? "Votre histoire commence."
-            : "Le plaisir de vous retrouver."}
-        </h2>
+        <h2>{signup ? "Créer un compte" : "Connexion"}</h2>
         <form
           onSubmit={async (e) => {
             e.preventDefault();

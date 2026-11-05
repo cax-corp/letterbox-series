@@ -88,7 +88,7 @@ test("mobile sans débordement, navigation et thème sombre", async ({
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await expect(
-    page.getByRole("heading", { name: /Votre prochaine/ }),
+    page.getByRole("heading", { name: "Films et séries", exact: true }),
   ).toBeVisible();
   await expect(page).toHaveTitle(/Vela/);
   await expect(page.locator(".mobile-logo")).toContainText("vela");
@@ -104,8 +104,8 @@ test("mobile sans débordement, navigation et thème sombre", async ({
       featuredWeight: Number(featured.fontWeight),
     };
   });
-  expect(hierarchy.ratio).toBeGreaterThan(1.4);
-  expect(hierarchy.headingWeight).toBeGreaterThan(hierarchy.featuredWeight);
+  expect(hierarchy.ratio).toBeLessThan(1);
+  expect(hierarchy.headingWeight).toBeLessThan(hierarchy.featuredWeight);
   await page.screenshot({ path: "tests/mobile.png", fullPage: true });
   expect(
     await page.evaluate(
@@ -127,7 +127,9 @@ test("échecs réseau: message et collection accessible", async ({ page }) => {
     "Vos listes restent accessibles",
   );
   await page.getByRole("button", { name: /Ma collection/ }).click();
-  await expect(page.getByText("Votre collection commence")).toBeVisible();
+  await expect(
+    page.getByText("Votre collection est vide.", { exact: true }),
+  ).toBeVisible();
 });
 
 test("listes nommées et export de la collection", async ({ page }) => {
@@ -137,7 +139,7 @@ test("listes nommées et export de la collection", async ({ page }) => {
   await dialog
     .getByRole("textbox", { name: "Vos listes personnelles" })
     .fill("Mes classiques, Soirée cinéma");
-  await dialog.getByRole("heading", { name: "L’histoire" }).click();
+  await dialog.getByRole("heading", { name: "Synopsis" }).click();
   await dialog.getByRole("button", { name: "Fermer", exact: true }).click();
   await page.getByRole("button", { name: /Ma collection/ }).click();
   await page.getByRole("button", { name: /Mes classiques/ }).click();
@@ -704,7 +706,7 @@ test("l’accueil change de titre mis en avant et réordonne ses rayons après u
     .getByRole("button", { name: "Fermer", exact: true })
     .click();
   await expect(page.locator(".hero h2")).toHaveText("Gravity");
-  await expect(page.locator(".hero-kicker")).toHaveText("SELON VOS GOÛTS");
+  await expect(page.locator(".hero-kicker")).toHaveText("Selon vos goûts");
   await expect(
     page.locator(".shelf").nth(0).locator(".poster-card").first(),
   ).toContainText("Gravity");

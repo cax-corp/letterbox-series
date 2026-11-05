@@ -143,13 +143,8 @@ hr {
   width: fit-content;
   margin-left: 15px;
 }
-.nav-caption {
-  font-size: 10px;
-  letter-spacing: 1.6px;
-  color: var(--muted);
-  margin: 48px 0 20px 15px;
-}
 .sidebar nav {
+  margin-top: 48px;
   display: grid;
   gap: 8px;
 }
@@ -225,19 +220,6 @@ main {
   align-items: center;
   gap: 20px;
 }
-.breadcrumb {
-  font-size: 12px;
-  color: var(--muted);
-}
-.breadcrumb-dot {
-  display: inline-block;
-  width: 5px;
-  height: 5px;
-  margin-left: 8px;
-  vertical-align: middle;
-  border-radius: 50%;
-  background: var(--blue);
-}
 .header-actions {
   margin-left: auto;
   display: flex;
@@ -262,7 +244,7 @@ main {
   display: flex;
   justify-content: space-between;
   align-items: end;
-  padding: 38px 0 30px;
+  padding: 24px 0;
   gap: 20px;
 }
 .eyebrow {
@@ -284,20 +266,11 @@ main {
 .intro h1 {
   font: 650 clamp(40px, 4.1vw, 64px)/1.12 var(--font);
   letter-spacing: -2.9px;
-  margin-top: 18px;
+  margin-top: 0;
 }
 em {
   font-style: normal;
   color: var(--blue);
-}
-.intro > p {
-  font-size: 12px;
-  line-height: 1.9;
-  color: var(--muted);
-  padding-bottom: 4px;
-}
-.intro > p span {
-  color: var(--muted);
 }
 .hero {
   height: 425px;
@@ -330,23 +303,17 @@ em {
   position: relative;
   padding: 33px 38px;
   max-width: 540px;
-}
-.editorial {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  border-radius: 12px;
-  padding: 9px 13px;
-  font-size: 9px;
-  letter-spacing: 1.1px;
-  background: #173a4f;
-  color: #c8efff;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
 }
 .hero-kicker {
-  font-size: 9px;
-  letter-spacing: 2px;
+  font-size: 11px;
+  letter-spacing: 0.2px;
   color: #b4cedf;
-  margin: 30px 0 10px;
+  margin: 0 0 12px;
 }
 .hero h2 {
   font: 700 clamp(30px, 3.5vw, 52px)/1.05 var(--font);
@@ -421,28 +388,6 @@ em {
   background: #173a4f;
   color: #c8efff;
 }
-.hero-number {
-  position: absolute;
-  bottom: 26px;
-  right: 30px;
-  font-size: 13px;
-  letter-spacing: 2px;
-}
-.hero-number span {
-  font-size: 8px;
-  letter-spacing: 1.4px;
-  color: #b4cedf;
-  margin-left: 6px;
-}
-.vertical-note {
-  position: absolute;
-  right: 17px;
-  top: 28px;
-  writing-mode: vertical-rl;
-  font-size: 7px;
-  letter-spacing: 2px;
-  color: #b4cedf;
-}
 .section-bar {
   display: flex;
   justify-content: space-between;
@@ -479,13 +424,6 @@ em {
 .tabs button:hover {
   background: var(--surface);
 }
-.catalog-note {
-  font-size: 11px;
-  color: var(--muted);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
 .section-heading {
   display: flex;
   justify-content: space-between;
@@ -493,17 +431,9 @@ em {
   margin-bottom: 24px;
   gap: 15px;
 }
-.section-heading .eyebrow {
-  font-size: 9px;
-  letter-spacing: 1.5px;
-  margin-bottom: 10px;
-}
 .section-heading h2 {
   font: 650 clamp(19px, 2vw, 26px)/1.2 var(--font);
   letter-spacing: -0.8px;
-}
-.section-heading h2 > span {
-  color: var(--blue);
 }
 .text-button {
   display: inline-flex;
@@ -632,43 +562,6 @@ em {
   padding: 20px;
   text-align: center;
   font-size: 14px;
-}
-.manifesto {
-  margin: 50px 0 0;
-  padding: 38px;
-  border-radius: 28px;
-  background: var(--panel);
-  position: relative;
-  overflow: hidden;
-}
-.manifesto > span {
-  font-size: 9px;
-  letter-spacing: 1.5px;
-  color: var(--blue);
-}
-.manifesto h2 {
-  font: 500 25px/1.45 var(--font);
-  letter-spacing: -0.7px;
-  margin: 17px 0 20px;
-  position: relative;
-  z-index: 1;
-}
-.manifesto .button {
-  position: relative;
-  z-index: 1;
-}
-.manifesto-art {
-  position: absolute;
-  right: 20px;
-  top: 20px;
-  font: 800 160px/1.2 var(--font);
-  letter-spacing: -15px;
-  color: var(--surface);
-  transform: rotate(-10deg);
-  pointer-events: none;
-}
-.manifesto-art span {
-  color: var(--primary-container);
 }
 footer {
   display: flex;
@@ -1038,7 +931,7 @@ footer {
   display: block;
   color: var(--blue);
   font-size: 13px;
-  margin-top: 18px;
+  margin-top: 0;
 }
 .review-panel {
   margin-top: 32px;
@@ -1279,9 +1172,6 @@ footer {
     padding: 46px;
     max-width: 600px;
   }
-  .hero-kicker {
-    margin-top: 50px;
-  }
   .hero-content > p {
     font-size: 14px;
   }
@@ -1352,9 +1242,6 @@ footer {
     font-size: 32px;
     letter-spacing: -2.5px;
   }
-  .breadcrumb {
-    display: none;
-  }
   .header-actions {
     gap: 0;
   }
@@ -1365,19 +1252,6 @@ footer {
   .intro h1 {
     font-size: clamp(34px, 10vw, 43px);
     letter-spacing: -2.2px;
-  }
-  .intro .eyebrow {
-    font-size: 8px;
-    letter-spacing: 1.4px;
-  }
-  .intro > div {
-    min-width: 0;
-  }
-  .intro > p {
-    font-size: 10px;
-    line-height: 1.8;
-    flex-shrink: 0;
-    width: 118px;
   }
   .hero {
     height: 440px;
@@ -1399,8 +1273,8 @@ footer {
   }
   .hero-kicker {
     margin-top: auto;
-    padding-top: 30px;
-    font-size: 8px;
+    padding-top: 0;
+    font-size: 11px;
   }
   .hero h2 {
     font-size: 37px;
@@ -1416,14 +1290,7 @@ footer {
     max-width: 320px;
   }
   .hero-actions {
-    margin-top: 18px;
-  }
-  .hero-number {
-    display: none;
-  }
-  .vertical-note {
-    font-size: 7px;
-    right: 12px;
+    margin-top: 0;
   }
   .section-bar {
     padding: 24px 0 30px;
@@ -1432,15 +1299,8 @@ footer {
     padding: 10px 15px;
     font-size: 12px;
   }
-  .catalog-note {
-    display: none;
-  }
   .section-heading h2 {
     font-size: 21px;
-  }
-  .section-heading .eyebrow {
-    font-size: 8px;
-    letter-spacing: 1.1px;
   }
   .section-heading .text-button {
     font-size: 10px;
@@ -1482,19 +1342,6 @@ footer {
   .section-heading {
     margin-bottom: 20px;
   }
-  .manifesto {
-    margin-top: 36px;
-    padding: 28px 22px;
-    border-radius: 24px;
-  }
-  .manifesto h2 {
-    font-size: 22px;
-  }
-  .manifesto-art {
-    font-size: 110px;
-    top: 70px;
-    right: -5px;
-  }
   .mobile-nav {
     display: block;
     position: fixed;
@@ -1532,9 +1379,6 @@ footer {
   .page-section > h1 {
     font-size: 34px;
     letter-spacing: -1.7px;
-  }
-  .page-section > .eyebrow {
-    font-size: 9px;
   }
   .large-search {
     padding: 6px 14px;
@@ -1665,10 +1509,6 @@ footer {
   main {
     padding-left: 16px;
     padding-right: 16px;
-  }
-  .intro > p {
-    font-size: 9px;
-    width: 108px;
   }
   .intro h1 {
     font-size: 34px;
@@ -2406,15 +2246,15 @@ body:has(.feed-ambience) {
     background: var(--bg);
   }
 }
-/* The page heading leads; the featured film title is a secondary reading level. */
+/* Keep the category heading compact and give the featured title the emphasis. */
 .intro h1 {
-  font-size: clamp(44px, 4.8vw, 72px);
-  font-weight: 800;
+  font-size: clamp(28px, 3vw, 40px);
+  font-weight: 650;
   line-height: 1.06;
 }
 .hero h2 {
-  font-size: clamp(26px, 2.8vw, 40px);
-  font-weight: 600;
+  font-size: clamp(32px, 3.5vw, 48px);
+  font-weight: 700;
   line-height: 1.18;
   letter-spacing: -0.8px;
   display: -webkit-box;
@@ -2424,11 +2264,11 @@ body:has(.feed-ambience) {
 }
 @media (max-width: 760px) {
   .intro h1 {
-    font-size: clamp(40px, 11vw, 48px);
-    letter-spacing: -1.8px;
+    font-size: 28px;
+    letter-spacing: -0.8px;
   }
   .hero h2 {
-    font-size: clamp(24px, 7vw, 30px);
+    font-size: clamp(30px, 8vw, 36px);
   }
 }
 
@@ -2555,12 +2395,6 @@ body:has(.feed-ambience) {
   width: 5px;
   height: 5px;
   margin: 0 0 4px 4px;
-}
-.brand-tagline {
-  font-size: 9px;
-  letter-spacing: 1.3px;
-  line-height: 1.6;
-  color: var(--muted);
 }
 .company-endorsement {
   display: flex;
@@ -3084,12 +2918,6 @@ body:has(.feed-ambience) {
   padding: clamp(24px, 5vw, 56px);
   border-radius: 28px;
   background: var(--panel);
-}
-.web-recommendations-panel .eyebrow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 20px;
 }
 .web-recommendations-panel h1 {
   font: 800 clamp(32px, 5vw, 48px) / 1.1 var(--font);

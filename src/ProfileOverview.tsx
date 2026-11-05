@@ -97,7 +97,6 @@ export default function ProfileOverview({
       >
         <div className="section-heading">
           <div>
-            <span className="eyebrow">LES HISTOIRES QUI VOUS RESSEMBLENT</span>
             <h2>Mes incontournables</h2>
           </div>
           <button className="text-button" onClick={edit}>
@@ -144,7 +143,6 @@ export default function ProfileOverview({
         className="profile-section activity-panel surface"
         aria-label="Activité du profil"
       >
-        <span className="eyebrow">AU FIL DES HISTOIRES</span>
         <h2>Votre activité</h2>
         <p className="muted">
           {stats.movies} films et {stats.series} séries vus · {stats.reviews}{" "}
@@ -203,7 +201,6 @@ export default function ProfileOverview({
       <section className="profile-section" aria-label="Mes avis">
         <div className="section-heading">
           <div>
-            <span className="eyebrow">VOTRE REGARD</span>
             <h2>
               Mes avis <small>{reviews.length}</small>
             </h2>

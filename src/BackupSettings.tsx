@@ -18,7 +18,6 @@ export default function BackupSettings({
     });
   return (
     <section className="backup-settings" aria-label="Sauvegarde Supabase">
-      <span className="eyebrow">VOTRE COLLECTION À L’ABRI</span>
       <h2>Sauvegarde Supabase</h2>
       <p className="muted">
         Vos changements sont enregistrés immédiatement sur cet appareil. La
