@@ -69,6 +69,7 @@ import {
 } from "./catalog";
 import EpisodeTracker from "./EpisodeTracker";
 import Recommendations from "./Recommendations";
+import WebRecommendationsNotice from "./WebRecommendationsNotice";
 import { personalizeHome } from "./home-personalization";
 import { readRecommendationSession } from "./recommendation-session";
 import { toneStyle, useArtworkTone } from "./useArtworkTone";
@@ -587,15 +588,6 @@ function App() {
             </button>
           ))}
         </nav>
-        <div className="sidebar-note">
-          <div className="orbit-mark">✳</div>
-          <p>
-            Les histoires passent.
-            <br />
-            <strong>Les émotions restent.</strong>
-          </p>
-          <span>Gardez-en une trace.</span>
-        </div>
         <div className="sidebar-bottom">
           <button
             className="nav-link"
@@ -628,13 +620,20 @@ function App() {
           </button>
         </div>
       </aside>
-      <main className={page === "recommendations" ? "is-feed" : undefined}>
+      <main
+        className={
+          page === "recommendations" && Capacitor.isNativePlatform()
+            ? "is-feed"
+            : undefined
+        }
+      >
         <header className="topbar">
           <div className="mobile-logo logo">
             <Brand />
           </div>
           <div className="breadcrumb">
-            Votre dose d’histoires <span>✦</span>
+            Votre dose d’histoires{" "}
+            <span className="breadcrumb-dot" aria-hidden="true" />
           </div>
           <div className="header-actions">
             <button
@@ -993,18 +992,21 @@ function App() {
             )}
           </section>
         )}
-        {page === "recommendations" && (
-          <Recommendations
-            key={`${user?.id || "local"}:${feedSession}`}
-            account={user?.id || "local"}
-            paused={Boolean(selected || auth)}
-            library={library}
-            fallback={filmList}
-            open={setSelected}
-            update={update}
-            configure={() => openSettings()}
-          />
-        )}
+        {page === "recommendations" &&
+          (Capacitor.isNativePlatform() ? (
+            <Recommendations
+              key={`${user?.id || "local"}:${feedSession}`}
+              account={user?.id || "local"}
+              paused={Boolean(selected || auth)}
+              library={library}
+              fallback={filmList}
+              open={setSelected}
+              update={update}
+              configure={() => openSettings()}
+            />
+          ) : (
+            <WebRecommendationsNotice explore={() => navigate("search")} />
+          ))}
         {page === "library" && (
           <section className="page-section">
             <div className="eyebrow">LES HISTOIRES QUE VOUS GARDEZ</div>

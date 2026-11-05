@@ -13,36 +13,56 @@ const raw = (id: number) => ({
   vote_count: 100,
   vote_average: 8,
 });
-async function setup(page: Page) {
-  await page.addInitScript((k) => {
-    localStorage.setItem("luma-tmdb-token", k);
-    if (!localStorage.getItem("luma-library-v1"))
-      localStorage.setItem(
-        "luma-library-v1",
-        JSON.stringify({
-          "tmdb-movie-100": {
-            title: {
-              id: "tmdb-movie-100",
-              kind: "movie",
-              source: "tmdb",
-              name: "Mon favori",
-              year: "2014",
-              image: "",
-              summary: "",
-              genres: ["Science-fiction"],
-            },
-            watched: true,
-            rating: 5,
-            favorite: true,
-            watchlist: false,
-            review: "Note privée",
-            updated: "2026-11-05T00:00:00Z",
-            watchedAt: "2026-11-05",
-            episodes: [],
+async function setup(page: Page, native = true) {
+  // Exercise the APK feed. The production website deliberately shows its mobile notice.
+  await page.addInitScript(
+    ({ k, native }) => {
+      if (native) {
+        const w = window as any;
+        w.CapacitorCustomPlatform = { name: "android" };
+        const cap = (w.Capacitor ||= {});
+        cap.PluginHeaders ||= [
+          {
+            name: "SystemBars",
+            methods: [{ name: "setStyle", rtype: "promise" }],
           },
-        }),
-      );
-  }, key);
+          {
+            name: "LumaAppearance",
+            methods: [{ name: "setTheme", rtype: "promise" }],
+          },
+        ];
+        cap.nativePromise ||= async () => ({});
+      }
+      localStorage.setItem("luma-tmdb-token", k);
+      if (!localStorage.getItem("luma-library-v1"))
+        localStorage.setItem(
+          "luma-library-v1",
+          JSON.stringify({
+            "tmdb-movie-100": {
+              title: {
+                id: "tmdb-movie-100",
+                kind: "movie",
+                source: "tmdb",
+                name: "Mon favori",
+                year: "2014",
+                image: "",
+                summary: "",
+                genres: ["Science-fiction"],
+              },
+              watched: true,
+              rating: 5,
+              favorite: true,
+              watchlist: false,
+              review: "Note privée",
+              updated: "2026-11-05T00:00:00Z",
+              watchedAt: "2026-11-05",
+              episodes: [],
+            },
+          }),
+        );
+    },
+    { k: key, native },
+  );
   const calls: string[] = [];
   await page.route("https://api.themoviedb.org/3/**", (r) => {
     const u = new URL(r.request().url());
@@ -234,7 +254,7 @@ test("l’ouverture de fiche est animée et le mouvement réduit est respecté",
 test("sur le web, les réglages ne prétendent pas programmer des notifications navigateur fermé", async ({
   page,
 }) => {
-  await setup(page);
+  await setup(page, false);
   await page.goto("/");
   await page.getByRole("button", { name: "Réglages", exact: true }).click();
   await expect(

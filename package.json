@@ -9,7 +9,8 @@
     "preview": "vite preview --host 0.0.0.0",
     "android:sync": "npm run build && cap sync android",
     "test": "playwright test",
-    "format": "prettier --write src tests *.ts"
+    "format": "prettier --write src tests *.ts",
+    "build:web": "npm run build && node scripts/prepare-web-download.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.0.0",

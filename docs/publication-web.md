@@ -1,13 +1,13 @@
 # Mettre Vela en ligne sur GitHub Pages
 
-La version web contient les fonctions du Vela 2.0 actuel : films/séries, recherche TMDB, collection, notes et avis, recommandations locales avec passages rapides, profils et avatars prédéfinis, statistiques et sauvegardes Supabase. Elle adapte la navigation au PC et au mobile. Les notifications programmées quand l’app est fermée restent une fonction de l’APK Android ; le site ne prétend pas les envoyer navigateur fermé.
+La version web contient les fonctions du Vela 2.0 actuel : films/séries, recherche TMDB, collection, notes et avis, profils et avatars prédéfinis, statistiques et sauvegardes Supabase. Les recommandations personnalisées « Pour vous » sont réservées à l’application mobile pour le moment ; le site affiche un message et propose le téléchargement de l’APK Android. Elle adapte la navigation au PC et au mobile. Les notifications programmées quand l’app est fermée restent une fonction de l’APK Android ; le site ne prétend pas les envoyer navigateur fermé.
 
 La création de liens de partage ouvrant le site ou l’APK est volontairement reportée. Le partage existant de cartes PNG et de texte reste en place. Cette publication ne configure ni Android App Links, ni domaine Cloudflare.
 
 ## Quel fichier utiliser ?
 
 - **Vela-GitHub-source.zip** : projet complet, avec le code, les avatars et le workflow de publication. À importer à la racine de `cax-corp/letterbox-series` si les sources n’y sont pas déjà importées. C’est l’archive à utiliser pour la méthode recommandée ci-dessous.
-- **Vela-site-web.zip** : site déjà compilé (`index.html`, `assets`, `avatars`, `brand`, licences et `.nojekyll`). À garder comme copie prête à héberger sur un serveur statique. Ce ZIP n’est pas un fichier à déposer tel quel dans GitHub : GitHub ne le décompresse pas. Il ne remplace pas les sources du projet configuré pour compiler avec Actions.
+- **Vela-site-web.zip** : site déjà compilé (`index.html`, `assets`, `avatars`, `brand`, `downloads` (APK Android), licences et `.nojekyll`). À garder comme copie prête à héberger sur un serveur statique. Ce ZIP n’est pas un fichier à déposer tel quel dans GitHub : GitHub ne le décompresse pas. Il ne remplace pas les sources du projet configuré pour compiler avec Actions.
 
 ## 1. Importer les sources dans le dépôt
 
@@ -65,3 +65,8 @@ Le code utilise des chemins relatifs : le même build fonctionne dans `/letterbo
 Quand le DNS est prêt : renseigner `vela.thomasbarial.com` dans **GitHub → Settings → Pages → Custom domain**, puis, côté Cloudflare, créer le CNAME `vela` vers `cax-corp.github.io` — sans `https://` ni `/letterbox-series/`. Commencer en **DNS only** le temps de la vérification et du certificat GitHub, puis activer **Enforce HTTPS** lorsqu’il est disponible. La vérification éventuelle de propriété du domaine se fait avec les valeurs fournies par GitHub, pas avec une valeur inventée dans le projet.
 
 Ajouter ensuite `https://vela.thomasbarial.com/` aux URL autorisées de Supabase et l’utiliser comme Site URL. Le nouveau domaine constitue une nouvelle origine : se reconnecter et, si nécessaire, remettre la configuration dans ses réglages. Les données sauvegardées dans le même compte Supabase se restaurent. La synchronisation des liens de partage et l’ouverture automatique de l’APK restent une tâche ultérieure.
+
+
+## Reconstruire le site localement
+
+Avec Node 22 : `npm ci`, puis `npm run build:web`. Le dossier `dist` contient le site et le téléchargement Android. `npm run build` produit les seules ressources de l’application, sans ajouter la copie de l’APK à l’intérieur de celle-ci. Les fichiers de téléchargement sont décrits dans `downloads/README.md`.

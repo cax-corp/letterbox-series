@@ -14,7 +14,7 @@ Le thème se choisit dans Réglages : Sombre, Clair ou Système. Le bouton solei
 - iTunes Search et TVmaze conservés pour les anciennes fiches et le catalogue limité sans configuration.
 - Genres, notes attribuées à leur source (TMDB ou TVmaze), extraits iTunes, liens de bandes-annonces YouTube et fiches IMDb lorsque TMDB les fournit.
 - Liste à voir, favoris, notes sur 5, critiques privées et date de visionnage.
-- Page **Pour vous** : fil de recommandations virtualisé, défilement continu, double-tap J’aime, rejet persistant et ajout à la liste.
+- Page **Pour vous** dans l’application mobile (message d’indisponibilité et téléchargement Android sur le web) : fil de recommandations virtualisé, défilement continu, double-tap J’aime, rejet persistant et ajout à la liste.
 - Notifications Android à heure/jours choisis ; ouverture animée des fiches.
 - Listes nommées personnalisées : saisir les noms séparés par des virgules dans la fiche.
 - Suivi des épisodes par saison, avec progression.
@@ -33,7 +33,7 @@ npm ci
 npm run dev
 ```
 
-Production : `npm run build`. Le dossier `dist/` est autonome. Une clé TMDB est nécessaire pour le catalogue étendu. Sans clé, le catalogue limité iTunes/TVmaze reste utilisable et l’application propose d’activer TMDB. Une connexion Internet est nécessaire pour charger les fiches ; les données de collection déjà enregistrées restent accessibles hors ligne.
+Production web : `npm run build:web`. Le dossier `dist/` est autonome et inclut le téléchargement Android. Le build embarqué Android utilise `npm run build`. Une clé TMDB est nécessaire pour le catalogue étendu. Sans clé, le catalogue limité iTunes/TVmaze reste utilisable et l’application propose d’activer TMDB. Une connexion Internet est nécessaire pour charger les fiches ; les données de collection déjà enregistrées restent accessibles hors ligne.
 
 ## Pour vous : fil continu et réactions
 
@@ -179,7 +179,7 @@ npm run build
 npm test
 ```
 
-Les 100 tests Playwright utilisent Chromium et des réponses d’API contrôlées pour vérifier les listes, la persistance, les notes et critiques, les épisodes, l’affichage mobile, les thèmes et les erreurs réseau. Un test supplémentaire exerce le SDK Supabase avec authentification contrôlée : table manquante, enregistrement local pendant l’échec, guide SQL puis synchronisation après réparation simulée. Le fichier `playwright.config.ts` utilise `/usr/bin/chromium` dans ce cloud ; ailleurs définir `CHROMIUM_PATH` ou installer Chromium avec `npx playwright install --with-deps chromium` (sélection automatique en l’absence de Chromium système).
+Les 101 tests Playwright utilisent Chromium et des réponses d’API contrôlées pour vérifier les listes, la persistance, les notes et critiques, les épisodes, l’affichage mobile, les thèmes et les erreurs réseau. Un test supplémentaire exerce le SDK Supabase avec authentification contrôlée : table manquante, enregistrement local pendant l’échec, guide SQL puis synchronisation après réparation simulée. Le fichier `playwright.config.ts` utilise `/usr/bin/chromium` dans ce cloud ; ailleurs définir `CHROMIUM_PATH` ou installer Chromium avec `npx playwright install --with-deps chromium` (sélection automatique en l’absence de Chromium système).
 
 Les tests TMDB couvrent la pagination, les résultats sans affiche, l’authentification v3/v4, la validation/refus de clé, les fiches IMDb/vidéos, les saisons chargées à la demande, les erreurs et la conservation de la progression et des anciennes notes. Ces réponses sont simulées. Un vrai jeton et l’accès réseau sont requis pour une validation réelle de TMDB.
 
@@ -210,3 +210,10 @@ Vela est une application hybride Capacitor : interface React/HTML/CSS embarquée
 ## Accueil personnalisé
 
 Le titre mis en avant et les rayons de films/séries utilisent un classement léger : affinités de genres, époques, qualité publique avec valeur neutre si absente, liste à voir et préférence pour les découvertes plutôt que les titres déjà connus. Les métadonnées du catalogue et de la réserve locale sont réutilisées. L’accueil réagit aux likes sans lancer le worker du feed ; les séries aimées peuvent influencer les films et inversement.
+
+
+### Disponibilité de « Pour vous » sur le web
+
+Le bouton « Pour vous » reste visible mais le site indique que les recommandations personnalisées sont en cours de développement sur le web. Cette page propose le téléchargement direct de la version Android 2.0.0, sans faux lien vers un store. Le feed et son moteur local restent disponibles dans l’APK.
+
+Pour préparer le site avec ce téléchargement : `npm run build:web`. Le workflow Pages utilise cette commande. Le fichier de l’APK est conservé dans `downloads/`, hors de `public/`, et copié seulement après le build web pour ne pas être embarqué dans les builds Android suivants.

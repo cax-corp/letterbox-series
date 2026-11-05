@@ -16,46 +16,91 @@ async function catalogue(page: Page) {
   );
   await page.route("**/api.tvmaze.com/**", (r) => r.fulfill({ json: [] }));
 }
-test("web sur PC : navigation latérale, grille et fil utilisable au clavier dès l’ouverture", async ({
+test("web : barre du haut bord à bord et décoration simplifiée sur PC et mobile", async ({
   page,
 }) => {
-  await page.setViewportSize({ width: 1440, height: 1000 });
   await catalogue(page);
   await page.goto("/");
-  await expect(page.locator(".sidebar")).toBeVisible();
-  await expect(page.locator(".mobile-nav")).toBeHidden();
-  expect(
-    await page
-      .locator(".poster-grid")
-      .first()
-      .evaluate(
-        (el) => getComputedStyle(el).gridTemplateColumns.split(" ").length,
+  await expect(page.locator(".sidebar-note, .orbit-mark")).toHaveCount(0);
+  await expect(
+    page.getByText("Gardez-en une trace.", { exact: true }),
+  ).toHaveCount(0);
+  await expect(page.locator(".breadcrumb")).toHaveText(
+    "Votre dose d’histoires",
+  );
+  await expect(page.locator(".breadcrumb-dot")).toHaveAttribute(
+    "aria-hidden",
+    "true",
+  );
+  for (const width of [1916, 1440, 1024, 768, 390]) {
+    await page.setViewportSize({ width, height: 932 });
+    const header = (await page.locator(".topbar").boundingBox())!;
+    const left =
+      width > 760 ? (await page.locator(".sidebar").boundingBox())!.width : 0;
+    expect(Math.abs(header.x - left)).toBeLessThan(1);
+    expect(Math.abs(header.x + header.width - width)).toBeLessThan(1);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
       ),
-  ).toBeGreaterThanOrEqual(4);
+    ).toBe(true);
+  }
+});
+
+test("web : Pour vous présente son indisponibilité et un vrai téléchargement Android sans charger le feed", async ({
+  page,
+}) => {
+  await catalogue(page);
+  const workers: string[] = [];
+  page.on("worker", (worker) => workers.push(worker.url()));
+  await page.goto("/");
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 932 });
+    const nav = page.locator(width > 760 ? ".sidebar" : ".mobile-nav");
+    await nav.getByRole("button", { name: "Pour vous", exact: true }).click();
+    await expect(
+      page.getByRole("heading", { name: "Pour vous", exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByText(/en cours de développement sur le web/),
+    ).toBeVisible();
+    await expect(page.getByRole("feed")).toHaveCount(0);
+    await expect(page.locator("main")).not.toHaveClass("is-feed");
+    await expect(page.locator(".feed-ambience")).toHaveCount(0);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+    if (width === 1440)
+      await page.screenshot({ path: "tests/web-desktop-for-you.png" });
+    else await page.screenshot({ path: "tests/web-mobile-for-you.png" });
+    await page
+      .getByRole("button", { name: "Explorer le catalogue", exact: true })
+      .click();
+    await expect(
+      page.getByRole("textbox", { name: "Rechercher dans le catalogue" }),
+    ).toBeVisible();
+  }
+  expect(workers).toEqual([]);
   await page
-    .locator(".sidebar")
+    .locator(".mobile-nav")
     .getByRole("button", { name: "Pour vous", exact: true })
     .click();
-  const feed = page.getByRole("feed");
-  await expect(feed).toHaveAttribute("aria-busy", "false");
-  await expect(feed).toBeFocused();
-  const old = await page.locator(".feed-ambience").getAttribute("data-title");
-  await page.keyboard.press("PageDown");
-  await expect(page.locator(".feed-ambience")).not.toHaveAttribute(
-    "data-title",
-    old!,
-  );
-  await expect(page.locator(".feed-ambience")).toHaveAttribute(
-    "data-moving",
-    "false",
-  );
-  expect(
-    await page.evaluate(
-      () => document.documentElement.scrollWidth <= innerWidth,
-    ),
-  ).toBe(true);
-  await page.screenshot({ path: "tests/web-desktop-feed.png" });
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    page
+      .getByRole("link", { name: "Télécharger pour Android", exact: true })
+      .click(),
+  ]);
+  expect(download.suggestedFilename()).toBe("Vela-2.0.0.apk");
+  expect(await download.failure()).toBeNull();
+  const { readFile } = await import("node:fs/promises");
+  const apk = await readFile((await download.path())!);
+  expect(apk.subarray(0, 4).toString("hex")).toBe("504b0304");
+  expect(apk.length).toBeGreaterThan(1_000_000);
 });
+
 test("web adaptatif : profil et réglages lisibles en PC, tablette et téléphone, sans commande Android fictive", async ({
   page,
 }) => {

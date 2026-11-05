@@ -177,30 +177,6 @@ hr {
   margin-left: auto;
   font-size: 11px;
 }
-.sidebar-note {
-  margin: 50px 15px 20px;
-}
-.orbit-mark {
-  color: var(--blue);
-  font-size: 36px;
-  line-height: 1;
-  margin-bottom: 17px;
-}
-.sidebar-note p {
-  font-size: 12px;
-  color: var(--muted);
-  line-height: 1.9;
-}
-.sidebar-note strong {
-  font-weight: 500;
-  color: var(--text);
-}
-.sidebar-note > span {
-  font-size: 11px;
-  color: var(--muted);
-  display: block;
-  margin-top: 10px;
-}
 .sidebar-bottom {
   margin-top: auto;
 }
@@ -239,8 +215,8 @@ hr {
 }
 main {
   margin-left: 231px;
-  padding: 0 47px;
-  max-width: 1900px;
+  padding: 0 var(--page-gutter);
+  --page-gutter: 47px;
 }
 .topbar {
   min-height: calc(88px + var(--safe-top));
@@ -253,9 +229,14 @@ main {
   font-size: 12px;
   color: var(--muted);
 }
-.breadcrumb span {
-  color: var(--blue);
+.breadcrumb-dot {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
   margin-left: 8px;
+  vertical-align: middle;
+  border-radius: 50%;
+  background: var(--blue);
 }
 .header-actions {
   margin-left: auto;
@@ -1289,7 +1270,7 @@ footer {
 }
 @media (min-width: 1600px) {
   main {
-    padding: 0 65px;
+    --page-gutter: 65px;
   }
   .hero {
     height: 500px;
@@ -1322,7 +1303,7 @@ footer {
   }
   main {
     margin-left: 196px;
-    padding: 0 30px;
+    --page-gutter: 30px;
   }
   .poster-grid {
     gap: 14px;
@@ -3081,4 +3062,58 @@ body:has(.feed-ambience) {
 }
 .review-heading strong {
   overflow-wrap: anywhere;
+}
+
+/* Let the desktop header reach both edges of the content area. */
+@media (min-width: 761px) {
+  .topbar {
+    margin-inline: calc(-1 * var(--page-gutter));
+    padding-inline: 24px;
+  }
+}
+
+.web-recommendations {
+  min-height: calc(100dvh - 88px - var(--safe-top));
+  display: grid;
+  place-items: center;
+  padding-block: 40px;
+}
+.web-recommendations-panel {
+  width: 100%;
+  max-width: 660px;
+  padding: clamp(24px, 5vw, 56px);
+  border-radius: 28px;
+  background: var(--panel);
+}
+.web-recommendations-panel .eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+.web-recommendations-panel h1 {
+  font: 800 clamp(32px, 5vw, 48px) / 1.1 var(--font);
+  letter-spacing: -1.5px;
+  margin-bottom: 20px;
+}
+.web-recommendations-panel > p {
+  max-width: 48ch;
+  color: var(--muted);
+  line-height: 1.8;
+}
+.web-recommendations-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin: 28px 0 16px;
+}
+.web-recommendations-panel > .fine {
+  font-size: 12px;
+}
+@media (max-width: 760px) {
+  .web-recommendations {
+    min-height: calc(100dvh - 168px - var(--safe-top) - var(--safe-bottom));
+    padding-block: 24px;
+  }
 }
