@@ -1,0 +1,34 @@
+name: Build Android APK
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: android-actions/setup-android@v3
+      - run: npm ci
+      - run: npm run android:sync
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+          VITE_TMDB_READ_TOKEN: ${{ secrets.VITE_TMDB_READ_TOKEN }}
+          VITE_TMDB_API_KEY: ${{ secrets.VITE_TMDB_API_KEY }}
+      - run: chmod +x gradlew && ./gradlew assembleDebug --no-daemon --max-workers=2
+        working-directory: android
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Vela-Android-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
