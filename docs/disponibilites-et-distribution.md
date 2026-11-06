@@ -1,21 +1,25 @@
-# Pays, plateformes et distribution — Vela 2.3
+# Fiches compactes, pays et services — Vela 2.3.1
 
-Le pays est obligatoire au signup et modifiable dans **Réglages → Pays et services**. Les services sont choisis dans la liste fournie par TMDB pour ce pays, avec recherche et formules distinctes. La sélection est enregistrée localement par compte et projet, puis dans les métadonnées privées Auth sous `vela_viewing`. Elle est restaurée à la connexion ; les changements hors connexion sont repris lors de la sauvegarde. Les mises à jour utilisent le jeton du compte capturé, pour ne pas modifier les métadonnées d’un autre compte en cas de changement de session.
+Le pays est obligatoire au signup et modifiable dans **Réglages → Pays et services**. Les services sont choisis dans la liste TMDB pour ce pays, avec recherche et formules distinctes. La sélection est conservée localement par compte/projet et dans les métadonnées privées Auth `vela_viewing`. Elle se restaure à la connexion et lors de la sauvegarde. Aucun changement de schéma n’est nécessaire pour cette mise à jour.
 
-Les fiches affichent les offres directement dans Vela : abonnement, gratuit, gratuit avec publicité, location et achat. Les services choisis sont mis en avant, sans annoncer qu’une location est incluse dans l’abonnement. Le pays reste visible et modifiable. Une absence de donnée n’est pas présentée comme une preuve d’indisponibilité.
+## Disponibilités
 
-## Sources et liens de lecture
+Une ligne **Disponible sur**, placée avant le synopsis, montre de petites icônes des services sélectionnés par l’utilisateur. Aucun service non coché n’est affiché, dans l’aperçu ou dans les détails. L’aperçu regroupe abonnement/gratuit/publicité ; si seules des offres payantes sont renseignées sur les services sélectionnés, il indique **Location / achat** pour ne pas annoncer un film inclus dans l’abonnement.
 
-La clé TMDB existante suffit : `/movie/{id}/watch/providers`, `/tv/{id}/watch/providers` et les listes `/watch/providers/movie|tv` fournissent les disponibilités et les logos. Ces données sont attribuées à JustWatch dans la fiche. TMDB est gratuit pour les usages non commerciaux prévus par ses conditions ; aucune nouvelle API freemium, offre RapidAPI ni abonnement de données n’est ajouté.
+La ligne se déplie pour séparer les catégories : abonnement, gratuit, publicité, achat et location. Chaque catégorie occupe une ligne avec ses icônes, sans cartes verticales. Les groupes vides sont omis. Le pays, l’attribution JustWatch/TMDB et l’accès aux réglages sont dans le volet. Sans pays ou services sélectionnés, une invite compacte mène aux paramètres.
 
-TMDB ne fournit pas les liens directs de chaque plateforme. Vela combine les liens officiels de la fiche et les identifiants de streaming de Wikidata (données CC0, API publique sans clé). La recherche Wikidata utilise uniquement l’identifiant public TMDB/IMDb du titre, jamais le compte, le pays ou les services de l’utilisateur. Les URLs sont construites à partir des identifiants et formateurs retournés, puis limitées aux domaines officiels des services. Une fiche produit Amazon physique n’est pas assimilée à une offre Prime Video. Les pages d’accueil, recherche ou connexion ne sont pas présentées comme des liens exacts.
+Les données utilisent la clé TMDB existante : `/movie/{id}/watch/providers`, `/tv/{id}/watch/providers` et `/watch/providers/movie|tv`. Une absence de données ne prouve pas l’indisponibilité réelle. Les caches de listes et d’offres sont conservés en mémoire. La requête d’offre n’est pas lancée avant la sélection d’au moins un service.
 
-La liste reste dans Vela : aucun passage par la page « Où regarder » de TMDB n’est imposé. **Ouvrir le titre** apparaît uniquement lorsqu’un lien exact est disponible pour le service. La lecture reste assurée par le fournisseur. La couverture gratuite est incomplète : l’absence de lien direct est indiquée ; aucune URL de film n’est inventée. Un échec de recherche de lien n’empêche pas d’afficher les disponibilités. La recherche est limitée à huit secondes, avec temporisation après limitation de débit ; les liens exacts sont cachés une semaine et les résultats vides une journée sur l’appareil. Les listes de services et offres sont également mises en cache en mémoire.
+Les liens directs vers les titres sur les plateformes et leurs messages d’absence sont retirés. Le résolveur Wikidata est supprimé : aucune recherche de lien direct n’est faite à l’ouverture d’une fiche. Le partage des **liens publics Vela** fonctionne toujours, indépendamment de cet affichage.
 
-## Distribution
+## Distribution et avis
 
-Les crédits de film et crédits agrégés de série sont chargés dans la requête de fiche TMDB existante via `append_to_response`. Le trombinoscope affiche le portrait, le nom et le rôle, avec un repli si la photo manque, et une expansion vers le reste du casting. Les portraits restent sur le CDN TMDB ; les crédits ne sont pas recopiés dans chaque entrée de collection ou sauvegarde.
+**Voir les acteurs** déplie le trombinoscope. Aucun portrait n’est monté avant l’ouverture. Les crédits restent dans la requête de fiche TMDB existante, avec `append_to_response` pour les films et séries ; les images restent sur le CDN, sans hébergement Supabase ni duplication dans les sauvegardes.
+
+L’en-tête est réduit : affiche compacte, titre, année, genre, durée, note du catalogue et partage. Les actions de collection occupent une ligne dédiée. La note personnelle et l’aperçu de l’avis sont proches du synopsis. **Écrire un avis** / **Modifier mon avis** ouvre un éditeur avec compteur et commandes Enregistrer/Annuler ; annuler garde le texte précédemment enregistré. La date de visionnage et les listes sont dans **Suivi personnel**, replié par défaut. Les données de note, avis et listes ne changent pas de format.
+
+Les mêmes composants servent l’APK, les fenêtres web et les fiches publiques. Les visiteurs déconnectés conservent les appels à découvrir Vela et à se connecter, sans accès à l’éditeur privé.
 
 ## Vérification
 
-Les tests contrôlent les changements de pays, les offres territoriales, les formules choisies, leur restauration depuis les métadonnées après effacement local, le pays requis au signup, les crédits de films/séries, l’accès anonyme aux fiches et les domaines des liens. Les appels distants réels à TMDB, Wikidata et Supabase ne sont pas accessibles avec la politique réseau du cloud actuel ; les tests utilisent leurs réponses représentatives.
+Les tests couvrent le filtrage par services sélectionnés, les catégories d’achat/location repliées, le pays et les préférences restaurés depuis Supabase, l’absence de recherche Wikidata, l’ouverture du casting, les notes, l’enregistrement et l’annulation des avis, les listes et les couleurs issues de l’affiche. Les appels distants sont contrôlés dans les tests ; le cloud ne permet pas leur vérification en direct.

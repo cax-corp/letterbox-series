@@ -28,7 +28,6 @@ export type Title = {
   voteCount?: number;
   duration?: string;
   url?: string;
-  homepage?: string;
   trailer?: string;
   source?: "tmdb" | "itunes" | "tvmaze";
   trailerKind?: "video" | "youtube";
@@ -197,10 +196,6 @@ function fromTmdb(x: any, kind: Title["kind"]): Title {
       ? `https://www.youtube.com/watch?v=${trailer.key}`
       : undefined,
     trailerKind: trailer ? "youtube" : undefined,
-    homepage:
-      typeof x.homepage === "string" && /^https:\/\//.test(x.homepage)
-        ? x.homepage
-        : undefined,
     imdbUrl:
       typeof imdb === "string" && /^tt\d+$/.test(imdb)
         ? `https://www.imdb.com/title/${imdb}/`

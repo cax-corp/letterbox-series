@@ -36,8 +36,10 @@ async function mock(page: Page) {
               link: "https://www.themoviedb.org/movie/1/watch?locale=FR",
               flatrate: providers,
               rent: [
+                providers[1],
                 { provider_id: 2, provider_name: "Apple TV", logo_path: "" },
               ],
+              buy: [providers[1]],
             },
             BE: {
               link: "https://www.themoviedb.org/movie/1/watch?locale=BE",
@@ -92,20 +94,9 @@ async function mock(page: Page) {
       json: { results: [raw(tv)], total_pages: 1, total_results: 1 },
     });
   });
-  await page.route("https://query.wikidata.org/sparql*", (r) =>
-    r.fulfill({
-      json: {
-        results: {
-          bindings: [
-            {
-              identifier: { value: "123456" },
-              formatter: { value: "https://www.netflix.com/title/$1" },
-            },
-          ],
-        },
-      },
-    }),
-  );
+  await page.route("https://query.wikidata.org/**", (r) => {
+    throw new Error("Les fiches ne doivent plus rechercher de lien direct.");
+  });
   await page.route("https://image.tmdb.org/**", (r) =>
     r.fulfill({
       contentType: "image/svg+xml",
@@ -142,20 +133,27 @@ test("pays et abonnements : persistance, offres territoriales, location distinct
     .click();
   const dialog = page.getByRole("dialog"),
     offers = dialog.getByRole("region", { name: "Où regarder", exact: true });
+  const fold = offers.locator(".availability-fold");
+  await expect(fold).not.toHaveAttribute("open", "");
   await expect(
-    offers.locator(".watch-provider").filter({ hasText: "Netflix" }),
-  ).toBeVisible();
-  await expect(offers.locator(".is-subscribed")).toContainText("Netflix");
-  await expect(
-    offers.getByRole("heading", { name: "À louer", exact: true }),
+    fold.locator("summary").getByRole("img", { name: "Netflix", exact: true }),
   ).toBeVisible();
   await expect(
-    offers.getByRole("link", { name: "Ouvrir le titre ↗", exact: true }),
-  ).toHaveAttribute("href", "https://www.netflix.com/title/123456");
-  const cast = dialog.getByRole("region", {
-    name: "Distribution",
-    exact: true,
-  });
+    offers.getByRole("img", { name: "Prime Video", exact: true }),
+  ).toHaveCount(0);
+  expect((await offers.boundingBox())!.height).toBeLessThan(90);
+  await fold.locator("summary").click();
+  await expect(offers.getByText("Abonnement", { exact: true })).toBeVisible();
+  await expect(
+    offers.getByRole("img", { name: "Apple TV", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    offers.getByRole("link", { name: /Ouvrir le titre/ }),
+  ).toHaveCount(0);
+  await expect(offers.getByText(/Lien direct/)).toHaveCount(0);
+  const cast = dialog.locator(".cast-gallery");
+  await expect(cast.locator(".cast-person")).toHaveCount(0);
+  await cast.locator("summary").click();
   await expect(cast.getByText("Alex Artiste", { exact: true })).toBeVisible();
   await expect(cast.getByText("Lou", { exact: true })).toBeVisible();
   await expect(
@@ -163,10 +161,15 @@ test("pays et abonnements : persistance, offres territoriales, location distinct
   ).toHaveAttribute("src", /w185\/alex.jpg$/);
   expect(calls.details).toContain("videos,external_ids,credits");
   await page.screenshot({ path: "tests/availability-dark.png" });
-  await offers.getByRole("button", { name: /Modifier/ }).click();
+  await offers
+    .getByRole("button", { name: "Modifier mes services", exact: true })
+    .click();
   await page
     .getByLabel("Pays de résidence", { exact: true })
     .selectOption("BE");
+  await page
+    .getByRole("checkbox", { name: "Prime Video", exact: true })
+    .check();
   await page.getByRole("button", { name: "Retour", exact: true }).click();
   await page
     .locator(".hero")
@@ -175,12 +178,12 @@ test("pays et abonnements : persistance, offres territoriales, location distinct
   await expect(
     page
       .getByRole("region", { name: "Où regarder", exact: true })
-      .getByText("Prime Video", { exact: true }),
+      .getByRole("img", { name: "Prime Video", exact: true }),
   ).toBeVisible();
   await expect(
     page
       .getByRole("region", { name: "Où regarder", exact: true })
-      .getByText("Netflix", { exact: true }),
+      .getByRole("img", { name: "Netflix", exact: true }),
   ).toHaveCount(0);
   expect(
     await page.evaluate(
@@ -197,9 +200,9 @@ test("lien de série : fiche complète anonyme et rôles du casting agrégé, sa
   await expect(page.locator(".public-title")).toContainText(
     "Le résumé de la série.",
   );
-  await expect(
-    page.getByRole("region", { name: "Distribution", exact: true }),
-  ).toContainText("Camille / Alex");
+  await expect(page.locator(".cast-gallery .cast-person")).toHaveCount(0);
+  await page.locator(".cast-gallery summary").click();
+  await expect(page.locator(".cast-gallery")).toContainText("Camille / Alex");
   await expect(
     page.getByRole("button", {
       name: "Se connecter pour noter ou ajouter à ma liste",
@@ -349,4 +352,58 @@ test("compte : pays et services synchronisés puis restaurés après effacement 
   await expect(
     page.getByRole("checkbox", { name: "Prime Video", exact: true }),
   ).toBeChecked();
+});
+
+test("offres repliées : achat et location en lignes, seulement parmi les services choisis", async ({
+  page,
+}) => {
+  await mock(page);
+  await page.addInitScript(
+    (project) =>
+      localStorage.setItem(
+        `vela-viewing-v1:${project}:local`,
+        JSON.stringify({
+          version: 1,
+          country: "FR",
+          providers: [9],
+          updated: new Date().toISOString(),
+        }),
+      ),
+    project,
+  );
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto("/#/title/tmdb-movie-1");
+  const offers = page.getByRole("region", { name: "Où regarder", exact: true });
+  const summary = offers.locator("summary");
+  await expect(
+    summary.getByRole("img", { name: "Prime Video", exact: true }),
+  ).toBeVisible();
+  await expect(
+    offers.getByRole("img", { name: "Netflix", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    offers.getByText("À l’achat", { exact: true }),
+  ).not.toBeVisible();
+  await summary.click();
+  for (const label of ["À l’achat", "À la location"]) {
+    const row = offers
+      .locator(".availability-offer-row")
+      .filter({ hasText: label });
+    await expect(
+      row.getByRole("img", { name: "Prime Video", exact: true }),
+    ).toBeVisible();
+    await expect(
+      row.getByRole("img", { name: "Apple TV", exact: true }),
+    ).toHaveCount(0);
+  }
+  await summary.click();
+  await expect(
+    offers.getByText("À l’achat", { exact: true }),
+  ).not.toBeVisible();
+  await page.screenshot({ path: "tests/details-compact-public.png" });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  ).toBe(true);
 });

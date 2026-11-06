@@ -75,7 +75,7 @@ Le profil affiche films/séries vus, moyenne des notes, avis et activité. Les b
 
 ## Pays, services et distribution
 
-Le pays est requis à la création de compte et modifiable dans les réglages. Les abonnements choisis et le pays sont synchronisés dans les métadonnées privées Supabase. Les fiches montrent les offres **dans Vela**, classées par abonnement, gratuit, publicité, location et achat, avec les services de l’utilisateur en premier. Les liens officiels et Wikidata fournissent des boutons directs lorsqu’un identifiant exact existe ; leur couverture gratuite est incomplète et un lien manquant est signalé. Les crédits TMDB affichent les portraits et rôles des interprètes, sans héberger leurs images ni augmenter chaque sauvegarde. Aucune nouvelle clé n’est nécessaire. [Sources, limites et fonctionnement](docs/disponibilites-et-distribution.md).
+Le pays est requis à la création de compte et modifiable dans les réglages. Les abonnements choisis et le pays sont synchronisés dans les métadonnées privées Supabase. Les fiches montrent les offres **dans Vela**, classées par abonnement, gratuit, publicité, location et achat, en affichant uniquement les services sélectionnés. La ligne « Disponible sur » montre uniquement les services cochés ; achat et location sont dans un volet dépliant. Les liens directs des plateformes et la recherche Wikidata sont retirés. Le bouton « Voir les acteurs » ouvre les portraits et rôles TMDB, sans héberger leurs images ni augmenter chaque sauvegarde. Les notes et avis ont un bloc compact ; l’éditeur d’avis, la date et les listes s’ouvrent sur demande. Aucune nouvelle clé n’est nécessaire. [Sources, limites et fonctionnement](docs/disponibilites-et-distribution.md).
 
 ## Sauvegarde Supabase
 

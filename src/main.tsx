@@ -1,3 +1,4 @@
+import TitleReview, { PersonalTracking } from "./TitleReview";
 import Modal from "./Modal";
 import ShareLinkDialog from "./ShareLinkDialog";
 import PublicPage, { parsePublicRoute } from "./PublicPage";
@@ -1399,44 +1400,6 @@ function Poster({ title }: { title: Title }) {
     </div>
   );
 }
-function Stars({
-  rating,
-  onChange,
-}: {
-  rating: number;
-  onChange?: (n: number) => void;
-}) {
-  return (
-    <div
-      className={"stars " + (onChange ? "editable" : "")}
-      aria-label={`${rating} sur 5`}
-    >
-      {[1, 2, 3, 4, 5].map((n) =>
-        onChange ? (
-          <button
-            key={n}
-            aria-label={`Noter ${n} sur 5`}
-            aria-pressed={rating === n}
-            onClick={() => onChange(rating === n ? 0 : n)}
-          >
-            <Star
-              size={25}
-              fill={n <= rating ? "currentColor" : "none"}
-              className={n <= rating ? "filled" : ""}
-            />
-          </button>
-        ) : (
-          <Star
-            key={n}
-            size={14}
-            fill={n <= rating ? "currentColor" : "none"}
-            className={n <= rating ? "filled" : ""}
-          />
-        ),
-      )}
-    </div>
-  );
-}
 function Empty({ text, action }: { text: string; action?: () => void }) {
   return (
     <div className="empty">
@@ -1525,14 +1488,7 @@ function Details({
     ),
     [detailError, setDetailError] = useState(""),
     [detailRetry, setDetailRetry] = useState(0),
-    [review, setReview] = useState(entry.review),
     [video, setVideo] = useState(false);
-  const storedReview = useRef(entry.review);
-  useEffect(() => {
-    const previous = storedReview.current;
-    setReview((draft) => (draft === previous ? entry.review : draft));
-    storedReview.current = entry.review;
-  }, [entry.review]);
   const update = (patch: Partial<Entry>) => {
     // Cast portraits are fetched on demand, never copied into every backup entry.
     const { cast: _cast, ...savedTitle } = title;
@@ -1579,75 +1535,75 @@ function Details({
         </div>
         <div>
           <span className="eyebrow">
-            {title.kind === "movie" ? "Film" : "Série"}
+            {title.kind === "movie" ? "Film" : "Série"} · {title.year}
+            {title.duration && ` · ${title.duration}`}
           </span>
           {inline ? <h1>{title.name}</h1> : <h2>{title.name}</h2>}
-          <button className="text-button" onClick={() => share()}>
-            <ShareIcon size={17} />
-            Partager cette{" "}
-            {title.kind === "movie" ? "fiche film" : "fiche série"}
-          </button>
-          <p className="detail-meta">
-            {title.year} · {title.genres.join(" / ")}
-            {title.duration && ` · ${title.duration}`}
-          </p>
-          {title.score && (
-            <p className="detail-score">
-              <Star size={15} fill="currentColor" />
-              {title.score}
-              <span>/10 · {scoreSource(title)}</span>
-            </p>
-          )}
-          {readOnly ? (
-            <button className="button tonal" onClick={signIn}>
-              Se connecter pour noter ou ajouter à ma liste
+          <p className="detail-meta">{title.genres.join(" / ")}</p>
+          <div className="detail-score-row">
+            {title.score && (
+              <p className="detail-score">
+                <Star size={15} fill="currentColor" />
+                {title.score}
+                <span>/10 · {scoreSource(title)}</span>
+              </p>
+            )}
+            <button
+              className="detail-share icon-button"
+              onClick={() => share()}
+              aria-label={`Partager cette fiche ${title.kind === "movie" ? "film" : "série"}`}
+              title="Partager la fiche"
+            >
+              <ShareIcon size={18} />
             </button>
-          ) : (
-            <>
-              <div className="detail-buttons">
-                <button
-                  className={
-                    "button " + (entry.watchlist ? "primary" : "surface")
-                  }
-                  onClick={() => update({ watchlist: !entry.watchlist })}
-                >
-                  {entry.watchlist ? <Check size={17} /> : <Plus size={17} />}À
-                  voir
-                </button>
-                <button
-                  className={
-                    "button " + (entry.watched ? "primary" : "surface")
-                  }
-                  onClick={() => update({ watched: !entry.watched })}
-                >
-                  <Check size={17} />
-                  {entry.watched ? "Vu" : "Marquer vu"}
-                </button>
-                <button
-                  className={
-                    "button icon-button " +
-                    (entry.favorite ? "liked" : "surface")
-                  }
-                  aria-label="Coup de cœur"
-                  aria-pressed={entry.favorite}
-                  onClick={() =>
-                    update({
-                      favorite: !entry.favorite,
-                      recommendationFeedback: entry.favorite
-                        ? undefined
-                        : "like",
-                    })
-                  }
-                >
-                  <Heart
-                    size={19}
-                    fill={entry.favorite ? "currentColor" : "none"}
-                  />
-                </button>
-              </div>
-            </>
-          )}
+          </div>
         </div>
+      </div>
+      <div className="detail-action-bar">
+        {readOnly ? (
+          <button className="button tonal" onClick={signIn}>
+            Se connecter pour noter ou ajouter à ma liste
+          </button>
+        ) : (
+          <>
+            <div className="detail-buttons">
+              <button
+                className={
+                  "button " + (entry.watchlist ? "primary" : "surface")
+                }
+                onClick={() => update({ watchlist: !entry.watchlist })}
+              >
+                {entry.watchlist ? <Check size={17} /> : <Plus size={17} />}À
+                voir
+              </button>
+              <button
+                className={"button " + (entry.watched ? "primary" : "surface")}
+                onClick={() => update({ watched: !entry.watched })}
+              >
+                <Check size={17} />
+                {entry.watched ? "Vu" : "Marquer vu"}
+              </button>
+              <button
+                className={
+                  "button icon-button " + (entry.favorite ? "liked" : "surface")
+                }
+                aria-label="Coup de cœur"
+                aria-pressed={entry.favorite}
+                onClick={() =>
+                  update({
+                    favorite: !entry.favorite,
+                    recommendationFeedback: entry.favorite ? undefined : "like",
+                  })
+                }
+              >
+                <Heart
+                  size={19}
+                  fill={entry.favorite ? "currentColor" : "none"}
+                />
+              </button>
+            </div>
+          </>
+        )}
       </div>
       <div className="detail-body">
         {detailState === "loading" && (
@@ -1663,153 +1619,78 @@ function Details({
             </button>
           </div>
         )}
+        <WhereToWatch title={title} preferences={viewing} settings={settings} />
         <h3>Synopsis</h3>
         <p className="synopsis">{title.summary}</p>
-        <WhereToWatch
-          ready={detailState === "ready"}
-          title={title}
-          preferences={viewing}
-          settings={settings}
-        />
+        {!readOnly && (
+          <TitleReview
+            entry={entry}
+            update={update}
+            share={() => share(true)}
+            saved={() => toast("Avis enregistré.")}
+          />
+        )}
         <CastGallery cast={title.cast} />
-        {title.trailer && title.trailerKind === "youtube" && (
-          <a
-            className="text-button"
-            href={title.trailer}
-            target="_blank"
-            rel="noreferrer"
-          >
-            <Play size={18} />
-            Voir la bande-annonce sur YouTube ↗
-          </a>
-        )}
-        {title.trailer && title.trailerKind !== "youtube" && (
-          <>
-            <button className="text-button" onClick={() => setVideo(!video)}>
-              <Play size={16} />
-              {video ? "Fermer l’extrait" : "Voir l’extrait"}
-            </button>
-            {video && (
-              <video
-                className="trailer"
-                src={title.trailer}
-                controls
-                autoPlay
-                playsInline
-              />
-            )}
-          </>
-        )}
-        {title.url && (
-          <a
-            className="source-link"
-            href={title.url}
-            target="_blank"
-            rel="noreferrer"
-          >
-            {title.kind === "movie"
-              ? isTmdb(title)
-                ? "Fiche sur TMDB"
-                : "Fiche et disponibilité sur Apple TV"
-              : isTmdb(title)
-                ? "Fiche sur TMDB"
-                : "Site de la série"}{" "}
-            ↗
-          </a>
-        )}
-        {title.imdbUrl && (
-          <a
-            className="source-link"
-            href={title.imdbUrl}
-            target="_blank"
-            rel="noreferrer"
-          >
-            Fiche IMDb ↗
-          </a>
-        )}
+        <div className="detail-links">
+          {title.trailer && title.trailerKind === "youtube" && (
+            <a
+              className="text-button"
+              href={title.trailer}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <Play size={18} />
+              Voir la bande-annonce sur YouTube ↗
+            </a>
+          )}
+          {title.trailer && title.trailerKind !== "youtube" && (
+            <>
+              <button className="text-button" onClick={() => setVideo(!video)}>
+                <Play size={16} />
+                {video ? "Fermer l’extrait" : "Voir l’extrait"}
+              </button>
+              {video && (
+                <video
+                  className="trailer"
+                  src={title.trailer}
+                  controls
+                  autoPlay
+                  playsInline
+                />
+              )}
+            </>
+          )}
+          {title.url && (
+            <a
+              className="source-link"
+              href={title.url}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {title.kind === "movie"
+                ? isTmdb(title)
+                  ? "Fiche sur TMDB"
+                  : "Fiche et disponibilité sur Apple TV"
+                : isTmdb(title)
+                  ? "Fiche sur TMDB"
+                  : "Site de la série"}{" "}
+              ↗
+            </a>
+          )}
+          {title.imdbUrl && (
+            <a
+              className="source-link"
+              href={title.imdbUrl}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Fiche IMDb ↗
+            </a>
+          )}
+        </div>
         {!readOnly && (
           <>
-            <div className="review-panel">
-              <h3>Votre avis</h3>
-              <Stars
-                rating={entry.rating}
-                onChange={(rating) =>
-                  update({
-                    rating,
-                    watched: rating > 0 || entry.watched,
-                    recommendationFeedback: undefined,
-                  })
-                }
-              />
-              <label className="field">
-                Date du visionnage
-                <input
-                  type="date"
-                  value={entry.watchedAt}
-                  onChange={(e) => {
-                    if (e.target.value) update({ watchedAt: e.target.value });
-                  }}
-                />
-              </label>
-              <label className="field">
-                Votre critique
-                <textarea
-                  maxLength={5000}
-                  value={review}
-                  onChange={(e) => setReview(e.target.value)}
-                  placeholder="Écrivez votre avis…"
-                  rows={4}
-                />
-              </label>
-              <button
-                className="button primary"
-                onClick={() => {
-                  update({ review, watched: true });
-                  toast("Avis enregistré.");
-                }}
-              >
-                Enregistrer mon avis <ArrowRight size={16} />
-              </button>
-              {entry.review.trim() && (
-                <button
-                  className="text-button"
-                  disabled={review !== entry.review}
-                  onClick={() => share(true)}
-                >
-                  <ShareIcon size={17} />
-                  Partager mon avis
-                </button>
-              )}
-              {entry.review.trim() && review !== entry.review && (
-                <p className="muted fine">
-                  Enregistrez les modifications avant de partager cet avis.
-                </p>
-              )}
-            </div>
-            <label className="field">
-              Vos listes personnelles
-              <input
-                defaultValue={(entry.lists || []).join(", ")}
-                placeholder="Soirée cinéma, À revoir, Mes classiques…"
-                maxLength={500}
-                onBlur={(e) =>
-                  update({
-                    lists: [
-                      ...new Set(
-                        e.target.value
-                          .split(",")
-                          .map((x) => x.trim())
-                          .filter(Boolean),
-                      ),
-                    ].slice(0, 20),
-                  })
-                }
-              />
-              <span className="muted fine">
-                Séparez les noms par une virgule. Enregistrement en quittant le
-                champ.
-              </span>
-            </label>
+            <PersonalTracking entry={entry} update={update} />
             {title.kind === "series" &&
               (!isTmdb(title) || detailState === "ready") && (
                 <EpisodeTracker

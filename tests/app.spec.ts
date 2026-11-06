@@ -45,6 +45,9 @@ test("catalogue, avis, listes et persistance locale", async ({ page }) => {
   await dialog
     .getByRole("button", { name: "Noter 4 sur 5", exact: true })
     .click();
+  await dialog
+    .getByRole("button", { name: "Écrire un avis", exact: true })
+    .click();
   await dialog.getByLabel("Votre critique").fill("Un souvenir cosmique.");
   await dialog.getByRole("button", { name: "Enregistrer mon avis" }).click();
   await dialog.getByRole("button", { name: "Fermer", exact: true }).click();
@@ -52,9 +55,30 @@ test("catalogue, avis, listes et persistance locale", async ({ page }) => {
   await page.getByRole("button", { name: /Ma collection/ }).click();
   await page.getByRole("button", { name: /^Vus/ }).click();
   await page.getByRole("button", { name: /Interstellar/ }).click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Modifier mon avis", exact: true })
+    .click();
   await expect(
     page.getByRole("dialog").getByLabel("Votre critique"),
   ).toHaveValue("Un souvenir cosmique.");
+  await page
+    .getByRole("dialog")
+    .getByLabel("Votre critique")
+    .fill("Un brouillon non enregistré");
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Annuler", exact: true })
+    .click();
+  await expect(
+    page.getByRole("dialog").getByLabel("Votre critique"),
+  ).toHaveCount(0);
+  await expect(
+    page
+      .getByRole("dialog")
+      .getByText("Un souvenir cosmique.", { exact: true }),
+  ).toBeVisible();
+
   await page
     .getByRole("dialog")
     .getByRole("button", { name: "Fermer", exact: true })
@@ -136,6 +160,7 @@ test("listes nommées et export de la collection", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: /Interstellar/ }).click();
   const dialog = page.getByRole("dialog");
+  await dialog.getByText("Suivi personnel", { exact: true }).click();
   await dialog
     .getByRole("textbox", { name: "Vos listes personnelles" })
     .fill("Mes classiques, Soirée cinéma");
@@ -385,6 +410,9 @@ test("fiches film et série : surfaces, boutons et halo issus de l’affiche dan
             .evaluate((el) => el.style.getPropertyValue("--art-rgb")),
         )
         .toBe(tone);
+      await dialog
+        .getByRole("button", { name: "Écrire un avis", exact: true })
+        .click();
       const shadow = await dialog.evaluate(
         (el) => getComputedStyle(el).boxShadow,
       );
@@ -407,6 +435,9 @@ test("fiches film et série : surfaces, boutons et halo issus de l’affiche dan
       expect(
         await dialog.evaluate((el) => el.scrollWidth <= el.clientWidth),
       ).toBe(true);
+      await dialog
+        .getByRole("button", { name: "Annuler", exact: true })
+        .click();
       await page.screenshot({
         path: `tests/detail-${name}-${light ? "light" : "dark"}.png`,
       });

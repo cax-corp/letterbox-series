@@ -87,7 +87,7 @@ test("web : Pour vous présente son indisponibilité et un vrai téléchargement
       .getByRole("link", { name: "Télécharger pour Android", exact: true })
       .click(),
   ]);
-  expect(download.suggestedFilename()).toBe("Vela-2.3.0.apk");
+  expect(download.suggestedFilename()).toBe("Vela-2.3.1.apk");
   expect(await download.failure()).toBeNull();
   const { readFile } = await import("node:fs/promises");
   const apk = await readFile((await download.path())!);
