@@ -234,12 +234,12 @@ test("partage : nom choisi et avis, aucune adresse e-mail ni historique privé d
   expect(profile.text).not.toContain(e.review);
   expect(profile.text).not.toContain("@");
   const review = reviewShare(p, e);
-  expect(review.text).toContain(e.review);
-  expect(review.text).toContain("4/5");
-  expect(review.text).toContain("https://www.themoviedb.org/movie/4");
+  expect(review.payload?.review?.text).toBe(e.review);
+  expect(review.payload?.review?.rating).toBe(4);
+  expect(publicTitleUrl(e.title)).toContain("#/title/tmdb-movie-4");
   expect(
     publicTitleUrl({ ...title(), id: "tmdb-series-7", kind: "series" }),
-  ).toBe("https://www.themoviedb.org/tv/7");
+  ).toBe("https://cax-corp.github.io/letterbox-series/#/title/tmdb-series-7");
 });
 test("la sauvegarde quotidienne inclut le profil et n’est pas validée si son envoi échoue", async () => {
   const service = createBackupService({

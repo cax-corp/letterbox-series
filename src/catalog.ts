@@ -6,6 +6,13 @@ export type Episode = {
   number: number;
   name: string;
 };
+export type CastMember = {
+  id: number;
+  name: string;
+  character: string;
+  image: string;
+  url: string;
+};
 export type Title = {
   id: string;
   kind: "movie" | "series";
@@ -21,11 +28,13 @@ export type Title = {
   voteCount?: number;
   duration?: string;
   url?: string;
+  homepage?: string;
   trailer?: string;
   source?: "tmdb" | "itunes" | "tvmaze";
   trailerKind?: "video" | "youtube";
   imdbUrl?: string;
   seasons?: Season[];
+  cast?: CastMember[];
   episodeCount?: number;
 };
 export type CatalogPage = {
@@ -91,7 +100,7 @@ export async function request(url: string, signal?: AbortSignal) {
     );
   return r.json();
 }
-async function tmdb(
+export async function tmdbRequest(
   path: string,
   params: Record<string, string | number> = {},
   signal?: AbortSignal,
@@ -143,7 +152,7 @@ export async function saveTmdbCredential(input: string) {
     throw new Error(
       "Collez le jeton de lecture API TMDB ou la clé API v3 de 32 caractères.",
     );
-  await tmdb("/configuration", {}, undefined, credential);
+  await tmdbRequest("/configuration", {}, undefined, credential);
   localStorage.setItem("luma-tmdb-token", credential);
   location.reload();
 }
@@ -188,6 +197,10 @@ function fromTmdb(x: any, kind: Title["kind"]): Title {
       ? `https://www.youtube.com/watch?v=${trailer.key}`
       : undefined,
     trailerKind: trailer ? "youtube" : undefined,
+    homepage:
+      typeof x.homepage === "string" && /^https:\/\//.test(x.homepage)
+        ? x.homepage
+        : undefined,
     imdbUrl:
       typeof imdb === "string" && /^tt\d+$/.test(imdb)
         ? `https://www.imdb.com/title/${imdb}/`
@@ -200,6 +213,29 @@ function fromTmdb(x: any, kind: Title["kind"]): Title {
         }))
       : undefined,
     episodeCount: x.number_of_episodes,
+    cast: (x.aggregate_credits?.cast || x.credits?.cast || [])
+      .slice(0, 60)
+      .filter(
+        (p: any) => Number.isSafeInteger(p.id) && typeof p.name === "string",
+      )
+      .map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        character:
+          p.character ||
+          p.roles
+            ?.map((r: any) => r.character)
+            .filter(Boolean)
+            .slice(0, 2)
+            .join(" / ") ||
+          "",
+        image:
+          typeof p.profile_path === "string" &&
+          /^\/[\w./-]+$/.test(p.profile_path)
+            ? `https://image.tmdb.org/t/p/w185${p.profile_path}`
+            : "",
+        url: `https://www.themoviedb.org/person/${p.id}`,
+      })),
   };
 }
 export async function movies(
@@ -207,7 +243,7 @@ export async function movies(
   signal?: AbortSignal,
 ): Promise<Title[]> {
   if (tmdbEnabled()) {
-    const d = await tmdb(
+    const d = await tmdbRequest(
       term ? "/search/movie" : "/trending/movie/week",
       term ? { query: term, include_adult: "false", page: 1 } : { page: 1 },
       signal,
@@ -221,7 +257,7 @@ export async function series(
   signal?: AbortSignal,
 ): Promise<Title[]> {
   if (tmdbEnabled()) {
-    const d = await tmdb(
+    const d = await tmdbRequest(
       term ? "/search/tv" : "/trending/tv/week",
       term ? { query: term, include_adult: "false", page: 1 } : { page: 1 },
       signal,
@@ -251,7 +287,7 @@ export async function searchCatalog(
   const types = kind === "all" ? (["movie", "series"] as const) : [kind];
   const data = await Promise.all(
     types.map(async (k) => {
-      const d = await tmdb(
+      const d = await tmdbRequest(
         `/search/${k === "movie" ? "movie" : "tv"}`,
         { query, include_adult: "false", page },
         signal,
@@ -280,9 +316,14 @@ export async function getTitleDetails(
 ): Promise<Title> {
   if (!isTmdb(title)) return title;
   const id = title.id.split("-")[2];
-  const d = await tmdb(
+  const d = await tmdbRequest(
     `/${title.kind === "movie" ? "movie" : "tv"}/${id}`,
-    { append_to_response: "videos,external_ids" },
+    {
+      append_to_response:
+        title.kind === "movie"
+          ? "videos,external_ids,credits"
+          : "videos,external_ids,aggregate_credits",
+    },
     signal,
   );
   return fromTmdb(d, title.kind);
@@ -293,7 +334,7 @@ export async function seasonEpisodes(
   signal?: AbortSignal,
 ): Promise<Episode[]> {
   if (!isTmdb(title)) throw new Error("Source de saison incorrecte");
-  const d = await tmdb(
+  const d = await tmdbRequest(
     `/tv/${title.id.split("-")[2]}/season/${season}`,
     {},
     signal,
@@ -402,7 +443,7 @@ export async function relatedMoviesPage(
     resolved = exact[0];
     resolvedSeeds.set(key, resolved);
   }
-  const d = await tmdb(
+  const d = await tmdbRequest(
     `/movie/${resolved.id.split("-")[2]}/recommendations`,
     { page },
     signal,
@@ -424,7 +465,7 @@ export async function discoverMoviesForTastePage(
     sortBy?: "popularity.desc" | "vote_average.desc";
   } = {},
 ): Promise<MoviePage> {
-  const d = await tmdb(
+  const d = await tmdbRequest(
     "/discover/movie",
     {
       include_adult: "false",
@@ -457,4 +498,61 @@ export async function discoverMoviesForTaste(
   signal?: AbortSignal,
 ) {
   return (await discoverMoviesForTastePage(genreIds, 1, signal)).results;
+}
+
+export async function titleById(
+  id: string,
+  signal: AbortSignal,
+): Promise<Title> {
+  const match = /^(tmdb-)?(movie|series)-(\d+)$/.exec(id);
+  if (!match) throw new Error("Ce lien de titre est invalide.");
+  const base: Title = {
+    id,
+    kind: match[2] as Title["kind"],
+    name: "",
+    year: "",
+    image: "",
+    summary: "",
+    genres: [],
+  };
+  if (match[1]) return getTitleDetails(base, signal);
+  if (base.kind === "series") {
+    const x = await request(
+      `https://api.tvmaze.com/shows/${match[3]}?embed=cast`,
+      signal,
+    );
+    return {
+      ...base,
+      name: x.name,
+      year: (x.premiered || "").slice(0, 4),
+      image: x.image?.original || "",
+      summary: plain(x.summary || ""),
+      genres: x.genres || [],
+      source: "tvmaze",
+      url: x.url,
+      cast: (x._embedded?.cast || []).slice(0, 60).map((p: any) => ({
+        id: p.person.id,
+        name: p.person.name,
+        character: p.character?.name || "",
+        image: p.person.image?.medium || "",
+        url: p.person.url,
+      })),
+    };
+  }
+  const data = await request(
+      `https://itunes.apple.com/lookup?id=${match[3]}&country=fr`,
+      signal,
+    ),
+    x = data.results?.[0];
+  if (!x) throw new Error("Ce titre n’est plus disponible dans le catalogue.");
+  return {
+    ...base,
+    name: x.trackName,
+    year: (x.releaseDate || "").slice(0, 4),
+    image: (x.artworkUrl100 || "").replace("100x100bb", "600x900bb"),
+    summary: x.longDescription || x.shortDescription || "",
+    genres: [x.primaryGenreName].filter(Boolean),
+    url: x.trackViewUrl,
+    source: "itunes",
+  };
 }

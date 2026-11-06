@@ -87,7 +87,7 @@ test("web : Pour vous présente son indisponibilité et un vrai téléchargement
       .getByRole("link", { name: "Télécharger pour Android", exact: true })
       .click(),
   ]);
-  expect(download.suggestedFilename()).toBe("Vela-2.2.1.apk");
+  expect(download.suggestedFilename()).toBe("Vela-2.3.0.apk");
   expect(await download.failure()).toBeNull();
   const { readFile } = await import("node:fs/promises");
   const apk = await readFile((await download.path())!);
@@ -180,6 +180,9 @@ test("web : les e-mails de confirmation reviennent vers la base du site, sans mo
   await dialog
     .getByLabel("Mot de passe", { exact: true })
     .fill("mot-de-passe-test");
+  await dialog
+    .getByLabel("Pays de résidence", { exact: true })
+    .selectOption("FR");
   await dialog.getByRole("button", { name: /Créer mon compte/ }).click();
   await expect.poll(() => redirect).toBe("http://127.0.0.1:5173/");
 });

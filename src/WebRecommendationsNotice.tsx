@@ -33,8 +33,8 @@ export default function WebRecommendationsNotice({
           )}
           <a
             className="button primary"
-            href={`${import.meta.env.BASE_URL}downloads/Vela-2.2.1.apk`}
-            download="Vela-2.2.1.apk"
+            href={`${import.meta.env.BASE_URL}downloads/Vela-2.3.0.apk`}
+            download="Vela-2.3.0.apk"
           >
             <Download size={19} /> Télécharger pour Android
           </a>
@@ -43,7 +43,7 @@ export default function WebRecommendationsNotice({
           </button>
         </div>
         <p className="fine">
-          APK Android · Version 2.2.1. L’application n’est pas encore disponible
+          APK Android · Version 2.3.0. L’application n’est pas encore disponible
           sur Google Play ou l’App Store.
         </p>
       </div>

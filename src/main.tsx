@@ -1,10 +1,30 @@
+import Modal from "./Modal";
+import ShareLinkDialog from "./ShareLinkDialog";
+import PublicPage, { parsePublicRoute } from "./PublicPage";
+import PublicSharingSettings from "./PublicSharingSettings";
+import ViewingSettings, { CountrySelect } from "./ViewingSettings";
+import {
+  useViewingPreferences,
+  emptyViewing,
+  syncViewingPreferences,
+  type ViewingPreferences,
+} from "./viewing-preferences";
+import WhereToWatch from "./WhereToWatch";
+import CastGallery from "./CastGallery";
 import "@fontsource/dm-sans/latin-400.css";
 import { Brand, SettingsFooter } from "./Brand";
 import Avatar from "./Avatar";
 import ProfileOverview from "./ProfileOverview";
 import ProfileEditor from "./ProfileEditor";
 import { useProfile } from "./useProfile";
-import { reviewShare, titleShare, shareCard, shareMessage } from "./sharing";
+import {
+  reviewShare,
+  titleShare,
+  shareCard,
+  shareMessage,
+  publicTitleUrl,
+  type ShareDraft,
+} from "./sharing";
 import type { Profile } from "./profile";
 import "@fontsource/dm-sans/latin-500.css";
 import "@fontsource/dm-sans/latin-600.css";
@@ -93,6 +113,7 @@ import {
 import "./style.css";
 import { exportCollection } from "./export";
 type Page =
+  | "public"
   | "discover"
   | "search"
   | "library"
@@ -101,6 +122,7 @@ type Page =
   | "settings"
   | "edit-profile";
 const pageNames: Page[] = [
+  "public",
   "discover",
   "search",
   "library",
@@ -110,6 +132,9 @@ const pageNames: Page[] = [
   "edit-profile",
 ];
 function App() {
+  const [publicRoute, setPublicRoute] = useState(() => parsePublicRoute());
+  const [shareDraft, setShareDraft] = useState<ShareDraft | null>(null);
+  const titleSharing = useRef(false);
   const [colourTheme, setColourTheme] = useState(readColourTheme);
   const [feedSession, setFeedSession] = useState(0);
   useEffect(() => {
@@ -125,11 +150,13 @@ function App() {
     return () => document.removeEventListener("visibilitychange", resume);
   }, []);
   const [page, setPage] = useState<Page>(() =>
-      location.hash === "#settings"
-        ? "settings"
-        : location.hash === "#profile/edit"
-          ? "edit-profile"
-          : "discover",
+      parsePublicRoute()
+        ? "public"
+        : location.hash === "#settings"
+          ? "settings"
+          : location.hash === "#profile/edit"
+            ? "edit-profile"
+            : "discover",
     ),
     [kind, setKind] = useState<"all" | "movie" | "series">("all"),
     [filmList, setFilms] = useState<Title[]>([]),
@@ -157,6 +184,10 @@ function App() {
       () => matchMedia("(prefers-color-scheme: light)").matches,
     );
   const personal = useProfile(user);
+  const viewing = useViewingPreferences(user);
+  useEffect(() => {
+    setShareDraft(null);
+  }, [user?.id]);
   const light = theme === "system" ? systemLight : theme === "light";
   const preset = getColourTheme(colourTheme);
   const colors = preset[light ? "light" : "dark"];
@@ -217,6 +248,28 @@ function App() {
     setNotice(message);
     clearTimeout(timer.current);
     timer.current = setTimeout(() => setNotice(""), 4500);
+  }
+  function requestShare(draft: ShareDraft) {
+    if (draft.kind !== "title") {
+      setShareDraft(draft);
+      return;
+    }
+    if (titleSharing.current) return;
+    titleSharing.current = true;
+    shareCard(draft)
+      .then((result) => toast(shareMessage(result)))
+      .catch(() => toast("Le partage est indisponible pour le moment."))
+      .finally(() => {
+        titleSharing.current = false;
+      });
+  }
+  function openPublicTitle(title: Title) {
+    const hash = new URL(publicTitleUrl(title)).hash;
+    history.pushState({ lumaPage: "public" }, "", hash);
+    setPublicRoute(parsePublicRoute(hash));
+    setPage("public");
+    setSelected(null);
+    window.scrollTo({ top: 0, behavior: "instant" });
   }
   async function load() {
     setLoading(true);
@@ -365,11 +418,8 @@ function App() {
       }
     };
     document.addEventListener("keydown", onKey);
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
     return () => {
       document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = previous;
     };
   }, [selected, auth]);
   function update(title: Title, patch: Partial<Entry>) {
@@ -409,6 +459,14 @@ function App() {
   }
 
   function navigate(p: Page) {
+    if (publicRoute) {
+      history.pushState(
+        { lumaPage: p },
+        "",
+        location.pathname + location.search,
+      );
+      setPublicRoute(null);
+    }
     if ((page === "settings" || page === "edit-profile") && p !== page)
       history.replaceState(
         { lumaPage: p },
@@ -451,7 +509,7 @@ function App() {
     history.replaceState(
       { lumaPage: page },
       "",
-      location.pathname + location.search,
+      page === "public" ? location.href : location.pathname + location.search,
     );
     history.pushState(
       { lumaPage: "settings", lumaSettingsEntry: true },
@@ -475,10 +533,17 @@ function App() {
     }
   }
   useEffect(() => {
-    const pop = (event: PopStateEvent) => {
-      const target = event.state?.lumaPage;
+    const pop = (event: PopStateEvent | HashChangeEvent) => {
+      const route = parsePublicRoute();
+      setPublicRoute(route);
+      if (route) {
+        setPage("public");
+        setSelected(null);
+        return;
+      }
+      const target = ("state" in event ? event.state : history.state)?.lumaPage;
       setPage(
-        pageNames.includes(target)
+        pageNames.includes(target) && target !== "public"
           ? target
           : location.hash === "#settings"
             ? "settings"
@@ -488,10 +553,18 @@ function App() {
       );
     };
     window.addEventListener("popstate", pop);
-    return () => window.removeEventListener("popstate", pop);
+    window.addEventListener("hashchange", pop);
+    return () => {
+      window.removeEventListener("popstate", pop);
+      window.removeEventListener("hashchange", pop);
+    };
   }, []);
   useEffect(() => {
     const back = () => {
+      if (shareDraft) {
+        setShareDraft(null);
+        return true;
+      }
       if (selected) {
         setSelected(null);
         return true;
@@ -522,7 +595,7 @@ function App() {
       delete (window as any).lumaHandleBack;
       document.removeEventListener("keydown", escape);
     };
-  }, [page, selected, auth]);
+  }, [page, selected, auth, shareDraft]);
   const entries = Object.values(library),
     watched = entries.filter((e) => e.watched),
     watchlist = entries.filter((e) => e.watchlist),
@@ -690,12 +763,36 @@ function App() {
             </button>
           </div>
         </header>
+        {page === "public" && publicRoute && (
+          <PublicPage
+            route={publicRoute}
+            open={openPublicTitle}
+            renderTitle={(title) => (
+              <Details
+                key={`${user?.id || "local"}:${title.id}`}
+                title={title}
+                profile={personal.profile}
+                entry={library[title.id] || empty(title)}
+                update={(patch) => update(title, patch)}
+                close={() => navigate("discover")}
+                toast={toast}
+                onShare={requestShare}
+                inline
+                readOnly={Boolean(cloud && !user)}
+                signIn={() => setAuth(true)}
+                viewing={viewing.value}
+                settings={openSettings}
+              />
+            )}
+          />
+        )}
         {page === "settings" && (
           <SettingsPage
             theme={theme}
             setTheme={setTheme}
             colourTheme={colourTheme}
             setColourTheme={setColourTheme}
+            viewing={viewing}
             repairNeeded={Boolean(syncIssue)}
             library={library}
             fallback={filmList}
@@ -1082,6 +1179,7 @@ function App() {
                 open={setSelected}
                 toast={toast}
                 pending={Boolean(user && personal.pending)}
+                share={requestShare}
               />
               {personal.error && <p className="muted fine">{personal.error}</p>}
               <div className="profile-panel surface">
@@ -1255,11 +1353,24 @@ function App() {
       </nav>
       {selected && (
         <Details
+          key={`${user?.id || "local"}:${selected.id}`}
           title={selected}
+          readOnly={Boolean(cloud && !user)}
+          signIn={() => setAuth(true)}
+          onShare={requestShare}
+          viewing={viewing.value}
+          settings={openSettings}
           profile={personal.profile}
           entry={library[selected.id] || empty(selected)}
           update={(p) => update(selected, p)}
           close={() => setSelected(null)}
+          toast={toast}
+        />
+      )}
+      {shareDraft && (
+        <ShareLinkDialog
+          draft={shareDraft}
+          close={() => setShareDraft(null)}
           toast={toast}
         />
       )}
@@ -1351,71 +1462,34 @@ function Skeleton() {
     </div>
   );
 }
-function Modal({
+function DetailFrame({
+  inline,
   children,
-  close,
   label,
-  wide = false,
+  close,
   style,
 }: {
+  inline: boolean;
   children: React.ReactNode;
-  close: () => void;
   label: string;
-  wide?: boolean;
-  style?: React.CSSProperties;
+  close: () => void;
+  style: React.CSSProperties;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const previous = document.activeElement as HTMLElement;
-    ref.current?.focus({ preventScroll: true });
-    return () => previous?.focus();
-  }, []);
-  return (
-    <div
-      className={wide ? "modal-overlay details-overlay" : "modal-overlay"}
+  return inline ? (
+    <section
+      className="public-title page-section"
+      aria-label={label}
       style={style}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) close();
-      }}
     >
-      <div
-        className={"modal " + (wide ? "wide" : "")}
-        role="dialog"
-        aria-modal="true"
-        aria-label={label}
-        ref={ref}
-        tabIndex={-1}
-        onKeyDown={(e) => {
-          if (e.key !== "Tab") return;
-          const list = ref.current?.querySelectorAll<HTMLElement>(
-            "button:not(:disabled),a[href],input,textarea,select",
-          );
-          if (!list?.length) return;
-          const first = list[0],
-            last = list[list.length - 1];
-          if (
-            e.shiftKey &&
-            (document.activeElement === first ||
-              document.activeElement === ref.current)
-          ) {
-            e.preventDefault();
-            last.focus();
-          } else if (!e.shiftKey && document.activeElement === last) {
-            e.preventDefault();
-            first.focus();
-          }
-        }}
-      >
-        <button
-          className="modal-close surface"
-          aria-label="Fermer"
-          onClick={close}
-        >
-          <X size={20} />
-        </button>
-        {children}
-      </div>
-    </div>
+      <button className="text-button" onClick={close}>
+        <ArrowLeft size={18} /> Découvrir Vela
+      </button>
+      <div className="public-title-content">{children}</div>
+    </section>
+  ) : (
+    <Modal label={label} close={close} wide style={style}>
+      {children}
+    </Modal>
   );
 }
 function Details({
@@ -1425,7 +1499,19 @@ function Details({
   close,
   toast,
   profile,
+  onShare,
+  inline = false,
+  readOnly = false,
+  signIn,
+  viewing,
+  settings,
 }: {
+  onShare: (draft: ShareDraft) => void;
+  inline?: boolean;
+  readOnly?: boolean;
+  signIn?: () => void;
+  viewing: ViewingPreferences;
+  settings: () => void;
   profile: Profile;
   title: Title;
   entry: Entry;
@@ -1435,38 +1521,35 @@ function Details({
 }) {
   const [title, setTitle] = useState(initialTitle),
     [detailState, setDetailState] = useState(
-      isTmdb(initialTitle) ? "loading" : "ready",
+      isTmdb(initialTitle) && !inline ? "loading" : "ready",
     ),
     [detailError, setDetailError] = useState(""),
     [detailRetry, setDetailRetry] = useState(0),
     [review, setReview] = useState(entry.review),
-    [video, setVideo] = useState(false),
-    [sharing, setSharing] = useState(false);
-  const update = (patch: Partial<Entry>) => onUpdate({ ...patch, title });
-  async function share(reviewOnly = false) {
-    if (sharing) return;
-    setSharing(true);
-    try {
-      toast(
-        shareMessage(
-          await shareCard(
-            reviewOnly
-              ? reviewShare(profile, { ...entry, title })
-              : titleShare(title),
-          ),
-        ),
-      );
-    } catch {
-      toast("Le partage est indisponible pour le moment.");
-    } finally {
-      setSharing(false);
-    }
+    [video, setVideo] = useState(false);
+  const storedReview = useRef(entry.review);
+  useEffect(() => {
+    const previous = storedReview.current;
+    setReview((draft) => (draft === previous ? entry.review : draft));
+    storedReview.current = entry.review;
+  }, [entry.review]);
+  const update = (patch: Partial<Entry>) => {
+    // Cast portraits are fetched on demand, never copied into every backup entry.
+    const { cast: _cast, ...savedTitle } = title;
+    onUpdate({ ...patch, title: savedTitle });
+  };
+  function share(reviewOnly = false) {
+    onShare(
+      reviewOnly
+        ? reviewShare(profile, { ...entry, title })
+        : titleShare(title),
+    );
   }
   const artwork = title.image || title.backdrop || "";
   const tone = useArtworkTone(artwork);
   useEffect(() => {
     const c = new AbortController();
-    if (!isTmdb(initialTitle)) return;
+    if (!isTmdb(initialTitle) || inline) return;
     setDetailState("loading");
     getTitleDetails(initialTitle, c.signal)
       .then((data) => {
@@ -1482,9 +1565,14 @@ function Details({
         }
       });
     return () => c.abort();
-  }, [initialTitle.id, detailRetry]);
+  }, [initialTitle.id, detailRetry, inline]);
   return (
-    <Modal label={title.name} close={close} wide style={toneStyle(tone)}>
+    <DetailFrame
+      inline={inline}
+      label={title.name}
+      close={close}
+      style={toneStyle(tone)}
+    >
       <div className="detail-top">
         <div className="detail-poster">
           <Poster title={title} />
@@ -1493,12 +1581,8 @@ function Details({
           <span className="eyebrow">
             {title.kind === "movie" ? "Film" : "Série"}
           </span>
-          <h2>{title.name}</h2>
-          <button
-            className="text-button"
-            disabled={sharing}
-            onClick={() => share()}
-          >
+          {inline ? <h1>{title.name}</h1> : <h2>{title.name}</h2>}
+          <button className="text-button" onClick={() => share()}>
             <ShareIcon size={17} />
             Partager cette{" "}
             {title.kind === "movie" ? "fiche film" : "fiche série"}
@@ -1514,39 +1598,55 @@ function Details({
               <span>/10 · {scoreSource(title)}</span>
             </p>
           )}
-          <div className="detail-buttons">
-            <button
-              className={"button " + (entry.watchlist ? "primary" : "surface")}
-              onClick={() => update({ watchlist: !entry.watchlist })}
-            >
-              {entry.watchlist ? <Check size={17} /> : <Plus size={17} />}À voir
+          {readOnly ? (
+            <button className="button tonal" onClick={signIn}>
+              Se connecter pour noter ou ajouter à ma liste
             </button>
-            <button
-              className={"button " + (entry.watched ? "primary" : "surface")}
-              onClick={() => update({ watched: !entry.watched })}
-            >
-              <Check size={17} />
-              {entry.watched ? "Vu" : "Marquer vu"}
-            </button>
-            <button
-              className={
-                "button icon-button " + (entry.favorite ? "liked" : "surface")
-              }
-              aria-label="Coup de cœur"
-              aria-pressed={entry.favorite}
-              onClick={() =>
-                update({
-                  favorite: !entry.favorite,
-                  recommendationFeedback: entry.favorite ? undefined : "like",
-                })
-              }
-            >
-              <Heart
-                size={19}
-                fill={entry.favorite ? "currentColor" : "none"}
-              />
-            </button>
-          </div>
+          ) : (
+            <>
+              <div className="detail-buttons">
+                <button
+                  className={
+                    "button " + (entry.watchlist ? "primary" : "surface")
+                  }
+                  onClick={() => update({ watchlist: !entry.watchlist })}
+                >
+                  {entry.watchlist ? <Check size={17} /> : <Plus size={17} />}À
+                  voir
+                </button>
+                <button
+                  className={
+                    "button " + (entry.watched ? "primary" : "surface")
+                  }
+                  onClick={() => update({ watched: !entry.watched })}
+                >
+                  <Check size={17} />
+                  {entry.watched ? "Vu" : "Marquer vu"}
+                </button>
+                <button
+                  className={
+                    "button icon-button " +
+                    (entry.favorite ? "liked" : "surface")
+                  }
+                  aria-label="Coup de cœur"
+                  aria-pressed={entry.favorite}
+                  onClick={() =>
+                    update({
+                      favorite: !entry.favorite,
+                      recommendationFeedback: entry.favorite
+                        ? undefined
+                        : "like",
+                    })
+                  }
+                >
+                  <Heart
+                    size={19}
+                    fill={entry.favorite ? "currentColor" : "none"}
+                  />
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
       <div className="detail-body">
@@ -1565,6 +1665,13 @@ function Details({
         )}
         <h3>Synopsis</h3>
         <p className="synopsis">{title.summary}</p>
+        <WhereToWatch
+          ready={detailState === "ready"}
+          title={title}
+          preferences={viewing}
+          settings={settings}
+        />
+        <CastGallery cast={title.cast} />
         {title.trailer && title.trailerKind === "youtube" && (
           <a
             className="text-button"
@@ -1620,101 +1727,106 @@ function Details({
             Fiche IMDb ↗
           </a>
         )}
-        <div className="review-panel">
-          <h3>Votre avis</h3>
-          <Stars
-            rating={entry.rating}
-            onChange={(rating) =>
-              update({
-                rating,
-                watched: rating > 0 || entry.watched,
-                recommendationFeedback: undefined,
-              })
-            }
-          />
-          <label className="field">
-            Date du visionnage
-            <input
-              type="date"
-              value={entry.watchedAt}
-              onChange={(e) => {
-                if (e.target.value) update({ watchedAt: e.target.value });
-              }}
-            />
-          </label>
-          <label className="field">
-            Votre critique
-            <textarea
-              maxLength={5000}
-              value={review}
-              onChange={(e) => setReview(e.target.value)}
-              placeholder="Écrivez votre avis…"
-              rows={4}
-            />
-          </label>
-          <button
-            className="button primary"
-            onClick={() => {
-              update({ review, watched: true });
-              toast("Avis enregistré.");
-            }}
-          >
-            Enregistrer mon avis <ArrowRight size={16} />
-          </button>
-          {entry.review.trim() && (
-            <button
-              className="text-button"
-              disabled={sharing || review !== entry.review}
-              onClick={() => share(true)}
-            >
-              <ShareIcon size={17} />
-              Partager mon avis
-            </button>
-          )}
-          {entry.review.trim() && review !== entry.review && (
-            <p className="muted fine">
-              Enregistrez les modifications avant de partager cet avis.
-            </p>
-          )}
-        </div>
-        <label className="field">
-          Vos listes personnelles
-          <input
-            defaultValue={(entry.lists || []).join(", ")}
-            placeholder="Soirée cinéma, À revoir, Mes classiques…"
-            maxLength={500}
-            onBlur={(e) =>
-              update({
-                lists: [
-                  ...new Set(
-                    e.target.value
-                      .split(",")
-                      .map((x) => x.trim())
-                      .filter(Boolean),
-                  ),
-                ].slice(0, 20),
-              })
-            }
-          />
-          <span className="muted fine">
-            Séparez les noms par une virgule. Enregistrement en quittant le
-            champ.
-          </span>
-        </label>
-        {title.kind === "series" &&
-          (!isTmdb(title) || detailState === "ready") && (
-            <EpisodeTracker
-              key={title.id}
-              title={title}
-              entry={entry}
-              update={update}
-            />
-          )}
+        {!readOnly && (
+          <>
+            <div className="review-panel">
+              <h3>Votre avis</h3>
+              <Stars
+                rating={entry.rating}
+                onChange={(rating) =>
+                  update({
+                    rating,
+                    watched: rating > 0 || entry.watched,
+                    recommendationFeedback: undefined,
+                  })
+                }
+              />
+              <label className="field">
+                Date du visionnage
+                <input
+                  type="date"
+                  value={entry.watchedAt}
+                  onChange={(e) => {
+                    if (e.target.value) update({ watchedAt: e.target.value });
+                  }}
+                />
+              </label>
+              <label className="field">
+                Votre critique
+                <textarea
+                  maxLength={5000}
+                  value={review}
+                  onChange={(e) => setReview(e.target.value)}
+                  placeholder="Écrivez votre avis…"
+                  rows={4}
+                />
+              </label>
+              <button
+                className="button primary"
+                onClick={() => {
+                  update({ review, watched: true });
+                  toast("Avis enregistré.");
+                }}
+              >
+                Enregistrer mon avis <ArrowRight size={16} />
+              </button>
+              {entry.review.trim() && (
+                <button
+                  className="text-button"
+                  disabled={review !== entry.review}
+                  onClick={() => share(true)}
+                >
+                  <ShareIcon size={17} />
+                  Partager mon avis
+                </button>
+              )}
+              {entry.review.trim() && review !== entry.review && (
+                <p className="muted fine">
+                  Enregistrez les modifications avant de partager cet avis.
+                </p>
+              )}
+            </div>
+            <label className="field">
+              Vos listes personnelles
+              <input
+                defaultValue={(entry.lists || []).join(", ")}
+                placeholder="Soirée cinéma, À revoir, Mes classiques…"
+                maxLength={500}
+                onBlur={(e) =>
+                  update({
+                    lists: [
+                      ...new Set(
+                        e.target.value
+                          .split(",")
+                          .map((x) => x.trim())
+                          .filter(Boolean),
+                      ),
+                    ].slice(0, 20),
+                  })
+                }
+              />
+              <span className="muted fine">
+                Séparez les noms par une virgule. Enregistrement en quittant le
+                champ.
+              </span>
+            </label>
+            {title.kind === "series" &&
+              (!isTmdb(title) || detailState === "ready") && (
+                <EpisodeTracker
+                  key={title.id}
+                  title={title}
+                  entry={entry}
+                  update={update}
+                />
+              )}
+          </>
+        )}
       </div>
-    </Modal>
+    </DetailFrame>
   );
 }
 function SettingsPage({
+  viewing,
   close,
   theme,
   setTheme,
@@ -1727,6 +1839,7 @@ function SettingsPage({
   account,
   backup,
 }: {
+  viewing: ReturnType<typeof useViewingPreferences>;
   backup: BackupController;
   library: Record<string, Entry>;
   fallback: Title[];
@@ -1788,6 +1901,14 @@ function SettingsPage({
           ))}
         </div>
         <ColourThemePicker value={colourTheme} onChange={setColourTheme} />
+        <hr />
+        <ViewingSettings
+          value={viewing.value}
+          save={viewing.save}
+          message={viewing.message}
+        />
+        <hr />
+        <PublicSharingSettings account={account} signIn={signIn} />
         <hr />
         <BackupSettings
           backup={backup}
@@ -2033,6 +2154,7 @@ function AuthModal({
   toast: (s: string) => void;
 }) {
   const [signup, setSignup] = useState(false),
+    [country, setCountry] = useState(""),
     [email, setEmail] = useState(""),
     [password, setPassword] = useState(""),
     [busy, setBusy] = useState(false),
@@ -2052,14 +2174,21 @@ function AuthModal({
                 ? await cloud.auth.signUp({
                     email,
                     password,
-                    ...(!Capacitor.isNativePlatform()
-                      ? {
-                          options: {
+                    options: {
+                      data: {
+                        vela_viewing: {
+                          ...emptyViewing,
+                          country,
+                          updated: new Date().toISOString(),
+                        },
+                      },
+                      ...(!Capacitor.isNativePlatform()
+                        ? {
                             emailRedirectTo:
                               location.origin + location.pathname,
-                          },
-                        }
-                      : {}),
+                          }
+                        : {}),
+                    },
                   })
                 : await cloud.auth.signInWithPassword({ email, password });
               if (result.error) throw result.error;
@@ -2097,6 +2226,9 @@ function AuthModal({
               onChange={(e) => setPassword(e.target.value)}
             />
           </label>
+          {signup && (
+            <CountrySelect required value={country} onChange={setCountry} />
+          )}
           {error && (
             <p className="error" role="alert">
               {error}

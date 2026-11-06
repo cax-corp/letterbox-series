@@ -6,7 +6,7 @@ Neuf palettes sont proposées dans Réglages → Apparence → Palette de couleu
 
 Le choix est mémorisé localement et reste indépendant du mode Sombre/Clair/Système et du compte. Il n’y a pas de sélecteur libre. Les couleurs sont restaurées avant React, sans requête réseau. Les halos et boutons du feed et des fiches continuent de suivre l’affiche affichée.
 
-Le logo, le favicon, les cartes de partage et l’icône Android suivent la palette. Les alias du lanceur Android sont changés à la sortie de l’app pour éviter de fermer l’écran des réglages. Le délai d’affichage dépend du lanceur ; les icônes thématiques monochromes suivent les couleurs d’Android. Les SVG et vecteurs sont générés depuis `src/colour-themes.json` par `npm run themes:generate`.
+Le logo, le favicon et l’icône Android suivent la palette. Les alias du lanceur Android sont changés à la sortie de l’app pour éviter de fermer l’écran des réglages. Le délai d’affichage dépend du lanceur ; les icônes thématiques monochromes suivent les couleurs d’Android. Les SVG et vecteurs sont générés depuis `src/colour-themes.json` par `npm run themes:generate`.
 
 Le logo CAX fourni et la mention exacte « A CAX Corporation company » restent uniquement en bas des paramètres, adaptés au mode clair/sombre. Le PNG fourni reste intact.
 

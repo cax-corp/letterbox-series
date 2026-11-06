@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import Avatar from "./Avatar";
 import type { Profile } from "./profile";
 import { profileStats } from "./profile-stats";
-import { profileShare, reviewShare, shareCard, shareMessage } from "./sharing";
+import { profileShare, reviewShare, type ShareDraft } from "./sharing";
 import type { Library } from "./store";
 import type { Title } from "./catalog";
 import { ShareIcon, Star, Film, Plus } from "./icons";
@@ -14,6 +14,7 @@ export default function ProfileOverview({
   open,
   toast,
   pending,
+  share,
 }: {
   profile: Profile;
   library: Library;
@@ -22,10 +23,10 @@ export default function ProfileOverview({
   open: (t: Title) => void;
   toast: (s: string) => void;
   pending: boolean;
+  share: (draft: ShareDraft) => void;
 }) {
   const stats = useMemo(() => profileStats(library), [library]),
-    [reviewLimit, setReviewLimit] = useState(3),
-    [sharing, setSharing] = useState(false);
+    [reviewLimit, setReviewLimit] = useState(3);
   const name =
     profile.displayName ||
     email?.split("@")[0] ||
@@ -33,17 +34,6 @@ export default function ProfileOverview({
   const reviews = Object.values(library)
     .filter((e) => e.review.trim())
     .sort((a, b) => Date.parse(b.updated) - Date.parse(a.updated));
-  async function share(card: ReturnType<typeof profileShare>) {
-    if (sharing) return;
-    setSharing(true);
-    try {
-      toast(shareMessage(await shareCard(card)));
-    } catch {
-      toast("Le partage est indisponible pour le moment.");
-    } finally {
-      setSharing(false);
-    }
-  }
   const max = Math.max(1, ...stats.months.map((m) => m.count));
   return (
     <>
@@ -63,7 +53,6 @@ export default function ProfileOverview({
         </button>
         <button
           className="button surface"
-          disabled={sharing}
           onClick={() =>
             share(profileShare(profile, library, "Mon profil Vela"))
           }
@@ -229,7 +218,6 @@ export default function ProfileOverview({
               <p>{entry.review}</p>
               <button
                 className="text-button"
-                disabled={sharing}
                 onClick={() =>
                   share(reviewShare(profile, entry, "Un regard sur Vela"))
                 }

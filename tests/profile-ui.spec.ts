@@ -332,41 +332,53 @@ test("profil hors connexion : changements conservés puis synchronisés par le b
   ).toHaveCount(0);
   expect(x.metadata().vela_profile.avatar).toBe("ghost");
 });
-test("partage web : cartes PNG du profil et des avis, sans e-mail ni avis privés ajoutés au profil partagé", async ({
+test("partage web : vrais liens publics profil et avis, sans image ni données privées, consultables sans compte", async ({
   page,
+  browser,
 }) => {
+  const records = new Map<string, any>();
+  const profileId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    reviewId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+  const routeShares = async (target: Page) =>
+    target.route(project + "/rest/v1/vela_shares*", async (route) => {
+      const req = route.request(),
+        u = new URL(req.url());
+      if (req.method() === "POST") {
+        const input = req.postDataJSON();
+        const key = input.kind === "profile" ? profileId : reviewId;
+        const row = {
+          id: key,
+          kind: input.kind,
+          payload: input.payload,
+          updated_at: input.updated_at,
+        };
+        records.set(key, row);
+        return route.fulfill({ status: 201, json: row });
+      }
+      const wanted = u.searchParams.get("id")?.replace(/^eq\./, "");
+      if (req.method() === "DELETE") {
+        if (wanted) records.delete(wanted);
+        return route.fulfill({ status: 204 });
+      }
+      return route.fulfill({
+        json: wanted
+          ? [records.get(wanted)].filter(Boolean)
+          : [...records.values()],
+      });
+    });
   await page.addInitScript(
     ({ key, value }) => {
       localStorage.setItem(key, JSON.stringify({ profile: value, synced: "" }));
       (window as any).shares = [];
-      Object.defineProperty(navigator, "canShare", {
-        configurable: true,
-        value: () => true,
-      });
       Object.defineProperty(navigator, "share", {
         configurable: true,
         value: async (data: any) => {
-          const bitmap = data.files?.[0]
-            ? await createImageBitmap(data.files[0])
-            : null;
-          (window as any).shares.push({
-            title: data.title,
-            text: data.text,
-            file: data.files?.[0]
-              ? {
-                  type: data.files[0].type,
-                  size: data.files[0].size,
-                  width: bitmap?.width,
-                  height: bitmap?.height,
-                }
-              : null,
-          });
-          bitmap?.close();
+          (window as any).shares.push(data);
         },
       });
     },
     {
-      key: profileKey("", "local"),
+      key: profileKey(project, id),
       value: makeProfile(
         {
           ...defaultProfile,
@@ -378,51 +390,109 @@ test("partage web : cartes PNG du profil et des avis, sans e-mail ni avis privé
       ),
     },
   );
-  await setup(page);
+  await routeShares(page);
+  await setup(page, true);
   await page
     .getByRole("button", { name: "Partager mon profil", exact: true })
     .click();
-  await expect
-    .poll(() => page.evaluate(() => (window as any).shares.length))
-    .toBe(1);
-  let shared = await page.evaluate(() => (window as any).shares[0]);
-  expect(shared.file).toMatchObject({
-    type: "image/png",
-    width: 1080,
-    height: 1350,
+  let dialog = page.getByRole("dialog", {
+    name: "Partager un lien public",
+    exact: true,
   });
-  expect(shared.file.size).toBeGreaterThan(20000);
-  expect(shared.text).toContain("Nora");
-  expect(shared.text).not.toContain("@");
-  expect(shared.text).not.toContain("Un avis personnel");
+  await expect(dialog.getByLabel("Lien public", { exact: true })).toHaveValue(
+    new RegExp("#/s/" + profileId + "$"),
+  );
+  await dialog
+    .getByRole("button", { name: "Partager le lien", exact: true })
+    .click();
+  let shared = await page.evaluate(() => (window as any).shares[0]);
+  expect(shared.url).toContain("#/s/" + profileId);
+  expect(shared.files).toBeUndefined();
+  expect(JSON.stringify(records.get(profileId))).not.toContain(
+    "private@example.com",
+  );
+  expect(JSON.stringify(records.get(profileId))).not.toContain(
+    "Un avis personnel",
+  );
+  await dialog.getByRole("button", { name: "Fermer", exact: true }).click();
+  await expect(page.locator("body")).not.toHaveCSS("overflow", "hidden");
   await page
     .getByRole("region", { name: "Mes avis", exact: true })
     .getByRole("button", { name: "Partager cet avis", exact: true })
     .first()
     .click();
-  await expect
-    .poll(() => page.evaluate(() => (window as any).shares.length))
-    .toBe(2);
-  shared = await page.evaluate(() => (window as any).shares[1]);
-  expect(shared.text).toContain("Un avis personnel");
-  expect(shared.text).toContain("4/5");
-  expect(shared.text).not.toContain("@");
-  await page
-    .getByRole("region", { name: "Mes avis", exact: true })
-    .getByRole("button", { name: "Film 1 2024", exact: true })
-    .click();
-  const dialog = page.getByRole("dialog");
-  await expect(
-    dialog.getByRole("button", { name: "Partager mon avis", exact: true }),
-  ).toBeEnabled();
+  dialog = page.getByRole("dialog", {
+    name: "Partager un lien public",
+    exact: true,
+  });
+  await expect(dialog.getByLabel("Lien public", { exact: true })).toHaveValue(
+    new RegExp("#/s/" + reviewId + "$"),
+  );
   await dialog
-    .getByLabel("Votre critique")
-    .fill("Un texte pas encore enregistré");
+    .getByRole("button", { name: "Partager le lien", exact: true })
+    .click();
+  shared = await page.evaluate(() => (window as any).shares[1]);
+  expect(shared.files).toBeUndefined();
+  expect(shared.url).toContain("#/s/" + reviewId);
+  expect(records.get(reviewId).payload.review.text).toContain(
+    "Un avis personnel",
+  );
+  expect(records.get(reviewId).payload.review.rating).toBe(4);
+  await dialog.getByRole("button", { name: "Fermer", exact: true }).click();
+  const context = await browser.newContext({
+      viewport: { width: 390, height: 844 },
+    }),
+    guest = await context.newPage();
+  await guest.addInitScript(
+    (project) =>
+      localStorage.setItem(
+        "luma-cloud",
+        JSON.stringify({ url: project, key: "sb_publishable_test" }),
+      ),
+    project,
+  );
+  await routeShares(guest);
+  await guest.route("**/itunes.apple.com/**", (r) =>
+    r.fulfill({ json: { results: [] } }),
+  );
+  await guest.route("**/api.tvmaze.com/**", (r) => r.fulfill({ json: [] }));
+  await guest.goto("http://127.0.0.1:5173/#/s/" + profileId);
   await expect(
-    dialog.getByRole("button", { name: "Partager mon avis", exact: true }),
-  ).toBeDisabled();
+    guest.getByRole("region", { name: "Profil public", exact: true }),
+  ).toContainText("Nora");
+  await expect(
+    guest.getByRole("button", { name: "Modifier mon profil", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    guest.getByText("private@example.com", { exact: true }),
+  ).toHaveCount(0);
+  await expect(guest.getByRole("dialog")).toHaveCount(0);
+  await guest.goto("http://127.0.0.1:5173/#/s/" + reviewId);
+  await expect(
+    guest.getByRole("region", { name: "Avis public", exact: true }),
+  ).toContainText("Un avis personnel sur Film 1.");
+  await expect(
+    guest.getByRole("region", { name: "Avis public", exact: true }),
+  ).toContainText("4/5");
+  await page.getByRole("button", { name: "Réglages", exact: true }).click();
+  const settings = page.getByRole("region", {
+    name: "Liens publics",
+    exact: true,
+  });
+  await settings
+    .getByRole("button", { name: "Gérer mes liens publics", exact: true })
+    .click();
+  await settings
+    .locator(".published-share")
+    .filter({ hasText: "Mon profil" })
+    .getByRole("button", { name: "Retirer ce lien", exact: true })
+    .click();
+  await guest.goto("http://127.0.0.1:5173/#/s/" + profileId);
+  await expect(guest.getByRole("alert")).toContainText("plus disponible");
+  await context.close();
 });
-test("partage Android : image locale en cache via Filesystem et Share, annulation sans copie surprise", async ({
+
+test("partage Android : lien de fiche immédiat sans image ni écriture de fichier, annulation sans copie", async ({
   page,
 }) => {
   await page.addInitScript(() => {
@@ -449,46 +519,41 @@ test("partage Android : image locale en cache via Filesystem et Share, annulatio
         { name: "Clipboard", methods: [{ name: "write", rtype: "promise" }] },
       ],
       nativePromise: async (plugin: string, method: string, options: any) => {
-        if (plugin === "Filesystem") {
-          w.nativeWrites.push(options);
-          return {
-            uri: "content://app.luma.cinema.fileprovider/cache/vela-partage-profile.png",
-          };
-        }
+        if (plugin === "Filesystem") w.nativeWrites.push(options);
         if (plugin === "Share") {
           w.nativeShares.push(options);
           if (w.cancelShare) throw new Error("Share canceled");
-          return {};
         }
-        if (plugin === "Clipboard") {
-          w.nativeCopies.push(options);
-          return {};
-        }
+        if (plugin === "Clipboard") w.nativeCopies.push(options);
         return {};
       },
     };
   });
   await setup(page);
   await page
-    .getByRole("button", { name: "Partager mon profil", exact: true })
+    .getByRole("region", { name: "Mes avis", exact: true })
+    .getByRole("button", { name: "Film 1 2024", exact: true })
+    .click();
+  const dialog = page.getByRole("dialog");
+  await dialog
+    .getByRole("button", { name: "Partager cette fiche film", exact: true })
     .click();
   await expect
     .poll(() => page.evaluate(() => (window as any).nativeShares.length))
     .toBe(1);
-  const result = await page.evaluate(() => ({
-    share: (window as any).nativeShares[0],
-    write: (window as any).nativeWrites[0],
-  }));
-  expect(result.share.files).toEqual([
-    "content://app.luma.cinema.fileprovider/cache/vela-partage-profile.png",
-  ]);
-  expect(result.write.directory).toBe("CACHE");
-  expect(result.write.data.startsWith("iVBOR")).toBe(true);
+  const shared = await page.evaluate(() => (window as any).nativeShares[0]);
+  expect(shared.url).toBe(
+    "https://cax-corp.github.io/letterbox-series/#/title/movie-1",
+  );
+  expect(shared.files).toBeUndefined();
+  expect(await page.evaluate(() => (window as any).nativeWrites.length)).toBe(
+    0,
+  );
   await page.evaluate(() => {
     (window as any).cancelShare = true;
   });
-  await page
-    .getByRole("button", { name: "Partager mon profil", exact: true })
+  await dialog
+    .getByRole("button", { name: "Partager cette fiche film", exact: true })
     .click();
   await expect(
     page.getByText("Partage annulé.", { exact: true }),
@@ -496,4 +561,16 @@ test("partage Android : image locale en cache via Filesystem et Share, annulatio
   expect(await page.evaluate(() => (window as any).nativeCopies.length)).toBe(
     0,
   );
+  await dialog
+    .getByRole("button", { name: "Partager mon avis", exact: true })
+    .click();
+  const nested = page.getByRole("dialog", {
+    name: "Partager un lien public",
+    exact: true,
+  });
+  await expect(nested).toBeVisible();
+  await nested.getByRole("button", { name: "Fermer", exact: true }).click();
+  await expect(page.locator("body")).toHaveCSS("overflow", "hidden");
+  await dialog.getByRole("button", { name: "Fermer", exact: true }).click();
+  await expect(page.locator("body")).not.toHaveCSS("overflow", "hidden");
 });
