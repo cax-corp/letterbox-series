@@ -1,4 +1,4 @@
-import { brandBlue } from "./appearance";
+import { getColourTheme, readColourTheme } from "./colour-themes";
 import { Capacitor } from "@capacitor/core";
 import { Share } from "@capacitor/share";
 import { Filesystem, Directory } from "@capacitor/filesystem";
@@ -125,20 +125,22 @@ export async function renderShareCard(card: ShareCard): Promise<Blob> {
   canvas.height = 1350;
   const c = canvas.getContext("2d");
   if (!c) throw new Error("La carte ne peut pas être générée.");
+  const preset = getColourTheme(readColourTheme());
+  const colors = preset.dark;
   const gradient = c.createLinearGradient(0, 0, 1080, 1350);
-  gradient.addColorStop(0, "#142D3C");
-  gradient.addColorStop(1, "#0B141B");
+  gradient.addColorStop(0, colors.surface);
+  gradient.addColorStop(1, colors.bg);
   c.fillStyle = gradient;
   c.fillRect(0, 0, 1080, 1350);
-  c.fillStyle = "#E4F1F9";
+  c.fillStyle = colors.text;
   c.font = "800 64px Manrope, sans-serif";
   c.fillText("vela", 80, 118);
-  c.fillStyle = brandBlue;
+  c.fillStyle = preset.hex;
   c.beginPath();
   c.arc(217, 110, 6, 0, 2 * Math.PI);
   c.fill();
   c.font = '500 23px "DM Sans", sans-serif';
-  c.fillStyle = "#A6BAC8";
+  c.fillStyle = colors.muted;
   c.fillText(
     card.kind === "profile"
       ? "MON COIN DE CINÉMA"
@@ -192,7 +194,7 @@ export async function renderShareCard(card: ShareCard): Promise<Blob> {
       );
     }
     c.restore();
-    c.fillStyle = "#C4D9E6";
+    c.fillStyle = colors.muted;
     c.font = '500 28px "DM Sans", sans-serif';
     wrapped(
       c,
@@ -205,21 +207,21 @@ export async function renderShareCard(card: ShareCard): Promise<Blob> {
     );
     top += 180;
   }
-  c.fillStyle = "#E4F1F9";
+  c.fillStyle = colors.text;
   c.font = "800 58px Manrope, sans-serif";
   top = wrapped(c, card.heading, 80, top, 920, 72, 3) + 32;
-  c.fillStyle = brandBlue;
+  c.fillStyle = preset.hex;
   c.font = '600 28px "DM Sans", sans-serif';
   top = wrapped(c, card.detail, 80, top, 920, 40, 2) + 42;
   if (card.kind === "profile" && card.profile?.bio) {
-    c.fillStyle = "#C2D5E1";
+    c.fillStyle = colors.muted;
     c.font = '400 30px "DM Sans", sans-serif';
     top = wrapped(c, card.profile.bio, 80, top, 920, 45, 3) + 35;
   }
-  c.fillStyle = "#E4F1F9";
+  c.fillStyle = colors.text;
   if (card.kind === "profile" && card.profile?.featured.length) {
     c.font = '600 23px "DM Sans", sans-serif';
-    c.fillStyle = "#A6BAC8";
+    c.fillStyle = colors.muted;
     c.fillText("MES INCONTOURNABLES", 80, top);
     top += 42;
     const rowHeight = Math.max(
@@ -229,9 +231,9 @@ export async function renderShareCard(card: ShareCard): Promise<Blob> {
     const fontSize = Math.min(32, rowHeight * 0.5);
     card.profile.featured.forEach((title, i) => {
       c.font = `500 ${fontSize}px "DM Sans", sans-serif`;
-      c.fillStyle = brandBlue;
+      c.fillStyle = preset.hex;
       c.fillText(String(i + 1).padStart(2, "0"), 80, top);
-      c.fillStyle = "#E4F1F9";
+      c.fillStyle = colors.text;
       wrapped(
         c,
         `${title.name}${title.year ? ` (${title.year})` : ""}`,
@@ -248,7 +250,7 @@ export async function renderShareCard(card: ShareCard): Promise<Blob> {
     const available = Math.max(2, Math.floor((1190 - top) / 50));
     wrapped(c, card.body, 80, top, 920, 50, available);
   }
-  c.fillStyle = "#A6BAC8";
+  c.fillStyle = colors.muted;
   c.font = '400 23px "DM Sans", sans-serif';
   c.fillText("FAIT POUR AIMER LES HISTOIRES.", 80, 1285);
   return new Promise((resolve, reject) =>

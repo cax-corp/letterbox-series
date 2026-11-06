@@ -1,16 +1,17 @@
 {
   "name": "vela",
-  "version": "2.1.1",
+  "version": "2.2.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
-    "build": "tsc --noEmit && vite build",
+    "build": "npm run themes:generate && tsc --noEmit && vite build",
     "preview": "vite preview --host 0.0.0.0",
     "android:sync": "npm run build && cap sync android",
     "test": "playwright test",
     "format": "prettier --write src tests *.ts",
-    "build:web": "npm run build && node scripts/prepare-web-download.mjs"
+    "build:web": "npm run build && node scripts/prepare-web-download.mjs",
+    "themes:generate": "node scripts/generate-theme-icons.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.0.0",

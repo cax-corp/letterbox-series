@@ -3,7 +3,7 @@ const config: CapacitorConfig = {
   appId: "app.luma.cinema",
   appName: "Vela",
   webDir: "dist",
-  android: { backgroundColor: "#0B141B" },
+  android: { backgroundColor: "#001620" },
   plugins: {
     SystemBars: {
       style: "DARK",

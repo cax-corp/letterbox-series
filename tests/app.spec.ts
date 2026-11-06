@@ -198,7 +198,7 @@ test("Material mobile: recherche uniquement dans Explorer et navigation fixe", a
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute(
     "content",
-    "#F1F8FC",
+    "#F6FCFF",
   );
   await dialog.getByRole("button", { name: "Retour", exact: true }).click();
   await page.reload();

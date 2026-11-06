@@ -1,4 +1,4 @@
-/** Original wordmark treatment: compact typography and a single blue point. */
+/** Original wordmark treatment, with a point in the selected accent colour. */
 export function Brand() {
   return (
     <>

@@ -12,7 +12,7 @@ import "@fontsource/manrope/latin-500.css";
 import "@fontsource/manrope/latin-600.css";
 import "@fontsource/manrope/latin-700.css";
 import "@fontsource/manrope/latin-800.css";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Capacitor } from "@capacitor/core";
 import { createRoot } from "react-dom/client";
 import {
@@ -43,12 +43,14 @@ import {
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import BottomNavigation from "@mui/material/BottomNavigation";
 import BottomNavigationAction from "@mui/material/BottomNavigationAction";
+import { updateSystemAppearance, type ThemePreference } from "./appearance";
 import {
-  palette,
-  brandInk,
-  updateSystemAppearance,
-  type ThemePreference,
-} from "./appearance";
+  applyColourTheme,
+  colourThemeKey,
+  getColourTheme,
+  readColourTheme,
+} from "./colour-themes";
+import ColourThemePicker from "./ColourThemePicker";
 import { backupService } from "./backup";
 import BackupSettings from "./BackupSettings";
 import { useCloudBackup, type BackupController } from "./useCloudBackup";
@@ -108,6 +110,7 @@ const pageNames: Page[] = [
   "edit-profile",
 ];
 function App() {
+  const [colourTheme, setColourTheme] = useState(readColourTheme);
   const [feedSession, setFeedSession] = useState(0);
   useEffect(() => {
     let wasHidden = document.hidden;
@@ -155,28 +158,30 @@ function App() {
     );
   const personal = useProfile(user);
   const light = theme === "system" ? systemLight : theme === "light";
+  const preset = getColourTheme(colourTheme);
+  const colors = preset[light ? "light" : "dark"];
   const materialTheme = React.useMemo(
     () =>
       createTheme({
         palette: {
           mode: light ? "light" : "dark",
           primary: {
-            main: palette[light ? "light" : "dark"].primary,
-            contrastText: brandInk,
+            main: preset.hex,
+            contrastText: preset.ink,
           },
           background: {
-            default: palette[light ? "light" : "dark"].background,
-            paper: palette[light ? "light" : "dark"].surface,
+            default: colors.bg,
+            paper: colors.surface,
           },
           text: {
-            primary: palette[light ? "light" : "dark"].text,
-            secondary: palette[light ? "light" : "dark"].muted,
+            primary: colors.text,
+            secondary: colors.muted,
           },
         },
         typography: { fontFamily: '"DM Sans", Arial, sans-serif' },
         shape: { borderRadius: 20 },
       }),
-    [light],
+    [light, preset],
   );
   const recommendationLibrary = React.useMemo(
     () => (cloud && !user ? {} : library),
@@ -252,15 +257,30 @@ function App() {
     media.addEventListener("change", onChange);
     return () => media.removeEventListener("change", onChange);
   }, []);
+  useLayoutEffect(() => {
+    applyColourTheme(colourTheme, light);
+    try {
+      localStorage.setItem("luma-theme", theme);
+      localStorage.setItem(colourThemeKey, colourTheme);
+    } catch {
+      /* The selected theme still works when storage is unavailable. */
+    }
+  }, [light, theme, colourTheme]);
   useEffect(() => {
-    document.documentElement.dataset.theme = light ? "light" : "dark";
-    localStorage.setItem("luma-theme", theme);
-    updateSystemAppearance(light).catch(() =>
+    const changed = (event: StorageEvent) => {
+      if (event.key === colourThemeKey)
+        setColourTheme(getColourTheme(event.newValue).id);
+    };
+    window.addEventListener("storage", changed);
+    return () => window.removeEventListener("storage", changed);
+  }, []);
+  useEffect(() => {
+    updateSystemAppearance(light, colourTheme).catch(() =>
       toast(
         "Les couleurs système n’ont pas pu être mises à jour. Réessayez en changeant le thème.",
       ),
     );
-  }, [light, theme]);
+  }, [light, colourTheme]);
   async function syncNow() {
     if (await backup.syncNow()) toast("Synchronisation terminée.");
   }
@@ -674,6 +694,8 @@ function App() {
           <SettingsPage
             theme={theme}
             setTheme={setTheme}
+            colourTheme={colourTheme}
+            setColourTheme={setColourTheme}
             repairNeeded={Boolean(syncIssue)}
             library={library}
             fallback={filmList}
@@ -1696,6 +1718,8 @@ function SettingsPage({
   close,
   theme,
   setTheme,
+  colourTheme,
+  setColourTheme,
   repairNeeded,
   signIn,
   library,
@@ -1710,6 +1734,8 @@ function SettingsPage({
   close: () => void;
   theme: ThemePreference;
   setTheme: (t: ThemePreference) => void;
+  colourTheme: string;
+  setColourTheme: (id: string) => void;
   repairNeeded: boolean;
   signIn: () => void;
 }) {
@@ -1761,6 +1787,7 @@ function SettingsPage({
             </button>
           ))}
         </div>
+        <ColourThemePicker value={colourTheme} onChange={setColourTheme} />
         <hr />
         <BackupSettings
           backup={backup}

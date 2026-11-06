@@ -1,0 +1,12 @@
+<!-- Generated from src/colour-themes.json; run npm run themes:generate. -->
+<resources>
+  <color name="theme_blue_background">#001620</color>
+  <color name="theme_champagne_background">#171410</color>
+  <color name="theme_iris_background">#120F19</color>
+  <color name="theme_slate_background">#11151E</color>
+  <color name="theme_emerald_background">#0C1814</color>
+  <color name="theme_coral_background">#1D1412</color>
+  <color name="theme_ruby_background">#1B1016</color>
+  <color name="theme_copper_background">#1B140F</color>
+  <color name="theme_silver_background">#111315</color>
+</resources>

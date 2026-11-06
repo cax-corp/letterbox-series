@@ -1,0 +1,245 @@
+[
+  {
+    "id": "blue",
+    "name": "Bleu original",
+    "hex": "#009FE3",
+    "ink": "#062433",
+    "link": "#00658F",
+    "dark": {
+      "bg": "#001620",
+      "panel": "#0D2530",
+      "surface": "#18343F",
+      "nav": "#0A202B",
+      "text": "#EDF6FB",
+      "muted": "#A7BBC7",
+      "line": "#2E4652",
+      "secondary": "#12313F"
+    },
+    "light": {
+      "bg": "#F6FCFF",
+      "panel": "#E8F2F7",
+      "surface": "#DCEAF2",
+      "nav": "#EEF7FC",
+      "text": "#10232E",
+      "muted": "#516978",
+      "line": "#B8CEDA",
+      "secondary": "#D7EAF5"
+    }
+  },
+  {
+    "id": "champagne",
+    "name": "Champagne",
+    "hex": "#C7AC7A",
+    "ink": "#211C15",
+    "link": "#70572E",
+    "dark": {
+      "bg": "#171410",
+      "panel": "#221D17",
+      "surface": "#2E281F",
+      "nav": "#1F1A15",
+      "text": "#F2EDE5",
+      "muted": "#BDB19D",
+      "line": "#4B4234",
+      "secondary": "#2E2820"
+    },
+    "light": {
+      "bg": "#FCF8F2",
+      "panel": "#F1EAE1",
+      "surface": "#EAE0D1",
+      "nav": "#F7F0E6",
+      "text": "#211C15",
+      "muted": "#6A6254",
+      "line": "#D5C8B5",
+      "secondary": "#EAE0D1"
+    }
+  },
+  {
+    "id": "iris",
+    "name": "Iris grisé",
+    "hex": "#9B8BBE",
+    "ink": "#1E1929",
+    "link": "#64507F",
+    "dark": {
+      "bg": "#120F19",
+      "panel": "#201A2B",
+      "surface": "#2D253B",
+      "nav": "#1C1725",
+      "text": "#EEEAF6",
+      "muted": "#B7ADC7",
+      "line": "#483C5B",
+      "secondary": "#2B2238"
+    },
+    "light": {
+      "bg": "#F9F7FC",
+      "panel": "#F0EBF6",
+      "surface": "#E5DDEE",
+      "nav": "#F5F0FA",
+      "text": "#261E34",
+      "muted": "#6A5D76",
+      "line": "#CCBFD9",
+      "secondary": "#E5DDEE"
+    }
+  },
+  {
+    "id": "slate",
+    "name": "Bleu ardoise",
+    "hex": "#718DC4",
+    "ink": "#101C2D",
+    "link": "#365886",
+    "dark": {
+      "bg": "#11151E",
+      "panel": "#1A2130",
+      "surface": "#273147",
+      "nav": "#171D29",
+      "text": "#EDF1FA",
+      "muted": "#AFBACE",
+      "line": "#3B4863",
+      "secondary": "#242E40"
+    },
+    "light": {
+      "bg": "#F7F9FD",
+      "panel": "#ECF0F8",
+      "surface": "#E1E7F3",
+      "nav": "#F0F4FA",
+      "text": "#18243A",
+      "muted": "#58677F",
+      "line": "#C4CEE1",
+      "secondary": "#E1E7F3"
+    }
+  },
+  {
+    "id": "emerald",
+    "name": "Émeraude",
+    "hex": "#79B69F",
+    "ink": "#10271E",
+    "link": "#2B6953",
+    "dark": {
+      "bg": "#0C1814",
+      "panel": "#16281F",
+      "surface": "#21372C",
+      "nav": "#12231C",
+      "text": "#E9F4ED",
+      "muted": "#A9C2B4",
+      "line": "#364E41",
+      "secondary": "#223D2F"
+    },
+    "light": {
+      "bg": "#F4FBF7",
+      "panel": "#E5F1E9",
+      "surface": "#D7E8DD",
+      "nav": "#EDF7F0",
+      "text": "#142B20",
+      "muted": "#4E6A59",
+      "line": "#B8D0C1",
+      "secondary": "#D7E8DD"
+    }
+  },
+  {
+    "id": "coral",
+    "name": "Corail",
+    "hex": "#DD927D",
+    "ink": "#301A14",
+    "link": "#9B4B37",
+    "dark": {
+      "bg": "#1D1412",
+      "panel": "#2B201C",
+      "surface": "#3A2C27",
+      "nav": "#271C18",
+      "text": "#FFF0E9",
+      "muted": "#CFB4A8",
+      "line": "#574036",
+      "secondary": "#3F2B23"
+    },
+    "light": {
+      "bg": "#FFF8F5",
+      "panel": "#F8EBE4",
+      "surface": "#F0DCD2",
+      "nav": "#FCF0EA",
+      "text": "#38221A",
+      "muted": "#7D5A4C",
+      "line": "#DDBEAE",
+      "secondary": "#F0DCD2"
+    }
+  },
+  {
+    "id": "ruby",
+    "name": "Rubis",
+    "hex": "#CB8495",
+    "ink": "#2C1720",
+    "link": "#924257",
+    "dark": {
+      "bg": "#1B1016",
+      "panel": "#2B1B23",
+      "surface": "#3C2934",
+      "nav": "#25171F",
+      "text": "#FBEAF1",
+      "muted": "#C8AAB9",
+      "line": "#543B48",
+      "secondary": "#402631"
+    },
+    "light": {
+      "bg": "#FFF6F9",
+      "panel": "#F6E7ED",
+      "surface": "#EED8E1",
+      "nav": "#FAEDF3",
+      "text": "#361E2A",
+      "muted": "#7A5668",
+      "line": "#D9B9C9",
+      "secondary": "#EED8E1"
+    }
+  },
+  {
+    "id": "copper",
+    "name": "Cuivre",
+    "hex": "#C99366",
+    "ink": "#2B1E12",
+    "link": "#86532A",
+    "dark": {
+      "bg": "#1B140F",
+      "panel": "#2B2118",
+      "surface": "#3B2E22",
+      "nav": "#261D15",
+      "text": "#F9EEDF",
+      "muted": "#C7B29A",
+      "line": "#544332",
+      "secondary": "#402E1E"
+    },
+    "light": {
+      "bg": "#FFF9F1",
+      "panel": "#F6ECDF",
+      "surface": "#ECDECB",
+      "nav": "#FAF1E6",
+      "text": "#332619",
+      "muted": "#745E48",
+      "line": "#D6C3A8",
+      "secondary": "#ECDECB"
+    }
+  },
+  {
+    "id": "silver",
+    "name": "Argent",
+    "hex": "#B8C3CF",
+    "ink": "#1E252D",
+    "link": "#4C6074",
+    "dark": {
+      "bg": "#111315",
+      "panel": "#1E2226",
+      "surface": "#2C3238",
+      "nav": "#1A1E22",
+      "text": "#F0F3F7",
+      "muted": "#B1BBC6",
+      "line": "#424C56",
+      "secondary": "#2A333C"
+    },
+    "light": {
+      "bg": "#F9FAFC",
+      "panel": "#ECEFF3",
+      "surface": "#DFE5EB",
+      "nav": "#F2F4F7",
+      "text": "#202830",
+      "muted": "#596673",
+      "line": "#C4CDD7",
+      "secondary": "#DFE5EB"
+    }
+  }
+]

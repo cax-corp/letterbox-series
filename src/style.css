@@ -1,21 +1,21 @@
-/* Material 3 surface and tonal roles, derived from the original #009FE3 seed. */
+/* Fallback blue roles. Saved presets are applied before the first paint. */
 :root {
   font-family: "DM Sans", Arial, sans-serif;
   font-synthesis: none;
   color-scheme: dark;
-  --bg: #0b141b;
-  --panel: #131f28;
-  --surface: #1d2b35;
-  --nav-surface: #17232c;
-  --text: #e4f1f9;
-  --muted: #a6bac8;
-  --line: #334652;
+  --bg: #001620;
+  --panel: #0d2530;
+  --surface: #18343f;
+  --nav-surface: #0a202b;
+  --text: #edf6fb;
+  --muted: #a7bbc7;
+  --line: #2e4652;
   --brand: #009fe3;
   --on-brand: #062433;
   --primary: var(--brand);
   --blue: var(--brand);
-  --primary-container: #162e3e;
-  --on-container: #d3ebf6;
+  --primary-container: #12313f;
+  --on-container: #edf6fb;
   --on-primary: var(--on-brand);
   --error-bg: #3d2528;
   --error-text: #ffdad6;
@@ -30,16 +30,16 @@
 }
 :root[data-theme="light"] {
   color-scheme: light;
-  --bg: #f1f8fc;
-  --panel: #e5eff6;
-  --surface: #dae7f0;
-  --nav-surface: #e5eff6;
-  --text: #10212d;
-  --muted: #526977;
-  --line: #b8cbd7;
+  --bg: #f6fcff;
+  --panel: #e8f2f7;
+  --surface: #dceaf2;
+  --nav-surface: #e8f2f7;
+  --text: #10232e;
+  --muted: #546c7b;
+  --line: #b8ceda;
   --blue: #00658f;
-  --primary-container: #dbeef8;
-  --on-container: #00344c;
+  --primary-container: #d7eaf5;
+  --on-container: #10232e;
   --on-primary: var(--on-brand);
   --error-bg: #ffe9e5;
   --error-text: #8b1d20;
@@ -283,10 +283,10 @@ em {
   position: relative;
   border-radius: 28px;
   overflow: hidden;
-  background-color: #142c3b;
+  background-color: var(--hero-panel);
   background-size: cover;
   background-position: 70% 30%;
-  color: #e4f1f9;
+  color: var(--hero-text);
 }
 .hero:before {
   content: "";
@@ -295,12 +295,12 @@ em {
   background:
     linear-gradient(
       90deg,
-      #0b141bfa 0%,
-      #0b141bdd 30%,
-      #0b141b60 65%,
-      #0b141b10
+      rgb(var(--hero-bg-rgb) / 98.04%) 0%,
+      rgb(var(--hero-bg-rgb) / 86.67%) 30%,
+      rgb(var(--hero-bg-rgb) / 37.65%) 65%,
+      rgb(var(--hero-bg-rgb) / 6.27%)
     ),
-    linear-gradient(0deg, #0b141bad, transparent 60%);
+    linear-gradient(0deg, rgb(var(--hero-bg-rgb) / 67.84%), transparent 60%);
 }
 .hero-grain {
   display: none;
@@ -318,7 +318,7 @@ em {
 .hero-kicker {
   font-size: 11px;
   letter-spacing: 0.2px;
-  color: #b4cedf;
+  color: var(--hero-muted);
   margin: 0 0 12px;
 }
 .hero h2 {
@@ -331,20 +331,20 @@ em {
   gap: 10px;
   align-items: center;
   font-size: 10px;
-  color: #c1d6e3;
+  color: var(--hero-muted);
   margin: 15px 0;
 }
 .hero-meta i {
   width: 3px;
   height: 3px;
   border-radius: 50%;
-  background: #8eadbf;
+  background: var(--hero-muted);
 }
 .hero-meta svg {
   color: var(--brand);
 }
 .hero-content > p {
-  color: #b4cad9;
+  color: var(--hero-muted);
   font-size: 12px;
   line-height: 1.8;
   max-width: 335px;
@@ -391,8 +391,8 @@ em {
   color: var(--on-brand);
 }
 .hero .button.surface {
-  background: #1b2d39;
-  color: #e4f1f9;
+  background: var(--hero-surface);
+  color: var(--hero-text);
 }
 .section-bar {
   display: flex;
@@ -488,7 +488,11 @@ em {
 .poster-shade {
   position: absolute;
   inset: 0;
-  background: linear-gradient(0deg, #0b141bdd, transparent 38%);
+  background: linear-gradient(
+    0deg,
+    rgb(var(--hero-bg-rgb) / 86.67%),
+    transparent 38%
+  );
 }
 .poster-open {
   position: absolute;
@@ -514,7 +518,7 @@ em {
   left: 11px;
   font-size: 7px;
   letter-spacing: 1.2px;
-  color: #e4f1f9;
+  color: var(--hero-text);
 }
 .score {
   position: absolute;
@@ -524,7 +528,7 @@ em {
   align-items: center;
   gap: 4px;
   font-size: 10px;
-  color: #e4f1f9;
+  color: var(--hero-text);
 }
 .score svg {
   color: var(--brand);
@@ -837,7 +841,7 @@ footer {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: #08121bcc;
+  background: rgb(var(--hero-bg-rgb) / 80%);
   z-index: 50;
   overflow-y: auto;
   padding: calc(40px + var(--safe-top)) 20px calc(40px + var(--safe-bottom));
@@ -1145,7 +1149,7 @@ footer {
   background: var(--text);
   color: var(--bg);
   animation: enter 0.25s;
-  box-shadow: 0 4px 12px #0b141b26;
+  box-shadow: 0 4px 12px rgb(var(--hero-bg-rgb) / 14.9%);
 }
 .spin {
   animation: rotate 1s linear infinite;
@@ -1269,8 +1273,13 @@ footer {
   }
   .hero:before {
     background:
-      linear-gradient(0deg, #0b141bfa, #0b141bbb 45%, #0b141b40 100%),
-      linear-gradient(90deg, #0b141b70, transparent);
+      linear-gradient(
+        0deg,
+        rgb(var(--hero-bg-rgb) / 98.04%),
+        rgb(var(--hero-bg-rgb) / 73.33%) 45%,
+        rgb(var(--hero-bg-rgb) / 25.1%) 100%
+      ),
+      linear-gradient(90deg, rgb(var(--hero-bg-rgb) / 43.92%), transparent);
   }
   .hero-content {
     padding: 24px;
@@ -1569,20 +1578,26 @@ footer {
   }
 }
 
-/* Soft translucent chrome. Solid surfaces above remain the fallback for older WebViews. */
+/* Soft translucent chrome; selected palette supplies the underlying RGB roles. */
 :root {
-  --chrome-tint: rgb(11 20 27 / 80%);
-  --navigation-tint: rgb(23 35 44 / 84%);
-  --dialog-tint: rgb(19 31 40 / 96%);
-  --ambient: rgb(0 159 227 / 7%);
-  --scrim: rgb(6 15 23 / 52%);
+  --bg-rgb: 0 22 32;
+  --accent-rgb: 0 159 227;
+  --hero-bg-rgb: 0 22 32;
+  --hero-text: #edf6fb;
+  --hero-muted: #a7bbc7;
+  --hero-panel: #0d2530;
+  --hero-surface: #18343f;
+  --chrome-tint: rgb(var(--bg-rgb) / 80%);
+  --navigation-tint: color-mix(in srgb, var(--nav-surface) 84%, transparent);
+  --dialog-tint: color-mix(in srgb, var(--panel) 96%, transparent);
+  --ambient: rgb(var(--accent-rgb) / 7%);
+  --scrim: rgb(var(--hero-bg-rgb) / 52%);
+  --chrome-art-tint: rgb(var(--bg-rgb) / 64%);
 }
 :root[data-theme="light"] {
-  --chrome-tint: rgb(241 248 252 / 80%);
-  --navigation-tint: rgb(229 239 246 / 84%);
-  --dialog-tint: rgb(229 239 246 / 97%);
-  --ambient: rgb(0 159 227 / 9%);
-  --scrim: rgb(18 42 58 / 28%);
+  --bg-rgb: 246 252 255;
+  --scrim: rgb(var(--hero-bg-rgb) / 28%);
+  --chrome-art-tint: rgb(var(--bg-rgb) / 70%);
 }
 body {
   background-image: radial-gradient(
@@ -1599,7 +1614,7 @@ body {
   background: var(--bg);
 }
 .modal {
-  box-shadow: 0 24px 72px rgb(6 15 23 / 22%);
+  box-shadow: 0 24px 72px rgb(var(--hero-bg-rgb) / 22%);
 }
 @supports (
   (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
@@ -1776,8 +1791,12 @@ body {
   display: flex;
   flex-direction: column;
   padding: clamp(18px, 3vh, 28px);
-  color: #e4f1f9;
-  background: radial-gradient(ellipse at 80% 0%, #16465e, #10202d 70%);
+  color: var(--hero-text);
+  background: radial-gradient(
+    ellipse at 80% 0%,
+    var(--hero-surface),
+    var(--hero-panel) 70%
+  );
   touch-action: pan-y;
   user-select: none;
 }
@@ -1787,7 +1806,7 @@ body {
   z-index: -2;
   display: grid;
   place-items: center;
-  color: rgb(0 159 227 / 27%);
+  color: rgb(var(--accent-rgb) / 27%);
 }
 .recommendation-art img {
   width: 100%;
@@ -1800,10 +1819,10 @@ body {
   z-index: -1;
   background: linear-gradient(
     180deg,
-    #0b141b20,
-    #0b141b10 28%,
-    #0b141bb8 60%,
-    #0b141bf5 100%
+    rgb(var(--hero-bg-rgb) / 12.55%),
+    rgb(var(--hero-bg-rgb) / 6.27%) 28%,
+    rgb(var(--hero-bg-rgb) / 72.16%) 60%,
+    rgb(var(--hero-bg-rgb) / 96.08%) 100%
   );
 }
 .recommendation-reason {
@@ -1811,8 +1830,8 @@ body {
   max-width: 100%;
   border-radius: 16px;
   padding: 9px 12px;
-  color: #d9f1ff;
-  background: #0b141b99;
+  color: var(--hero-text);
+  background: rgb(var(--hero-bg-rgb) / 60%);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   font-size: 11px;
@@ -1831,7 +1850,7 @@ body {
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-  color: #bcd1de;
+  color: var(--hero-muted);
   font-size: 11px;
   line-height: 1.7;
 }
@@ -1840,14 +1859,14 @@ body {
   align-items: center;
   gap: 4px;
   margin-left: auto;
-  color: #d9f1ff;
+  color: var(--hero-text);
 }
 .recommendation-score svg {
   color: var(--brand);
 }
 .recommendation-score small {
   font-size: 9px;
-  color: #a6bac8;
+  color: var(--hero-muted);
   margin-left: 3px;
 }
 .recommendation-card h2 {
@@ -1863,7 +1882,7 @@ body {
 .recommendation-synopsis {
   font-size: 12px;
   line-height: 1.8;
-  color: #b6cbd9;
+  color: var(--hero-muted);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -1888,12 +1907,12 @@ body {
   min-width: 44px;
   height: 44px;
   padding: 10px;
-  color: #d9f1ff;
-  background: #203948a0;
+  color: var(--hero-text);
+  background: color-mix(in srgb, var(--hero-surface) 63%, transparent);
 }
 .recommendation-actions [aria-pressed="true"] {
   color: var(--brand);
-  background: #162e3e;
+  background: var(--hero-surface);
 }
 .feed-sentinel {
   min-height: 56px;
@@ -1921,7 +1940,7 @@ body {
   transform: translate(-50%, -50%);
   color: var(--brand);
   animation: heartPop 0.65s cubic-bezier(0.2, 0.8, 0.2, 1) both;
-  filter: drop-shadow(0 6px 16px #0b141b80);
+  filter: drop-shadow(0 6px 16px rgb(var(--hero-bg-rgb) / 50.2%));
 }
 @keyframes heartPop {
   0% {
@@ -2021,7 +2040,7 @@ body {
 }
 @media (prefers-reduced-transparency: reduce) {
   .recommendation-reason {
-    background: #17232c;
+    background: var(--hero-surface);
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
@@ -2097,7 +2116,7 @@ body {
 .feed-notice .error {
   margin: 0;
   max-width: 760px;
-  box-shadow: 0 6px 24px #0b141b40;
+  box-shadow: 0 6px 24px rgb(var(--hero-bg-rgb) / 25.1%);
 }
 .feed-progress {
   display: flex;
@@ -2167,10 +2186,10 @@ body:has(.feed-ambience) {
   content: "";
   position: absolute;
   inset: 0;
-  background: rgb(11 20 27 / 0.64);
+  background: var(--chrome-art-tint);
 }
 :root[data-theme="light"] .chrome-artwork::after {
-  background: rgb(241 248 252 / 0.7);
+  background: var(--chrome-art-tint);
 }
 .recommendation-actions .button.primary {
   background: color-mix(in srgb, rgb(var(--art-rgb)) 45%, #ffffff);
@@ -2992,5 +3011,99 @@ body:has(.feed-ambience) {
 @media (max-width: 760px) {
   .sign-in-page {
     min-height: calc(100dvh - 168px - var(--safe-top) - var(--safe-bottom));
+  }
+}
+
+/* Fixed, accessible presets rather than an unrestricted colour picker. */
+.colour-themes {
+  border: 0;
+  padding: 0;
+  margin: 30px 0 0;
+  min-width: 0;
+}
+.colour-themes legend {
+  padding: 0;
+  font: 600 20px/1.3 var(--font);
+  margin-bottom: 10px;
+}
+.colour-theme-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 18px 0 14px;
+}
+.colour-theme-option {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  border: 2px solid transparent;
+  border-radius: 18px;
+  background: var(--surface);
+  cursor: pointer;
+  min-width: 0;
+}
+.colour-theme-option:has(:checked) {
+  border-color: var(--blue);
+}
+.colour-theme-option:has(:focus-visible) {
+  outline: 2px solid var(--blue);
+  outline-offset: 3px;
+}
+.colour-theme-option input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  margin: 0;
+  cursor: pointer;
+}
+.colour-theme-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border-radius: 12px;
+  min-height: 70px;
+  padding: 12px 8px;
+}
+.colour-theme-preview svg {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+}
+.colour-theme-swatches {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.colour-theme-swatches i {
+  display: block;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 1px solid rgb(255 255 255 / 20%);
+}
+.colour-theme-name {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+@media (max-width: 380px) {
+  .colour-theme-grid {
+    gap: 8px;
+  }
+  .colour-theme-option {
+    padding: 6px;
+  }
+  .colour-theme-preview {
+    gap: 6px;
+    padding: 8px 4px;
+  }
+  .colour-theme-name {
+    font-size: 11px;
   }
 }
