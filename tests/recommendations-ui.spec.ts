@@ -495,7 +495,7 @@ test("le fil tactile dépasse les 9 premières cartes et charge plusieurs pages 
   await client.detach();
 });
 
-test("barres de même taille et couleur conservée pendant le geste, puis fondu direct rapide après l’arrêt", async ({
+test("barres transparentes de même taille et halo conservé pendant le geste, puis fondu direct rapide après l’arrêt", async ({
   page,
 }) => {
   await setup(page);
@@ -532,10 +532,10 @@ test("barres de même taille et couleur conservée pendant le geste, puis fondu 
   for (const bar of [header, nav]) {
     expect(
       await bar.evaluate((el) => getComputedStyle(el).backdropFilter),
-    ).toContain("blur(");
+    ).toBe("none");
     expect(
       await bar.evaluate((el) => getComputedStyle(el).backgroundColor),
-    ).toMatch(/0\.45/);
+    ).toBe("rgba(0, 0, 0, 0)");
   }
   const glow = page.locator(".feed-ambience");
   await expect
@@ -549,8 +549,10 @@ test("barres de même taille et couleur conservée pendant le geste, puis fondu 
   );
   await page.screenshot({ path: "tests/recommendations-ambient-dark.png" });
   await page.emulateMedia({ reducedMotion: "no-preference" });
-  const initialBackground = await glow.evaluate(
-    (el) => getComputedStyle(el).backgroundColor,
+  await expect(glow).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  const halo = page.locator(".feed-halo");
+  const initialShadow = await halo.evaluate(
+    (el) => getComputedStyle(el).boxShadow,
   );
   await page.evaluate(() => {
     const w = window as any;
@@ -559,7 +561,8 @@ test("barres de même taille et couleur conservée pendant le geste, puis fondu 
       const el = document.querySelector(".feed-ambience")!;
       w.ambienceFrames.push({
         opacity: Number(getComputedStyle(el).opacity),
-        background: getComputedStyle(el).backgroundColor,
+        shadow: getComputedStyle(document.querySelector(".feed-halo")!)
+          .boxShadow,
       });
       w.ambienceRaf = requestAnimationFrame(sample);
     }
@@ -580,14 +583,11 @@ test("barres de même taille et couleur conservée pendant le geste, puis fondu 
   await expect(glow).toHaveAttribute("data-moving", "true");
   await expect(glow).toHaveAttribute("data-artwork", "tmdb-movie-1");
   await expect(glow).toHaveCSS("opacity", "1");
-  await expect(glow).toHaveCSS("background-color", initialBackground);
+  await expect(halo).toHaveCSS("box-shadow", initialShadow);
   await expect
     .poll(() => glow.evaluate((el) => el.style.getPropertyValue("--art-rgb")))
     .toBe("233 185 28");
-  await expect(page.locator(".topbar .chrome-current")).toHaveAttribute(
-    "src",
-    /scene-1.svg/,
-  );
+  await expect(page.locator(".chrome-artwork")).toHaveCount(0);
   await client.send("Input.dispatchTouchEvent", {
     type: "touchEnd",
     touchPoints: [],
@@ -598,24 +598,27 @@ test("barres de même taille et couleur conservée pendant le geste, puis fondu 
   await expect
     .poll(() => glow.evaluate((el) => el.style.getPropertyValue("--art-rgb")))
     .toBe("195 59 101");
-  await expect(glow).toHaveCSS("background-color", "rgba(195, 59, 101, 0.14)");
+  await expect(halo).toHaveCSS(
+    "box-shadow",
+    "rgba(195, 59, 101, 0.6) 0px 0px 36px 16px",
+  );
   await expect
     .poll(() => glow.evaluate((el) => Number(getComputedStyle(el).opacity)))
     .toBe(1);
   expect(
-    await glow.evaluate((el) => getComputedStyle(el).transitionDuration),
-  ).toBe("0.17s, 0.17s");
+    await halo.evaluate((el) => getComputedStyle(el).transitionDuration),
+  ).toBe("0.17s");
   const frames = await page.evaluate(() => {
     const w = window as any;
     cancelAnimationFrame(w.ambienceRaf);
-    return w.ambienceFrames as { opacity: number; background: string }[];
+    return w.ambienceFrames as { opacity: number; shadow: string }[];
   });
   expect(Math.min(...frames.map((frame) => frame.opacity))).toBe(1);
   expect(
     frames.some(
       (frame) =>
-        frame.background !== initialBackground &&
-        frame.background !== "rgba(195, 59, 101, 0.14)",
+        frame.shadow !== initialShadow &&
+        frame.shadow !== "rgba(195, 59, 101, 0.6) 0px 0px 36px 16px",
     ),
   ).toBe(true);
   expect(
@@ -635,7 +638,7 @@ test("barres de même taille et couleur conservée pendant le geste, puis fondu 
   await client.detach();
 });
 
-test("Android : la couleur vient des octets natifs de l’image sans CORS, halo symétrique et flou visible dans les deux barres", async ({
+test("Android : couleur native et halo symétrique, aucune affiche ou surface floutée dans les barres", async ({
   page,
 }) => {
   await setup(page);
@@ -710,35 +713,37 @@ test("Android : la couleur vient des octets natifs de l’image sans CORS, halo 
     content: ".MuiTouchRipple-root {display:none!important}",
   });
   await page.evaluate(() => document.fonts.ready);
-  await expect
-    .poll(() =>
-      page
-        .locator(".chrome-artwork img")
-        .evaluateAll((images) =>
-          images.every(
-            (image) =>
-              (image as HTMLImageElement).complete &&
-              (image as HTMLImageElement).naturalWidth > 0,
-          ),
-        ),
-    )
-    .toBe(true);
+  await expect(page.locator(".chrome-artwork")).toHaveCount(0);
   const bars = [page.locator(".topbar"), page.locator(".mobile-nav")];
-  const blurred = [];
+  for (const bar of bars) {
+    await expect(bar).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+    await expect(bar).toHaveCSS("background-image", "none");
+    await expect(bar).toHaveCSS("backdrop-filter", "none");
+    await expect(bar).toHaveCSS("box-shadow", "none");
+  }
+  await expect(glow).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  // Other pages regain their existing surfaces; this change is scoped to the feed.
+  await page.getByRole("button", { name: "Profil", exact: true }).click();
+  await expect(page.locator("main")).not.toHaveClass("is-feed");
   for (const bar of bars) {
     expect(
-      await bar
-        .locator(".chrome-artwork img")
-        .evaluate((el) => getComputedStyle(el).filter),
-    ).toBe("blur(24px)");
-    blurred.push(await bar.screenshot());
+      await bar.evaluate((el) => getComputedStyle(el).backdropFilter),
+    ).toContain("blur(");
+    expect(
+      await bar.evaluate((el) => getComputedStyle(el).backgroundColor),
+    ).not.toBe("rgba(0, 0, 0, 0)");
   }
-  const sharpStyle = await page.addStyleTag({
-    content: ".chrome-artwork img {filter:none!important}",
-  });
-  for (let i = 0; i < bars.length; i++)
-    expect((await bars[i].screenshot()).equals(blurred[i])).toBe(false);
-  await sharpStyle.evaluate((el) => el.remove());
+  await page.getByRole("button", { name: "Pour vous", exact: true }).click();
+  await expect(page.getByRole("feed")).toBeVisible();
+  for (const mode of ["dark", "light"] as const) {
+    const currentMode = await page.locator("html").getAttribute("data-theme");
+    if (currentMode !== mode)
+      await page.locator(".header-actions button").first().click();
+    for (const bar of bars) {
+      await expect(bar).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+      await expect(bar).toHaveCSS("backdrop-filter", "none");
+    }
+  }
   const labels = await page
     .getByRole("navigation", { name: "Navigation principale" })
     .getByRole("button")

@@ -1592,12 +1592,10 @@ footer {
   --dialog-tint: color-mix(in srgb, var(--panel) 96%, transparent);
   --ambient: rgb(var(--accent-rgb) / 7%);
   --scrim: rgb(var(--hero-bg-rgb) / 52%);
-  --chrome-art-tint: rgb(var(--bg-rgb) / 64%);
 }
 :root[data-theme="light"] {
   --bg-rgb: 246 252 255;
   --scrim: rgb(var(--hero-bg-rgb) / 28%);
-  --chrome-art-tint: rgb(var(--bg-rgb) / 70%);
 }
 body {
   background-image: radial-gradient(
@@ -2129,7 +2127,7 @@ body {
   font-size: 12px;
 }
 
-/* Artwork glow sits behind the app and its translucent chrome, with no layout shift. */
+/* The artwork halo sits behind the app on the normal theme background. */
 #root {
   position: relative;
   z-index: 1;
@@ -2142,54 +2140,14 @@ body:has(.feed-ambience) {
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background: rgb(var(--art-rgb) / 0.14);
   opacity: var(--art-ready, 0);
-  transition:
-    background-color 170ms ease-out,
-    opacity 170ms ease-out;
+  transition: opacity 170ms ease-out;
 }
 .feed-halo {
   position: absolute;
   border-radius: 24px;
   box-shadow: 0 0 36px 16px rgb(var(--art-rgb) / 0.6);
   transition: box-shadow 170ms ease-out;
-}
-/* A blurred copy of the current artwork is visibly behind the chrome even while the feed is stationary. */
-.chrome-artwork {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  z-index: -1;
-  pointer-events: none;
-  opacity: 1;
-}
-.chrome-artwork img {
-  position: absolute;
-  inset: -32px;
-  width: calc(100% + 64px);
-  height: calc(100% + 64px);
-  object-fit: cover;
-  filter: blur(24px);
-}
-.chrome-current {
-  animation: chromeArtworkIn 170ms ease-out both;
-}
-@keyframes chromeArtworkIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-.chrome-artwork::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: var(--chrome-art-tint);
-}
-:root[data-theme="light"] .chrome-artwork::after {
-  background: var(--chrome-art-tint);
 }
 .recommendation-actions .button.primary {
   background: color-mix(in srgb, rgb(var(--art-rgb)) 45%, #ffffff);
@@ -2227,12 +2185,6 @@ body:has(.feed-ambience) {
   .recommendation-actions .icon-button {
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
-  }
-}
-
-@media (prefers-reduced-transparency: reduce) {
-  .chrome-artwork {
-    display: none;
   }
 }
 
@@ -3106,4 +3058,14 @@ body:has(.feed-ambience) {
   .colour-theme-name {
     font-size: 11px;
   }
+}
+
+/* In the feed, chrome is unfilled: only the card's halo reaches behind it. */
+main.is-feed .topbar,
+body:has(main.is-feed) .mobile-nav {
+  background: transparent;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  border: 0;
+  box-shadow: none;
 }

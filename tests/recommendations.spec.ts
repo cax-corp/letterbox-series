@@ -333,6 +333,33 @@ test("modifier une critique ne rajeunit pas une ancienne préférence", () => {
   );
 });
 
+test("à goûts de même force, un like récent passe devant un ancien sans effacer l’historique", () => {
+  const now = Date.now();
+  const old = entry(title(100, "Alpha", "Science-fiction"), {
+    recommendationFeedback: "like",
+    preferenceUpdated: new Date(now - 365 * 86400000).toISOString(),
+  });
+  const recent = entry(title(200, "Beta", "Romance"), {
+    recommendationFeedback: "like",
+    preferenceUpdated: new Date(now - 86400000).toISOString(),
+  });
+  const library = { old, recent };
+  const snapshot = JSON.stringify(library);
+  const profile = buildTasteProfile(library);
+  expect(profile.seeds[0].title.id).toBe(recent.title.id);
+  const ranked = rankRecommendations(
+    profile,
+    candidates(
+      title(1, "Gamma", "Science-fiction"),
+      title(2, "Delta", "Romance"),
+    ),
+  );
+  expect(ranked[0].title.id).toBe("tmdb-movie-2");
+  expect(ranked[0].score).toBeGreaterThan(ranked[1].score);
+  expect(profile.entries).toHaveLength(2);
+  expect(JSON.stringify(library)).toBe(snapshot);
+});
+
 test("le moteur traite un pool local de 600 titres et 200 préférences avec des scores finis", () => {
   const genres = ["Science-fiction", "Aventure", "Thriller", "Familial"];
   const summaries = [
@@ -368,12 +395,10 @@ test("le moteur traite un pool local de 600 titres et 200 préférences avec des
   const profile = buildTasteProfile(library),
     partialStart = performance.now();
   const partial = rankRecommendations(profile, pool, [], 32);
-  test
-    .info()
-    .annotations.push({
-      type: "queue-time",
-      description: `${Math.round(performance.now() - partialStart)} ms pour reclasser le pool et produire les 32 prochaines propositions`,
-    });
+  test.info().annotations.push({
+    type: "queue-time",
+    description: `${Math.round(performance.now() - partialStart)} ms pour reclasser le pool et produire les 32 prochaines propositions`,
+  });
   expect(partial).toEqual(result.slice(0, 32));
   expect(result).toHaveLength(600);
   expect(new Set(result.map((x) => x.title.id)).size).toBe(600);

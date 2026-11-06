@@ -102,7 +102,6 @@ export default function Recommendations({
     [error, setError] = useState(""),
     [manual, setManual] = useState(false),
     [height, setHeight] = useState(500),
-    [chrome, setChrome] = useState<Element[]>([]),
     [frame, setFrame] = useState({ left: 0, top: 0, width: 0, height: 0 });
   useEffect(() => {
     mounted.current = true;
@@ -129,7 +128,6 @@ export default function Recommendations({
         });
       }
     };
-    setChrome([...document.querySelectorAll(".topbar,.mobile-nav")]);
     resize();
     const observer = new ResizeObserver(resize);
     observer.observe(el);
@@ -180,7 +178,6 @@ export default function Recommendations({
   const [appearance, setAppearance] = useState({
     id: "",
     artwork: "",
-    previous: "",
   });
   useEffect(() => {
     if (moving) return;
@@ -190,7 +187,6 @@ export default function Recommendations({
         : {
             id: active?.id || "",
             artwork: activeArtwork,
-            previous: previous.artwork,
           },
     );
   }, [moving, active?.id, activeArtwork]);
@@ -434,30 +430,6 @@ export default function Recommendations({
           <span className="feed-halo" style={frame} />
         </div>,
         document.body,
-      )}
-      {chrome.map((target, i) =>
-        createPortal(
-          <span
-            className="chrome-artwork"
-            aria-hidden="true"
-            data-moving={moving}
-          >
-            {appearance.previous && <img src={appearance.previous} alt="" />}
-            {appearance.artwork && (
-              <img
-                key={appearance.artwork}
-                className="chrome-current"
-                src={appearance.artwork}
-                alt=""
-                onError={(e) => {
-                  e.currentTarget.style.visibility = "hidden";
-                }}
-              />
-            )}
-          </span>,
-          target,
-          `chrome-${i}`,
-        ),
       )}
       <h1 className="sr-only">Pour vous</h1>
       <div

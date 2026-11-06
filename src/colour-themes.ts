@@ -49,7 +49,6 @@ export function colourVariables(
     "--chrome-tint": `rgb(${rgb(p.bg)} / 80%)`,
     "--navigation-tint": `rgb(${rgb(p.nav)} / 84%)`,
     "--dialog-tint": `rgb(${rgb(p.panel)} / 96%)`,
-    "--chrome-art-tint": `rgb(${rgb(p.bg)} / ${light ? "70%" : "64%"})`,
     "--ambient": `rgb(${rgb(preset.hex)} / ${light ? "9%" : "7%"})`,
     "--scrim": `rgb(${rgb(preset.dark.bg)} / ${light ? "28%" : "52%"})`,
     // Artwork keeps a dark scrim in light mode to protect the text over images.
