@@ -45,6 +45,7 @@ import BottomNavigation from "@mui/material/BottomNavigation";
 import BottomNavigationAction from "@mui/material/BottomNavigationAction";
 import {
   palette,
+  brandInk,
   updateSystemAppearance,
   type ThemePreference,
 } from "./appearance";
@@ -159,7 +160,10 @@ function App() {
       createTheme({
         palette: {
           mode: light ? "light" : "dark",
-          primary: { main: palette[light ? "light" : "dark"].primary },
+          primary: {
+            main: palette[light ? "light" : "dark"].primary,
+            contrastText: brandInk,
+          },
           background: {
             default: palette[light ? "light" : "dark"].background,
             paper: palette[light ? "light" : "dark"].surface,
@@ -1219,8 +1223,8 @@ function App() {
                   letterSpacing: ".1px",
                 },
                 "&.Mui-selected .nav-indicator": {
-                  backgroundColor: "var(--primary-container)",
-                  color: "var(--on-container)",
+                  backgroundColor: "var(--brand)",
+                  color: "var(--on-brand)",
                 },
               }}
             />

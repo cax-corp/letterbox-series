@@ -1,6 +1,6 @@
 # APK proposé sur le site web
 
-`Vela-2.1.0.apk` est la version Android 2.1.0 déjà distribuée et testée, avec sa signature conservée. Le lien de téléchargement de la page web « Pour vous » pointe vers ce fichier.
+`Vela-2.1.1.apk` est la version Android 2.1.1 déjà distribuée et testée, avec sa signature conservée. Le lien de téléchargement de la page web « Pour vous » pointe vers ce fichier.
 
 `npm run build:web` ajoute le fichier dans `dist/downloads` après la compilation Vite. Le workflow Pages utilise cette commande. Le build Android continue d’utiliser `npm run build` via `android:sync` : le téléchargement n’est pas ajouté aux ressources embarquées de l’APK.
 

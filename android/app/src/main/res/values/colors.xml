@@ -2,7 +2,7 @@
 <resources>
     <color name="colorPrimary">#009FE3</color>
     <color name="colorPrimaryDark">#0B141B</color>
-    <color name="colorAccent">#7BD0FF</color>
+    <color name="colorAccent">#009FE3</color>
     <color name="luma_background">#0B141B</color>
     <color name="luma_navigation">#17232C</color>
 </resources>

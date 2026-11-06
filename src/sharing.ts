@@ -1,3 +1,4 @@
+import { brandBlue } from "./appearance";
 import { Capacitor } from "@capacitor/core";
 import { Share } from "@capacitor/share";
 import { Filesystem, Directory } from "@capacitor/filesystem";
@@ -132,7 +133,7 @@ export async function renderShareCard(card: ShareCard): Promise<Blob> {
   c.fillStyle = "#E4F1F9";
   c.font = "800 64px Manrope, sans-serif";
   c.fillText("vela", 80, 118);
-  c.fillStyle = "#7BD0FF";
+  c.fillStyle = brandBlue;
   c.beginPath();
   c.arc(217, 110, 6, 0, 2 * Math.PI);
   c.fill();
@@ -207,7 +208,7 @@ export async function renderShareCard(card: ShareCard): Promise<Blob> {
   c.fillStyle = "#E4F1F9";
   c.font = "800 58px Manrope, sans-serif";
   top = wrapped(c, card.heading, 80, top, 920, 72, 3) + 32;
-  c.fillStyle = "#7BD0FF";
+  c.fillStyle = brandBlue;
   c.font = '600 28px "DM Sans", sans-serif';
   top = wrapped(c, card.detail, 80, top, 920, 40, 2) + 42;
   if (card.kind === "profile" && card.profile?.bio) {
@@ -228,7 +229,7 @@ export async function renderShareCard(card: ShareCard): Promise<Blob> {
     const fontSize = Math.min(32, rowHeight * 0.5);
     card.profile.featured.forEach((title, i) => {
       c.font = `500 ${fontSize}px "DM Sans", sans-serif`;
-      c.fillStyle = "#7BD0FF";
+      c.fillStyle = brandBlue;
       c.fillText(String(i + 1).padStart(2, "0"), 80, top);
       c.fillStyle = "#E4F1F9";
       wrapped(

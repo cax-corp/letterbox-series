@@ -4,6 +4,8 @@ import {
   SystemBars,
   SystemBarsStyle,
 } from "@capacitor/core";
+export const brandBlue = "#009FE3";
+export const brandInk = "#062433";
 export type ThemePreference = "dark" | "light" | "system";
 export const palette = {
   dark: {
@@ -11,17 +13,17 @@ export const palette = {
     surface: "#17232C",
     text: "#E4F1F9",
     muted: "#A6BAC8",
-    primary: "#7BD0FF",
-    container: "#064C6A",
-    onContainer: "#C8EFFF",
+    primary: brandBlue,
+    container: "#162E3E",
+    onContainer: "#D3EBF6",
   },
   light: {
     background: "#F1F8FC",
     surface: "#E5EFF6",
     text: "#10212D",
     muted: "#526977",
-    primary: "#00658F",
-    container: "#C8E9FC",
+    primary: brandBlue,
+    container: "#DBEEF8",
     onContainer: "#00344C",
   },
 };
