@@ -520,14 +520,16 @@ test("scène : glissement sans cadre blanc, clavier repérable, arrière-plan at
     "none",
   );
   await expect(page.locator(".taste-orbit")).toHaveCount(0);
-  const nodes = await page
-    .locator(".taste-point")
-    .evaluateAll((nodes) =>
-      nodes.map((n) => ({
-        depth: Number(n.getAttribute("data-depth")),
-        opacity: Number(n.getAttribute("opacity")),
-      })),
-    );
+  const hit = page
+    .locator('.taste-point.watchlist > circle[fill="transparent"]')
+    .first();
+  expect(await hit.evaluate((e) => getComputedStyle(e).stroke)).toBe("none");
+  const nodes = await page.locator(".taste-point").evaluateAll((nodes) =>
+    nodes.map((n) => ({
+      depth: Number(n.getAttribute("data-depth")),
+      opacity: Number(n.getAttribute("opacity")),
+    })),
+  );
   const sorted = nodes.sort((a, b) => a.depth - b.depth);
   expect(sorted[0].opacity).toBeGreaterThan(sorted.at(-1)!.opacity);
   await page

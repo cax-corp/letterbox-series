@@ -5253,3 +5253,8 @@ body.taste-terminal-active > #root > .mobile-nav {
     bottom: 112px;
   }
 }
+.atlas-terminal .taste-point > circle[fill="transparent"] {
+  fill: transparent;
+  stroke: none;
+  filter: none;
+}
