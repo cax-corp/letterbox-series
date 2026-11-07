@@ -518,6 +518,7 @@ test("partage Android : lien de fiche immédiat sans image ni écriture de fichi
 }) => {
   await page.addInitScript(() => {
     const w = window as any;
+    localStorage.setItem("vela-welcome-v1", "done");
     w.CapacitorCustomPlatform = { name: "android" };
     w.nativeShares = [];
     w.nativeWrites = [];

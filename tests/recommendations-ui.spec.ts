@@ -19,6 +19,7 @@ async function setup(page: Page, native = true) {
     ({ k, native }) => {
       if (native) {
         const w = window as any;
+        localStorage.setItem("vela-welcome-v1", "done");
         w.CapacitorCustomPlatform = { name: "android" };
         const cap = (w.Capacitor ||= {});
         cap.PluginHeaders ||= [
@@ -644,6 +645,7 @@ test("Android : couleur native et halo symétrique, aucune affiche ou surface fl
   await setup(page);
   await page.addInitScript(() => {
     const w = window as any;
+    localStorage.setItem("vela-welcome-v1", "done");
     w.CapacitorCustomPlatform = { name: "android" };
     w.nativeArtworkRequests = [];
     const svg =

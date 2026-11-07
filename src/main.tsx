@@ -1,12 +1,14 @@
+import Welcome from "./Welcome";
+import AuthForm from "./AuthForm";
+import { readWelcomeCompleted, markWelcomeCompleted } from "./onboarding";
 import TitleReview, { PersonalTracking } from "./TitleReview";
 import Modal from "./Modal";
 import ShareLinkDialog from "./ShareLinkDialog";
 import PublicPage, { parsePublicRoute } from "./PublicPage";
 import PublicSharingSettings from "./PublicSharingSettings";
-import ViewingSettings, { CountrySelect } from "./ViewingSettings";
+import ViewingSettings from "./ViewingSettings";
 import {
   useViewingPreferences,
-  emptyViewing,
   syncViewingPreferences,
   type ViewingPreferences,
 } from "./viewing-preferences";
@@ -133,6 +135,10 @@ const pageNames: Page[] = [
   "edit-profile",
 ];
 function App() {
+  const [welcomeCompleted, setWelcomeCompleted] =
+    useState(readWelcomeCompleted);
+  const [authReady, setAuthReady] = useState(!cloud);
+  const welcomeBack = useRef<() => boolean>(() => false);
   const [publicRoute, setPublicRoute] = useState(() => parsePublicRoute());
   const [shareDraft, setShareDraft] = useState<ShareDraft | null>(null);
   const titleSharing = useRef(false);
@@ -184,6 +190,15 @@ function App() {
     [systemLight, setSystemLight] = useState(
       () => matchMedia("(prefers-color-scheme: light)").matches,
     );
+  const needsWelcome =
+    Capacitor.isNativePlatform() && !welcomeCompleted && !user && !publicRoute;
+  function finishWelcome() {
+    markWelcomeCompleted();
+    setWelcomeCompleted(true);
+  }
+  useEffect(() => {
+    if (user && !welcomeCompleted) finishWelcome();
+  }, [user?.id, welcomeCompleted]);
   const personal = useProfile(user);
   const viewing = useViewingPreferences(user);
   useEffect(() => {
@@ -295,16 +310,33 @@ function App() {
     setLoading(false);
   }
   useEffect(() => {
-    load();
     if (!cloud) return;
+    let mounted = true;
     cloud.auth
       .getSession()
-      .then(({ data }) => setUser(data.session?.user || null));
-    const { data } = cloud.auth.onAuthStateChange((_e, s) =>
-      setUser(s?.user || null),
-    );
-    return () => data.subscription.unsubscribe();
+      .then(({ data }) => {
+        if (mounted) setUser(data.session?.user || null);
+      })
+      .catch(() => {
+        /* The welcome screen remains available if session recovery fails. */
+      })
+      .finally(() => {
+        if (mounted) setAuthReady(true);
+      });
+    const { data } = cloud.auth.onAuthStateChange((_event, session) => {
+      if (mounted) {
+        setUser(session?.user || null);
+        setAuthReady(true);
+      }
+    });
+    return () => {
+      mounted = false;
+      data.subscription.unsubscribe();
+    };
   }, []);
+  useEffect(() => {
+    if (!needsWelcome) void load();
+  }, [needsWelcome]);
   useEffect(() => {
     const media = matchMedia("(prefers-color-scheme: light)");
     const onChange = () => setSystemLight(media.matches);
@@ -562,6 +594,7 @@ function App() {
   }, []);
   useEffect(() => {
     const back = () => {
+      if (needsWelcome) return welcomeBack.current();
       if (shareDraft) {
         setShareDraft(null);
         return true;
@@ -587,6 +620,10 @@ function App() {
     (window as any).lumaHandleBack = back;
     const escape = (event: KeyboardEvent) => {
       if (event.key === "Escape" && !selected && !auth) {
+        if (needsWelcome) {
+          welcomeBack.current();
+          return;
+        }
         if (page === "settings") closeSettings();
         else if (page === "edit-profile") closeProfileEditor();
       }
@@ -596,7 +633,7 @@ function App() {
       delete (window as any).lumaHandleBack;
       document.removeEventListener("keydown", escape);
     };
-  }, [page, selected, auth, shareDraft]);
+  }, [page, selected, auth, shareDraft, needsWelcome]);
   const entries = Object.values(library),
     watched = entries.filter((e) => e.watched),
     watchlist = entries.filter((e) => e.watchlist),
@@ -656,6 +693,25 @@ function App() {
       </p>
     </button>
   );
+  if (needsWelcome)
+    return (
+      <ThemeProvider theme={materialTheme}>
+        {authReady ? (
+          <Welcome finish={finishWelcome} backHandler={welcomeBack} />
+        ) : (
+          <main
+            className="welcome-loading"
+            aria-label="Chargement de Vela"
+            aria-busy="true"
+          >
+            <span className="welcome-brand" aria-label="Vela">
+              <Brand />
+            </span>
+            <LoaderCircle className="spin" size={24} />
+          </main>
+        )}
+      </ThemeProvider>
+    );
   return (
     <ThemeProvider theme={materialTheme}>
       <aside className="sidebar">
@@ -2032,110 +2088,20 @@ function AuthModal({
   toast,
 }: {
   close: () => void;
-  toast: (s: string) => void;
+  toast: (message: string) => void;
 }) {
-  const [signup, setSignup] = useState(false),
-    [country, setCountry] = useState(""),
-    [email, setEmail] = useState(""),
-    [password, setPassword] = useState(""),
-    [busy, setBusy] = useState(false),
-    [error, setError] = useState("");
   return (
     <Modal label="Connexion" close={close}>
-      <div className="form-content">
-        <h2>{signup ? "Créer un compte" : "Connexion"}</h2>
-        <form
-          onSubmit={async (e) => {
-            e.preventDefault();
-            if (!cloud) return;
-            setBusy(true);
-            setError("");
-            try {
-              const result = signup
-                ? await cloud.auth.signUp({
-                    email,
-                    password,
-                    options: {
-                      data: {
-                        vela_viewing: {
-                          ...emptyViewing,
-                          country,
-                          updated: new Date().toISOString(),
-                        },
-                      },
-                      ...(!Capacitor.isNativePlatform()
-                        ? {
-                            emailRedirectTo:
-                              location.origin + location.pathname,
-                          }
-                        : {}),
-                    },
-                  })
-                : await cloud.auth.signInWithPassword({ email, password });
-              if (result.error) throw result.error;
-              toast(
-                signup && !result.data.session
-                  ? "Confirmez votre adresse avec l’e-mail reçu."
-                  : "Vous êtes connecté.",
-              );
-              close();
-            } catch (e: any) {
-              setError(e.message);
-            } finally {
-              setBusy(false);
-            }
-          }}
-        >
-          <label className="field">
-            E-mail
-            <input
-              type="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </label>
-          <label className="field">
-            Mot de passe
-            <input
-              type="password"
-              autoComplete={signup ? "new-password" : "current-password"}
-              minLength={8}
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </label>
-          {signup && (
-            <CountrySelect required value={country} onChange={setCountry} />
-          )}
-          {error && (
-            <p className="error" role="alert">
-              {error}
-            </p>
-          )}
-          <button className="button primary" disabled={busy}>
-            {busy ? (
-              <LoaderCircle className="spin" size={18} />
-            ) : signup ? (
-              "Créer mon compte"
-            ) : (
-              "Se connecter"
-            )}
-          </button>
-        </form>
-        <button
-          className="text-button auth-toggle"
-          onClick={() => {
-            setSignup(!signup);
-            setError("");
-          }}
-        >
-          {signup ? "J’ai déjà un compte" : "Créer un compte gratuit"}
-          <ArrowRight size={15} />
-        </button>
-      </div>
+      <AuthForm
+        success={({ needsConfirmation }) => {
+          toast(
+            needsConfirmation
+              ? "Confirmez votre adresse avec l’e-mail reçu."
+              : "Vous êtes connecté.",
+          );
+          close();
+        }}
+      />
     </Modal>
   );
 }

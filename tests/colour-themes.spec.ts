@@ -200,6 +200,7 @@ test("Android : la palette et le contraste des barres sont transmis au pont nati
   await page.addInitScript(() => {
     const w = window as any;
     w.themeCalls = [];
+    localStorage.setItem("vela-welcome-v1", "done");
     w.CapacitorCustomPlatform = { name: "android" };
     w.Capacitor = {
       PluginHeaders: [

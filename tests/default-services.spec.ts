@@ -119,6 +119,7 @@ test("Android : pas de personnalisation avant connexion, feed actif après conne
   await page.setViewportSize({ width: 390, height: 844 });
   await page.addInitScript(() => {
     const w = window as any;
+    localStorage.setItem("vela-welcome-v1", "done");
     w.CapacitorCustomPlatform = { name: "android" };
     w.Capacitor = {
       PluginHeaders: [

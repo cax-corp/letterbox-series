@@ -523,6 +523,7 @@ test("réglages Android : accès aux horaires précis, test dans une minute et h
 }) => {
   await page.addInitScript(() => {
     const w = window as any;
+    localStorage.setItem("vela-welcome-v1", "done");
     w.CapacitorCustomPlatform = { name: "android" };
     w.nativeNotificationCalls = [];
     const state: any = {
