@@ -1,6 +1,8 @@
 import { test, expect } from "@playwright/test";
 import {
   defaultProfile,
+  avatarOptions,
+  avatarBackgrounds,
   makeProfile,
   validateProfile,
   profileKey,
@@ -109,6 +111,11 @@ function client(remote: Profile | null = null) {
 test("profil strict : identifiants d’avatars et fonds, quatre titres au maximum, aucun import d’image", () => {
   const p = custom();
   expect(validateProfile(p)).toEqual(p);
+  for (const avatar of avatarOptions)
+    for (const background of avatarBackgrounds)
+      expect(
+        validateProfile({ ...p, avatar: avatar.id, background: background.id }),
+      ).not.toBeNull();
   expect(validateProfile({ ...p, avatar: "https://my-photo.jpg" })).toBe(null);
   expect(
     validateProfile({ ...p, background: "url(javascript:alert(1))" }),

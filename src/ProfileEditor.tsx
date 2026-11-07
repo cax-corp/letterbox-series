@@ -123,7 +123,10 @@ export default function ProfileEditor({
       >
         <div className="profile-edit-preview">
           <Avatar profile={draft} name={draft.displayName} size={128} />
-          <p>Votre place au premier rang.</p>
+          <p>
+            {avatarOptions.find((a) => a.id === draft.avatar)?.label} ·{" "}
+            {avatarBackgrounds.find((b) => b.id === draft.background)?.label}
+          </p>
         </div>
         <label className="field">
           Nom affiché
@@ -151,7 +154,7 @@ export default function ProfileEditor({
         <fieldset>
           <legend>Choisissez votre avatar</legend>
           <p className="muted fine">
-            Des avatars inclus dans Vela. Aucune photo personnelle à importer.
+            28 visages et personnages, 10 fonds. Ou gardez votre initiale.
           </p>
           <div className="avatar-choices">
             {avatarOptions.map((a) => (
@@ -168,6 +171,11 @@ export default function ProfileEditor({
                   name={draft.displayName}
                   size={64}
                 />
+                {draft.avatar === a.id && (
+                  <span className="avatar-choice-check" aria-hidden="true">
+                    <Check size={12} />
+                  </span>
+                )}
                 <span>{a.label}</span>
               </button>
             ))}

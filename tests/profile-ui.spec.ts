@@ -163,6 +163,15 @@ test("profil local : nom, avatars embarqués et fonds, quatre favoris ordonnés,
   const editor = await edit(page);
   await expect(page).toHaveURL(/#profile\/edit$/);
   await expect(editor.locator('input[type="file"]')).toHaveCount(0);
+  for (const width of [320, 390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+  }
+  await page.setViewportSize({ width: 390, height: 844 });
   await editor.getByLabel("Nom affiché", { exact: true }).fill("Nora");
   await editor
     .getByLabel("Quelques mots sur vous")
@@ -174,13 +183,11 @@ test("profil local : nom, avatars embarqués et fonds, quatre favoris ordonnés,
   await expect(
     editor.locator(".profile-edit-preview .avatar-art"),
   ).toBeVisible();
-  expect(
-    await editor
-      .locator(".profile-edit-preview img")
-      .evaluate(
-        (img: HTMLImageElement) => img.complete && img.naturalWidth > 0,
-      ),
-  ).toBe(true);
+  await expect(
+    editor.locator(".profile-edit-preview svg.avatar-art"),
+  ).toHaveCount(1);
+  await expect(editor.locator(".avatar-choices img")).toHaveCount(0);
+  await expect(editor.locator(".avatar-choices > button")).toHaveCount(29);
   for (let i = 1; i <= 4; i++)
     await editor
       .locator(".featured-choices")
@@ -252,8 +259,22 @@ test("compte Supabase : sauvegarde légère sans Storage et restauration depuis 
   const x = await setup(page, true);
   const editor = await edit(page);
   await editor.getByLabel("Nom affiché", { exact: true }).fill("Lyra");
-  await editor.getByRole("button", { name: "Astronaute", exact: true }).click();
-  await editor.getByRole("button", { name: "Abricot", exact: true }).click();
+  await editor.getByRole("button", { name: "Incognito", exact: true }).click();
+  await editor
+    .getByRole("button", { name: "Couleur du thème", exact: true })
+    .click();
+  const preview = editor.locator(".profile-edit-preview .preset-avatar");
+  const before = await preview.evaluate(
+    (el) => getComputedStyle(el).backgroundColor,
+  );
+  await page.evaluate(() =>
+    document.documentElement.style.setProperty("--brand", "#eabed3"),
+  );
+  await expect(preview).toHaveCSS("background-color", "rgb(234, 190, 211)");
+  expect(before).not.toBe("rgb(234, 190, 211)");
+  await page.evaluate(() =>
+    document.documentElement.style.removeProperty("--brand"),
+  );
   await editor
     .locator(".featured-choices")
     .getByRole("button", { name: "Film 1 2024", exact: true })
@@ -271,8 +292,8 @@ test("compte Supabase : sauvegarde légère sans Storage et restauration depuis 
   expect(JSON.stringify(x.payloads[0]).length).toBeLessThan(3000);
   expect(x.metadata().vela_profile).toMatchObject({
     displayName: "Lyra",
-    avatar: "astronaut",
-    background: "amber",
+    avatar: "cool",
+    background: "theme",
   });
   expect(JSON.stringify(x.payloads)).not.toContain("base64");
   await edit(page);
@@ -289,7 +310,7 @@ test("compte Supabase : sauvegarde légère sans Storage et restauration depuis 
     "Lyra",
   );
   await expect(
-    restored.getByRole("button", { name: "Astronaute", exact: true }),
+    restored.getByRole("button", { name: "Incognito", exact: true }),
   ).toHaveAttribute("aria-pressed", "true");
   expect(x.puts()).toBe(1);
 });
@@ -542,9 +563,7 @@ test("partage Android : lien de fiche immédiat sans image ni écriture de fichi
     .poll(() => page.evaluate(() => (window as any).nativeShares.length))
     .toBe(1);
   const shared = await page.evaluate(() => (window as any).nativeShares[0]);
-  expect(shared.url).toBe(
-    "https://vela.thomasbarial.com/#/title/movie-1",
-  );
+  expect(shared.url).toBe("https://vela.thomasbarial.com/#/title/movie-1");
   expect(shared.files).toBeUndefined();
   expect(await page.evaluate(() => (window as any).nativeWrites.length)).toBe(
     0,

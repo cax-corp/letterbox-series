@@ -34,8 +34,8 @@ begin
     or jsonb_typeof(profile->'displayName') is distinct from 'string'
     or length(profile->>'displayName') not between 1 and 40
     or jsonb_typeof(profile->'bio') is distinct from 'string' or length(profile->>'bio') > 160
-    or coalesce(profile->>'avatar','') not in ('initial','astronaut','cat','robot','ghost')
-    or coalesce(profile->>'background','') not in ('ocean','violet','amber','coral','mint','slate','rose','midnight')
+    or coalesce(profile->>'avatar','') not in ('initial','smile','wink','grin','laugh','cool','love','starry','sleepy','surprised','curious','unimpressed','grumpy','shy','mischief','cheeky','zen','teary','monocle','nerd','headphones','stache','cyclops','alien','mask','astronaut','cat','robot','ghost')
+    or coalesce(profile->>'background','') not in ('theme','theme-soft','ocean','violet','amber','coral','mint','slate','rose','midnight')
     or jsonb_typeof(profile->'featured') is distinct from 'array'
     or jsonb_array_length(profile->'featured') > 4
     or jsonb_typeof(profile->'updated') is distinct from 'string'

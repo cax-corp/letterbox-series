@@ -2472,11 +2472,9 @@ body:has(.feed-ambience) {
   isolation: isolate;
 }
 .preset-avatar .avatar-art {
-  position: absolute;
-  width: 200%;
-  height: 200%;
-  max-width: none;
-  object-fit: fill;
+  display: block;
+  width: 100%;
+  height: 100%;
   pointer-events: none;
 }
 .avatar-initial {
@@ -2727,19 +2725,38 @@ body:has(.feed-ambience) {
   margin-bottom: 14px;
 }
 .avatar-choices {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+  gap: 8px;
   margin-top: 14px;
 }
 .avatar-choices > button {
+  position: relative;
   border: 2px solid transparent;
   display: grid;
   justify-items: center;
   gap: 8px;
   border-radius: 18px;
-  padding: 8px;
-  width: 98px;
+  align-content: start;
+  padding: 10px 3px 8px;
+  min-width: 0;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+.avatar-choices > button .preset-avatar {
+  max-width: 100%;
+}
+.avatar-choice-check {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--brand);
+  color: var(--on-brand);
+  border: 2px solid var(--surface);
 }
 .avatar-choices > button.selected {
   border-color: var(--blue);

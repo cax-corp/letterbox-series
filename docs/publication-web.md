@@ -7,7 +7,7 @@ Les fiches, profils et avis se partagent par liens publics sans image. Depuis 2.
 ## Quel fichier utiliser ?
 
 - **Vela-GitHub-source.zip** : projet complet, avec le code, les avatars et le workflow de publication. À importer à la racine de `cax-corp/letterbox-series` si les sources n’y sont pas déjà importées. C’est l’archive à utiliser pour la méthode recommandée ci-dessous.
-- **Vela-site-web.zip** : site déjà compilé (`index.html`, `assets`, `avatars`, `brand`, `downloads` (APK Android), licences et `.nojekyll`). À garder comme copie prête à héberger sur un serveur statique. Ce ZIP n’est pas un fichier à déposer tel quel dans GitHub : GitHub ne le décompresse pas. Il ne remplace pas les sources du projet configuré pour compiler avec Actions.
+- **Vela-site-web.zip** : site déjà compilé (`index.html`, `assets`, `brand`, `downloads` (APK Android), licences et `.nojekyll`). À garder comme copie prête à héberger sur un serveur statique. Ce ZIP n’est pas un fichier à déposer tel quel dans GitHub : GitHub ne le décompresse pas. Il ne remplace pas les sources du projet configuré pour compiler avec Actions.
 
 ## 1. Importer les sources dans le dépôt
 

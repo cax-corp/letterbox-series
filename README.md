@@ -67,7 +67,7 @@ Depuis 1.9.1, quitter rapidement une carte par un scroll vers l’avant fournit 
 
 ## Profil et partage
 
-Depuis Vela 2.0, **Profil → Modifier mon profil** est une page complète avec retour Android/navigateur : nom affiché, bio courte, initiale ou quatre personnages originaux générés et embarqués dans l’app, huit couleurs de fond et jusqu’à quatre incontournables ordonnés parmi les titres de la collection. Les incontournables sont distincts des likes. Aucun import de photo personnelle ni bucket d’images Supabase n’est proposé.
+Depuis Vela 2.0, **Profil → Modifier mon profil** est une page complète avec retour Android/navigateur : nom affiché, bio courte, initiale ou 28 visages et personnages dessinés en SVG et embarqués dans l’app, dix fonds dont deux liés au thème et jusqu’à quatre incontournables ordonnés parmi les titres de la collection. Les incontournables sont distincts des likes. Aucun import de photo personnelle ni bucket d’images Supabase n’est proposé.
 
 Les choix sont conservés sur l’appareil, par projet et compte. Connecté avec Internet, Enregistrer mon profil synchronise les petites métadonnées via `auth.updateUser` dans `user_metadata.vela_profile`. Hors ligne ou en cas d’échec, la copie locale reste disponible et le prochain passage de sauvegarde reprend le profil. La connexion hydrate aussi le profil renvoyé par Supabase. Aucun SQL supplémentaire n’est requis. Les statistiques sont recalculées depuis la collection, sans duplication sur le serveur.
 
@@ -240,3 +240,9 @@ Le mode test de Vite isole les cas historiques sans identifiants. Les tests du d
 Le feed garde uniquement le halo autour de la carte sur le fond normal de la palette. Les deux barres sont transparentes, sans backdrop-filter et sans copie floutée de l’affiche ; leurs dimensions et les commandes sont conservées.
 
 Le comportement de récence déjà présent est conservé : les préférences positives récentes pèsent davantage (décroissance douce sur 90 jours, mémoire longue conservée), les graines sont ordonnées par date de préférence et chaque nouveau like recalcule le fil. Le cache des candidats expire au changement de journée ; les propositions consultées sont exclues de la journée. Les skips perdent la moitié de leur influence en sept jours et expirent au bout de trente jours. Aucun titre n’est supprimé de la collection pour son ancienneté. Un test compare deux goûts de même force et vérifie que le plus récent passe devant, sans modifier l’historique.
+
+## Avatars Vela 2.3.3
+
+La collection comprend 24 visages expressifs et quatre personnages redessinés en vecteurs (chat, robot, fantôme, astronaute), plus l’initiale. Aucun portrait raster, chargement externe ou import personnel. Dix fonds sont proposés, dont la couleur et une nuance du thème actif. Les identifiants historiques sont conservés pour retrouver les profils existants ; seuls les identifiants des avatars et des fonds sont synchronisés.
+
+Pour un projet Supabase déjà configuré, exécuter une fois [supabase/avatar-presets.sql](supabase/avatar-presets.sql) dans le SQL Editor pour autoriser les nouveaux choix dans les profils et avis publics. Ce script est réexécutable : il étend la validation sans supprimer de table, de lien ni de politique RLS. Les nouveaux projets utilisent directement `supabase/public-sharing.sql`, qui contient les mêmes identifiants.

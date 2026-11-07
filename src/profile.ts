@@ -1,12 +1,48 @@
 import type { Title } from "./catalog";
 export const avatarOptions = [
   { id: "initial", label: "Votre initiale" },
+  { id: "smile", label: "Sourire" },
+  { id: "wink", label: "Clin d’œil" },
+  { id: "grin", label: "Grand sourire" },
+  { id: "laugh", label: "Fou rire" },
+  { id: "cool", label: "Incognito" },
+  { id: "love", label: "Coup de cœur" },
+  { id: "starry", label: "Émerveillé" },
+  { id: "sleepy", label: "Encore cinq minutes" },
+  { id: "surprised", label: "Plot twist" },
+  { id: "curious", label: "Intrigué" },
+  { id: "unimpressed", label: "Pas convaincu" },
+  { id: "grumpy", label: "Grincheux" },
+  { id: "shy", label: "Timide" },
+  { id: "mischief", label: "Malice" },
+  { id: "cheeky", label: "Tire la langue" },
+  { id: "zen", label: "Serein" },
+  { id: "teary", label: "Ému" },
+  { id: "monocle", label: "Le critique" },
+  { id: "nerd", label: "Premier rang" },
+  { id: "headphones", label: "Bande originale" },
+  { id: "stache", label: "Moustache" },
+  { id: "cyclops", label: "Œil unique" },
+  { id: "alien", label: "D’une autre planète" },
+  { id: "mask", label: "Masqué" },
   { id: "astronaut", label: "Astronaute" },
   { id: "cat", label: "Chat de cinéma" },
   { id: "robot", label: "Robot projectionniste" },
   { id: "ghost", label: "Fantôme cinéphile" },
 ] as const;
 export const avatarBackgrounds = [
+  {
+    id: "theme",
+    label: "Couleur du thème",
+    color: "var(--brand)",
+    ink: "var(--on-brand)",
+  },
+  {
+    id: "theme-soft",
+    label: "Nuance du thème",
+    color: "var(--primary-container)",
+    ink: "var(--on-container)",
+  },
   { id: "ocean", label: "Océan", color: "#164C68", ink: "#E4F1F9" },
   { id: "violet", label: "Lavande", color: "#D5CAFA", ink: "#27213A" },
   { id: "amber", label: "Abricot", color: "#F3CE95", ink: "#3F2A13" },
@@ -140,13 +176,4 @@ export function newerProfile(local: Profile, remote: Profile | null) {
   return remote && Date.parse(remote.updated) > Date.parse(local.updated)
     ? remote
     : local;
-}
-export function avatarCell(id: AvatarId) {
-  return id === "astronaut"
-    ? [0, 0]
-    : id === "cat"
-      ? [1, 0]
-      : id === "robot"
-        ? [0, 1]
-        : [1, 1];
 }

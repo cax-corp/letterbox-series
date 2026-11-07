@@ -2,7 +2,11 @@ import { test, expect } from "@playwright/test";
 import { PGlite } from "@electric-sql/pglite";
 import { readFileSync } from "node:fs";
 import { profileDraft, reviewDraft } from "../src/public-sharing";
-import { defaultProfile } from "../src/profile";
+import {
+  defaultProfile,
+  avatarOptions,
+  avatarBackgrounds,
+} from "../src/profile";
 import { empty } from "../src/store";
 test("PostgreSQL : publication explicite, lecture anonyme limitée, isolation des auteurs et révocation", async () => {
   test.setTimeout(60000);
@@ -17,10 +21,49 @@ test("PostgreSQL : publication explicite, lecture anonyme limitée, isolation de
       new URL("../supabase/public-sharing.sql", import.meta.url),
       "utf8",
     );
-    await db.exec(sql);
+    const legacy = sql
+      .replace(
+        /coalesce\(profile->>'avatar',''\) not in \([^\n]+\)/,
+        "coalesce(profile->>'avatar','') not in ('initial','astronaut','cat','robot','ghost')",
+      )
+      .replace(
+        /coalesce\(profile->>'background',''\) not in \([^\n]+\)/,
+        "coalesce(profile->>'background','') not in ('ocean','violet','amber','coral','mint','slate','rose','midnight')",
+      );
+    await db.exec(legacy);
+    const upgrade = readFileSync(
+      new URL("../supabase/avatar-presets.sql", import.meta.url),
+      "utf8",
+    );
+    await db.exec(upgrade);
+    await db.exec(upgrade);
+    const presets = avatarOptions.flatMap((avatar) =>
+      avatarBackgrounds.map(
+        (background) =>
+          profileDraft(
+            {
+              ...defaultProfile,
+              displayName: "Nora",
+              avatar: avatar.id,
+              background: background.id,
+            },
+            {},
+          ).payload,
+      ),
+    );
+    const allowed = await db.query<{ accepted: boolean }>(
+      "select bool_and(public.vela_shared_payload_valid('profile',value)) as accepted from jsonb_array_elements($1::jsonb)",
+      [JSON.stringify(presets)],
+    );
+    expect(allowed.rows[0].accepted).toBe(true);
     await db.exec(sql);
     const payload = profileDraft(
-      { ...defaultProfile, displayName: "Nora" },
+      {
+        ...defaultProfile,
+        displayName: "Nora",
+        avatar: "cool",
+        background: "theme",
+      },
       {},
     ).payload!;
     await db.exec(
