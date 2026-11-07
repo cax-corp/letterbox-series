@@ -105,6 +105,9 @@ test("carte 3D : sélection, rotation, zoom, filtres et retour aux réglages sur
   await page
     .getByLabel("Choisir un point", { exact: true })
     .selectOption("genre:878");
+  await page
+    .getByRole("button", { name: "Explorer les connexions", exact: true })
+    .click();
   await expect(
     page.getByRole("complementary", { name: "Détails du point sélectionné" }),
   ).toContainText("Affinité positive");
@@ -515,7 +518,7 @@ test("scène : glissement sans cadre blanc, clavier repérable, arrière-plan at
   await expect(page.locator(".taste-scene-wrap")).toHaveClass(
     /has-keyboard-focus/,
   );
-  await expect(page.locator(".atlas-keyboard-hint")).toBeVisible();
+  await expect(page.locator(".stellar-hint")).toBeVisible();
   expect(await scene.evaluate((e) => getComputedStyle(e).outlineStyle)).toBe(
     "none",
   );
@@ -543,4 +546,134 @@ test("scène : glissement sans cadre blanc, clavier repérable, arrière-plan at
       .locator(".atlas-terminal")
       .evaluate((e) => getComputedStyle(e).getPropertyValue("--brand").trim()),
   ).toBe("#328cff");
+});
+
+test("carte stellaire : déplacement sans rotation, navigation orbitale, molette et vue d’ensemble", async ({
+  page,
+}) => {
+  await page.addInitScript(
+    (library) =>
+      localStorage.setItem("luma-library-v1", JSON.stringify(library)),
+    seed,
+  );
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto("/#settings/tastes");
+  await page
+    .getByRole("button", { name: "Démarrer la carte", exact: true })
+    .click();
+  const scene = page.locator("svg.taste-scene");
+  const star = page.locator('[data-taste-id="movie-1"]');
+  const core = star.locator(".taste-star-core");
+  await expect(core).toBeAttached();
+  const depth = await star.getAttribute("data-depth");
+  const x = Number(await core.getAttribute("cx"));
+  await scene.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect
+    .poll(async () => Number(await core.getAttribute("cx")))
+    .toBeGreaterThan(x);
+  await expect(star).toHaveAttribute("data-depth", depth!);
+  await page.getByRole("button", { name: "Rotation", exact: true }).click();
+  await scene.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(star).not.toHaveAttribute("data-depth", depth!);
+  const zoom = await page.locator(".taste-controls > span").textContent();
+  await page.mouse.move(700, 450);
+  await page.mouse.wheel(0, -150);
+  await expect(page.locator(".taste-controls > span")).not.toHaveText(zoom!);
+  await page
+    .getByLabel("Choisir un point", { exact: true })
+    .selectOption("movie-1");
+  await expect(page.locator(".taste-selection")).toHaveCount(1);
+  await expect
+    .poll(async () => {
+      const box = await core.boundingBox();
+      return !!box && box.x > 320 && box.x < 1000 && box.y > 320 && box.y < 650;
+    })
+    .toBe(true);
+  // A halo must never inherit the old watchlist/genre ring styles.
+  for (const halo of await page.locator(".taste-star-halo").all())
+    expect(await halo.evaluate((el) => getComputedStyle(el).stroke)).toBe(
+      "none",
+    );
+  await page
+    .getByRole("button", { name: "Vue d’ensemble de la carte", exact: true })
+    .click();
+  await expect(page.locator(".taste-selection")).toHaveCount(0);
+  await expect(
+    page.getByRole("complementary", { name: "Détails du point sélectionné" }),
+  ).toHaveCount(0);
+  expect(
+    await page
+      .locator(".stellar-map")
+      .evaluate((el) =>
+        Math.abs(el.getBoundingClientRect().height - innerHeight),
+      ),
+  ).toBeLessThan(2);
+});
+
+test("carte stellaire : fiche mobile compacte et exploration sans Canvas", async ({
+  page,
+}) => {
+  await page.addInitScript((library) => {
+    localStorage.setItem("luma-library-v1", JSON.stringify(library));
+    HTMLCanvasElement.prototype.getContext = (() =>
+      null) as typeof HTMLCanvasElement.prototype.getContext;
+  }, seed);
+  await page.setViewportSize({ width: 320, height: 740 });
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.goto("/#settings/tastes");
+  await page
+    .getByRole("button", { name: "Démarrer la carte", exact: true })
+    .click();
+  await page
+    .getByLabel("Choisir un point", { exact: true })
+    .selectOption("movie-1");
+  const touch = await page.context().newCDPSession(page);
+  const beforePinch = await page
+    .locator(".taste-controls > span")
+    .textContent();
+  await touch.send("Input.dispatchTouchEvent", {
+    type: "touchStart",
+    touchPoints: [
+      { x: 100, y: 330, id: 1 },
+      { x: 200, y: 330, id: 2 },
+    ],
+  });
+  await touch.send("Input.dispatchTouchEvent", {
+    type: "touchMove",
+    touchPoints: [
+      { x: 65, y: 330, id: 1 },
+      { x: 235, y: 330, id: 2 },
+    ],
+  });
+  await touch.send("Input.dispatchTouchEvent", {
+    type: "touchEnd",
+    touchPoints: [],
+  });
+  await expect(page.locator(".taste-controls > span")).not.toHaveText(
+    beforePinch!,
+  );
+  await touch.detach();
+  const card = page.getByRole("complementary", {
+    name: "Détails du point sélectionné",
+  });
+  await expect(card).toContainText("Station 1");
+  await expect(page.locator(".taste-neighbours")).toBeHidden();
+  const box = await card.boundingBox();
+  expect(box!.height).toBeLessThan(220);
+  await page
+    .getByRole("button", { name: "Explorer les connexions", exact: true })
+    .click();
+  await expect(page.locator(".taste-neighbours")).toBeVisible();
+  await page
+    .getByRole("button", { name: "Réduire les détails", exact: true })
+    .click();
+  await expect(page.locator(".taste-neighbours")).toBeHidden();
+  await page
+    .getByRole("button", { name: "Ouvrir la fiche", exact: true })
+    .click();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  expect(errors).toEqual([]);
 });

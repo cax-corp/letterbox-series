@@ -35,8 +35,8 @@ export default function WebRecommendationsNotice({
           )}
           <a
             className="button primary"
-            href={`${import.meta.env.BASE_URL}downloads/Vela-2.6.0.apk`}
-            download="Vela-2.6.0.apk"
+            href={`${import.meta.env.BASE_URL}downloads/Vela-2.7.0.apk`}
+            download="Vela-2.7.0.apk"
           >
             <Download size={19} /> {tr(" Télécharger pour Android")}
           </a>
@@ -47,7 +47,7 @@ export default function WebRecommendationsNotice({
         </div>
         <p className="fine">
           {tr(
-            "APK Android · Version 2.6.0. L’application n’est pas encore disponible sur Google Play ou l’App Store.",
+            "APK Android · Version 2.7.0. L’application n’est pas encore disponible sur Google Play ou l’App Store.",
           )}
         </p>
       </div>

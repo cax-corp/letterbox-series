@@ -5280,3 +5280,701 @@ body.taste-terminal-active > #root > .mobile-nav {
 .language-settings .field {
   margin: 0;
 }
+
+/* Stellar Atlas: the scene fills the viewport; controls float above real personal stars. */
+.atlas-terminal.atlas-stellar {
+  padding: 0;
+  overflow: hidden;
+  background: #020611;
+}
+.atlas-stellar .atlas-header {
+  position: absolute;
+  inset: calc(15px + var(--safe-top)) 24px auto;
+  z-index: 8;
+  border: 0;
+  padding: 0;
+  pointer-events: none;
+}
+.atlas-stellar .atlas-header > * {
+  pointer-events: auto;
+}
+.atlas-stellar .atlas-header .settings-back {
+  padding: 10px 12px;
+  background: #030a18b8;
+  border-radius: 5px;
+  backdrop-filter: blur(12px);
+  font-size: 11px;
+}
+.atlas-stellar .atlas-wordmark {
+  font-size: 24px;
+  text-shadow: 0 2px 10px #000;
+}
+.atlas-stellar .atlas-wordmark small {
+  font-size: 9px;
+}
+.atlas-stellar .atlas-sound {
+  background: #030a18ad;
+  backdrop-filter: blur(12px);
+  border-color: #a3c9ec26;
+  border-radius: 5px;
+}
+.stellar-map {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  overflow: hidden;
+  color: #e6f0ff;
+}
+.stellar-backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.atlas-stellar .stellar-field {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  overflow: hidden;
+}
+.atlas-stellar .stellar-field::before,
+.atlas-stellar .stellar-field::after {
+  display: none;
+}
+.atlas-stellar .stellar-field.has-keyboard-focus {
+  box-shadow: inset 0 0 0 1px #91baff5c;
+}
+.atlas-stellar .taste-scene {
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  outline: none;
+  cursor: grab;
+}
+.atlas-stellar .taste-scene:active {
+  cursor: grabbing;
+}
+.atlas-stellar .taste-edge {
+  stroke: #b4cbdf;
+}
+.atlas-stellar .taste-edge.is-selected {
+  stroke: #ecc27b;
+  filter: drop-shadow(0 0 2px #ffce8150);
+  stroke-dasharray: 4 3;
+}
+.atlas-stellar .taste-point {
+  color: #91c8ff;
+}
+.atlas-stellar .taste-point.negative {
+  color: #ed98b2;
+}
+.atlas-stellar .taste-point.watchlist {
+  color: #c4b3f1;
+}
+.atlas-stellar .taste-point.neutral,
+.atlas-stellar .taste-point.skip {
+  color: #a5b9d3;
+}
+.atlas-stellar .taste-point.anchor {
+  color: #e0cfab;
+}
+.atlas-stellar .taste-point circle.taste-star-halo {
+  fill: url(#stellar-glow);
+  opacity: 1;
+  stroke: none;
+  filter: none;
+}
+.atlas-stellar .taste-point circle.taste-star-core {
+  fill: #f1f8ff;
+  stroke: currentColor;
+  stroke-width: 0.4;
+  filter: none;
+}
+.atlas-stellar .taste-point.watchlist .taste-star-core {
+  fill: #f0e7ff;
+}
+.atlas-stellar .taste-point.anchor .taste-star-core {
+  fill: #ffedc6;
+  stroke: #ffe9bb;
+  stroke-width: 0.4;
+}
+.atlas-stellar .taste-point .taste-selection {
+  stroke: #f5d39c;
+  fill: none;
+  stroke-width: 0.7;
+}
+.atlas-stellar .taste-point text {
+  font:
+    9px "DM Sans",
+    sans-serif;
+  fill: #c3d3e3;
+  stroke: #020713;
+  stroke-width: 2px;
+  paint-order: stroke;
+  letter-spacing: 0.1px;
+}
+.atlas-stellar .taste-point.is-selected text {
+  font-size: 12px;
+  fill: #ffefce;
+}
+.stellar-navigation {
+  position: absolute;
+  left: 26px;
+  top: calc(100px + var(--safe-top));
+  width: 285px;
+  z-index: 4;
+}
+.stellar-kicker {
+  display: block;
+  font:
+    8px ui-monospace,
+    monospace;
+  letter-spacing: 2.5px;
+  color: #a1b8d0;
+}
+.stellar-heading {
+  padding: 0 0 20px;
+  text-shadow: 0 2px 8px #020713;
+}
+.stellar-heading h1 {
+  font: 500 21px/1.25 var(--font);
+  margin: 10px 0;
+  letter-spacing: -0.6px;
+  outline: none;
+}
+.stellar-count {
+  font:
+    10px "DM Sans",
+    sans-serif;
+  color: #97acc6;
+}
+.stellar-search {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 12px;
+  height: 41px;
+  border: 1px solid #9cbeda30;
+  background: #050c19a1;
+  backdrop-filter: blur(15px);
+  border-radius: 5px;
+  color: #a8c5df;
+}
+.stellar-search input {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  border: 0 !important;
+  background: none !important;
+  padding: 0 !important;
+  font-size: 12px;
+  color: #dbeafa;
+  min-height: 36px;
+}
+.stellar-search input:focus {
+  outline: none;
+}
+.stellar-search:focus-within {
+  border-color: #95c3ff;
+}
+.stellar-choose {
+  display: block;
+  margin-top: 7px;
+}
+.atlas-stellar .stellar-choose select {
+  width: 100%;
+  min-height: 33px;
+  padding: 6px 11px;
+  background: #050c19af;
+  border: 1px solid #9cbeda26;
+  color: #b4c8dc;
+  font-size: 11px;
+  border-radius: 4px;
+  text-overflow: ellipsis;
+}
+.atlas-stellar .taste-filters {
+  margin: 11px 0 0;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 5px;
+  overflow: auto;
+  scrollbar-width: none;
+}
+.atlas-stellar .taste-filters button {
+  min-height: 30px;
+  padding: 5px 9px;
+  font:
+    10px "DM Sans",
+    sans-serif;
+  border: 1px solid #9cbeda18;
+  background: #030a16b0;
+  border-radius: 4px;
+  flex-shrink: 0;
+  color: #a9bdd3;
+}
+.atlas-stellar .taste-filters [aria-pressed="true"] {
+  color: #e1edfa;
+  background: #365c815e;
+  border-color: #9ac8f866;
+}
+.stellar-minimap {
+  position: absolute;
+  left: 26px;
+  bottom: calc(89px + var(--safe-bottom));
+  width: 168px;
+  padding: 0;
+  background: transparent;
+  text-align: left;
+  color: #bdcde0;
+  z-index: 3;
+}
+.stellar-minimap svg {
+  width: 168px;
+  height: 110px;
+  background: radial-gradient(ellipse, #2a477622, transparent 70%);
+}
+.stellar-minimap > span {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10px;
+  margin-top: 6px;
+}
+.stellar-minimap small {
+  color: #8199b4;
+  font-size: 9px;
+}
+.stellar-bottom {
+  position: absolute;
+  left: 26px;
+  right: 26px;
+  bottom: calc(28px + var(--safe-bottom));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  z-index: 5;
+}
+.stellar-modes {
+  display: flex;
+  border: 1px solid #9cbeda30;
+  background: #050c19c2;
+  backdrop-filter: blur(12px);
+  border-radius: 5px;
+  overflow: hidden;
+}
+.stellar-modes button {
+  min-height: 39px;
+  padding: 9px 15px;
+  font-size: 11px;
+  color: #8fa7bf;
+}
+.stellar-modes [aria-pressed="true"] {
+  background: #567b9c40;
+  color: #e9f2ff;
+}
+.atlas-stellar .taste-controls {
+  position: static;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #050c19c2;
+  border: 1px solid #9cbeda30;
+  backdrop-filter: blur(12px);
+  padding: 0 7px;
+  border-radius: 5px;
+}
+.atlas-stellar .taste-controls .icon-button {
+  width: 35px;
+  height: 38px;
+  min-height: 38px;
+  border: 0;
+  background: transparent;
+  border-radius: 0;
+}
+.atlas-stellar .taste-controls > span {
+  min-width: 37px;
+  text-align: center;
+  font:
+    10px ui-monospace,
+    monospace;
+  color: #bdd1e6;
+}
+.stellar-reset {
+  font-size: 11px;
+  padding: 9px 12px;
+  border-left: 1px solid #9cbeda30;
+  min-height: 38px;
+}
+.stellar-help-button {
+  background: #050c19c2;
+  border: 1px solid #9cbeda30;
+  border-radius: 5px;
+  min-height: 40px;
+  padding: 9px 14px;
+  font-size: 11px;
+  color: #a5bdd5;
+}
+.stellar-hint {
+  position: absolute;
+  bottom: calc(6px + var(--safe-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  font:
+    9px "DM Sans",
+    sans-serif;
+  color: #8ba5c2;
+  white-space: nowrap;
+  z-index: 3;
+  pointer-events: none;
+}
+.atlas-stellar .stellar-inspector {
+  position: absolute;
+  right: 28px;
+  bottom: calc(105px + var(--safe-bottom));
+  top: auto;
+  z-index: 6;
+  width: 320px;
+  max-height: calc(100% - 200px - var(--safe-top) - var(--safe-bottom));
+  overflow: auto;
+  background: linear-gradient(120deg, #07101de0, #081124b8);
+  border: 1px solid #a8bbcf38;
+  backdrop-filter: blur(20px);
+  border-radius: 7px;
+  padding: 19px 22px;
+  display: block;
+  box-shadow: 0 14px 55px #0005;
+}
+.atlas-stellar .stellar-inspector::before {
+  display: none;
+}
+.stellar-card-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #e6ca9d;
+  font:
+    8px ui-monospace,
+    monospace;
+  letter-spacing: 1.8px;
+  margin-bottom: 10px;
+}
+.stellar-card-heading .icon-button {
+  width: 28px;
+  height: 28px;
+}
+.atlas-stellar .taste-status {
+  display: block;
+  font:
+    10px "DM Sans",
+    sans-serif;
+  color: #90c2fa;
+  margin-bottom: 8px;
+}
+.atlas-stellar .stellar-inspector h2 {
+  font: 500 25px/1.15 var(--font);
+  letter-spacing: -0.7px;
+  margin-bottom: 10px;
+}
+.atlas-stellar .stellar-inspector p {
+  font-size: 12px;
+  line-height: 1.7;
+  color: #9cb1c9;
+}
+.stellar-card-meta {
+  margin-bottom: 13px;
+}
+.stellar-expand {
+  display: none;
+}
+.stellar-card-body {
+  display: grid;
+  gap: 15px;
+}
+.atlas-stellar .taste-neighbours {
+  border-top: 1px solid #93adc72e;
+  margin-top: 1px;
+  padding-top: 13px;
+  gap: 8px;
+}
+.atlas-stellar .taste-neighbours h3 {
+  font:
+    10px "DM Sans",
+    sans-serif;
+  color: #d0deec;
+}
+.atlas-stellar .taste-neighbours .text-button {
+  min-height: 32px;
+  padding: 6px 0;
+  font-size: 11px;
+}
+.atlas-stellar .stellar-open {
+  display: flex;
+  width: 100%;
+  min-height: 39px;
+  font-size: 11px;
+  margin-top: 17px;
+  border-radius: 4px;
+  background: #b8d1eb;
+  color: #0b1c30;
+  justify-content: space-between;
+  padding: 10px 14px;
+}
+.stellar-help {
+  position: absolute;
+  right: 26px;
+  bottom: calc(90px + var(--safe-bottom));
+  z-index: 9;
+  background: #07101ded;
+  border: 1px solid #8db6df40;
+  backdrop-filter: blur(20px);
+  width: min(390px, calc(100% - 32px));
+  padding: 25px;
+  border-radius: 7px;
+  color: #a7bdd4;
+  font-size: 12px;
+  line-height: 1.8;
+  max-height: 65%;
+  overflow: auto;
+}
+.stellar-help > .icon-button {
+  float: right;
+  width: 28px;
+  height: 28px;
+  margin: -10px -10px 5px 5px;
+}
+.stellar-help h2 {
+  font-size: 16px;
+  color: #e0edfb;
+  margin-bottom: 14px;
+}
+.stellar-help p + p {
+  margin-top: 14px;
+}
+.atlas-stellar .taste-legend {
+  padding: 15px 0;
+  justify-content: flex-start;
+  gap: 10px;
+  font:
+    10px "DM Sans",
+    sans-serif;
+}
+.stellar-empty {
+  position: absolute;
+  left: 50%;
+  top: 53%;
+  transform: translate(-50%, -50%);
+  width: min(400px, 80%);
+  color: #b9cee3;
+  text-align: center;
+  pointer-events: none;
+}
+.stellar-empty h2 {
+  font-size: 22px;
+  margin: 18px 0;
+}
+.stellar-empty p {
+  font-size: 13px;
+  line-height: 1.8;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+@media (max-width: 760px) {
+  .atlas-stellar .atlas-header {
+    inset: calc(10px + var(--safe-top)) 14px auto;
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+  .atlas-stellar .atlas-header .settings-back {
+    order: 0;
+    width: 38px;
+    height: 38px;
+    overflow: hidden;
+    font-size: 0;
+    padding: 9px;
+  }
+  .atlas-stellar .atlas-wordmark {
+    font-size: 22px;
+    margin-right: auto;
+  }
+  .atlas-stellar .atlas-wordmark small {
+    display: none;
+  }
+  .atlas-stellar .atlas-sound {
+    font-size: 9px;
+    padding: 7px;
+    min-height: 36px;
+  }
+  .stellar-navigation {
+    left: 16px;
+    top: calc(72px + var(--safe-top));
+    width: 225px;
+  }
+  .stellar-heading {
+    padding-bottom: 12px;
+  }
+  .stellar-heading h1 {
+    font-size: 18px;
+    margin: 7px 0;
+  }
+  .stellar-kicker {
+    font-size: 7px;
+    letter-spacing: 1.8px;
+  }
+  .stellar-count {
+    font-size: 9px;
+  }
+  .stellar-search {
+    height: 36px;
+  }
+  .stellar-search input {
+    font-size: 11px;
+  }
+  .atlas-stellar .taste-filters {
+    max-width: calc(100vw - 32px);
+    width: calc(100vw - 32px);
+    margin-top: 8px;
+    gap: 4px;
+  }
+  .atlas-stellar .taste-filters button {
+    font-size: 9px;
+    padding: 5px 9px;
+    min-height: 29px;
+  }
+  .stellar-minimap {
+    width: 108px;
+    left: 16px;
+    bottom: calc(112px + var(--safe-bottom));
+  }
+  .stellar-minimap svg {
+    width: 108px;
+    height: 72px;
+  }
+  .stellar-minimap > span {
+    display: block;
+    font-size: 8px;
+  }
+  .stellar-minimap small {
+    display: none;
+  }
+  .stellar-bottom {
+    left: 14px;
+    right: 14px;
+    bottom: calc(24px + var(--safe-bottom));
+    gap: 7px;
+    flex-wrap: wrap;
+  }
+  .stellar-modes {
+    flex: 1;
+  }
+  .stellar-modes button {
+    flex: 1;
+    min-height: 36px;
+    padding: 8px 10px;
+    font-size: 10px;
+  }
+  .atlas-stellar .taste-controls {
+    gap: 2px;
+  }
+  .atlas-stellar .taste-controls .icon-button {
+    width: 28px;
+    min-height: 35px;
+    height: 35px;
+  }
+  .stellar-reset {
+    display: none;
+  }
+  .stellar-help-button {
+    padding: 6px 10px;
+    min-height: 35px;
+    font-size: 10px;
+  }
+  .stellar-hint {
+    font-size: 7px;
+    bottom: calc(6px + var(--safe-bottom));
+  }
+  .atlas-stellar .stellar-inspector {
+    left: 14px;
+    right: 14px;
+    width: auto;
+    bottom: calc(109px + var(--safe-bottom));
+    max-height: 40%;
+    padding: 12px 16px;
+    border-radius: 8px;
+  }
+  .stellar-card-heading {
+    margin-bottom: 4px;
+    font-size: 7px;
+  }
+  .atlas-stellar .stellar-inspector h2 {
+    font-size: 21px;
+    margin-bottom: 5px;
+  }
+  .atlas-stellar .taste-status {
+    font-size: 9px;
+    margin-bottom: 4px;
+  }
+  .stellar-card-meta {
+    margin-bottom: 2px;
+    font-size: 10px !important;
+  }
+  .stellar-expand {
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+    align-items: center;
+    padding: 7px 0;
+    min-height: 33px;
+    font-size: 10px;
+    color: #b0c9e4;
+  }
+  .stellar-card-body {
+    display: none;
+  }
+  .is-expanded .stellar-card-body {
+    display: grid;
+    margin-top: 8px;
+  }
+  .atlas-stellar .stellar-open {
+    margin-top: 4px;
+    min-height: 34px;
+    padding: 8px 12px;
+  }
+  .stellar-map:has(.stellar-inspector) .stellar-minimap {
+    display: none;
+  }
+  .stellar-help {
+    right: 14px;
+    bottom: calc(110px + var(--safe-bottom));
+  }
+}
+@media (max-height: 560px) and (min-width: 650px) {
+  .stellar-heading {
+    display: none;
+  }
+  .stellar-navigation {
+    top: 80px;
+  }
+  .stellar-minimap {
+    display: none;
+  }
+  .atlas-stellar .stellar-inspector {
+    max-height: 65%;
+    bottom: 80px;
+  }
+}
