@@ -1,3 +1,4 @@
+import { t as tr } from "./i18n";
 import { cloud, getConfig } from "./store";
 import {
   newerProfile,
@@ -77,12 +78,12 @@ export async function syncUserProfile(
       );
       if (updateError) throw updateError;
       if (result.user?.id !== account)
-        throw new Error("Le profil n’a pas pu être confirmé par Supabase.");
+        throw new Error(tr("Le profil n’a pas pu être confirmé par Supabase."));
       const confirmed = validateProfile(
         result.user.user_metadata?.vela_profile,
       );
       if (!confirmed || JSON.stringify(confirmed) !== JSON.stringify(sent))
-        throw new Error("Le profil n’a pas pu être confirmé par Supabase.");
+        throw new Error(tr("Le profil n’a pas pu être confirmé par Supabase."));
       const latest = readCurrentProfile(account);
       writeProfileRecord(account, {
         profile: latest.profile,

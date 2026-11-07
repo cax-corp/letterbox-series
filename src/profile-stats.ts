@@ -1,3 +1,4 @@
+import { getLanguage } from "./i18n";
 import type { Library } from "./store";
 const dayKey = (d: Date) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -18,7 +19,7 @@ export function profileStats(library: Library, now = new Date()) {
     const date = new Date(now.getFullYear(), now.getMonth() - 5 + i, 1);
     return {
       key: dayKey(date).slice(0, 7),
-      label: date.toLocaleDateString("fr-FR", { month: "short" }),
+      label: date.toLocaleDateString(getLanguage(), { month: "short" }),
       count: 0,
     };
   });

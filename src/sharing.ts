@@ -1,3 +1,4 @@
+import { t as tr } from "./i18n";
 import { Capacitor } from "@capacitor/core";
 import { Share } from "@capacitor/share";
 import { Clipboard } from "@capacitor/clipboard";
@@ -31,7 +32,7 @@ export function webBaseUrl() {
 }
 export function publicTitleUrl(title: Pick<Title, "id">) {
   if (!/^(?:tmdb-)?(?:movie|series)-\d+$/.test(title.id))
-    throw new Error("Titre non partageable.");
+    throw new Error(tr("Titre non partageable."));
   return `${webBaseUrl()}#/title/${title.id}`;
 }
 export function sharedPageUrl(id: string) {
@@ -42,7 +43,11 @@ export function titleShare(title: Title): ShareDraft {
     kind: "title",
     target: title.id,
     heading: title.name,
-    text: `${title.name}${title.year ? ` (${title.year})` : ""} sur Vela`,
+    text: tr(
+      "{0}{1} sur Vela",
+      title.name,
+      title.year ? ` (${title.year})` : "",
+    ),
     url: publicTitleUrl(title),
   };
 }
@@ -53,20 +58,20 @@ function cancelled(error: unknown) {
   );
 }
 export async function copyShareLink(card: ShareDraft): Promise<ShareOutcome> {
-  if (!card.url) throw new Error("Le lien n’est pas encore prêt.");
+  if (!card.url) throw new Error(tr("Le lien n’est pas encore prêt."));
   await Clipboard.write({ string: card.url });
   return "copied";
 }
 /** Called by a click: no image decoding, font loading or network preparation. */
 export async function shareCard(card: ShareDraft): Promise<ShareOutcome> {
-  if (!card.url) throw new Error("Le lien n’est pas encore prêt.");
+  if (!card.url) throw new Error(tr("Le lien n’est pas encore prêt."));
   if (Capacitor.isNativePlatform()) {
     try {
       await Share.share({
         title: card.heading,
         text: card.text,
         url: card.url,
-        dialogTitle: "Partager le lien Vela",
+        dialogTitle: tr("Partager le lien Vela"),
       });
       return "shared";
     } catch (error) {
@@ -90,8 +95,8 @@ export async function shareCard(card: ShareDraft): Promise<ShareOutcome> {
 }
 export function shareMessage(outcome: ShareOutcome) {
   return outcome === "shared"
-    ? "Le partage est ouvert."
+    ? tr("Le partage est ouvert.")
     : outcome === "copied"
-      ? "Lien copié. Collez-le dans l’application de votre choix."
-      : "Partage annulé.";
+      ? tr("Lien copié. Collez-le dans l’application de votre choix.")
+      : tr("Partage annulé.");
 }

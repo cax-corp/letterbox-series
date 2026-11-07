@@ -1,3 +1,4 @@
+import { t as tr } from "./i18n";
 import { useEffect, useId, useRef, useState } from "react";
 import { Brand } from "./Brand";
 import Avatar from "./Avatar";
@@ -46,7 +47,7 @@ function Preview({ step }: { step: number }) {
             <Play size={38} />
           </div>
           <div className="welcome-mini-label">
-            <Check size={16} /> Catalogue films & séries
+            <Check size={16} /> {tr(" Catalogue films & séries")}
           </div>
         </div>
       ) : step === 1 ? (
@@ -54,7 +55,7 @@ function Preview({ step }: { step: number }) {
           <div className="welcome-poster poster-two">
             <span className="poster-rings" />
             <span className="poster-landscape" />
-            <span className="welcome-preview-tag">Pour vous</span>
+            <span className="welcome-preview-tag">{tr("Pour vous")}</span>
             <div className="welcome-preview-actions">
               <span>
                 <Heart size={23} />
@@ -82,14 +83,14 @@ function Preview({ step }: { step: number }) {
           </div>
           <div className="welcome-mini-shelf">
             <span>
-              <Bookmark size={23} /> À voir
+              <Bookmark size={23} /> {tr(" À voir")}
             </span>
             <span>
-              <Heart size={23} /> Favoris
+              <Heart size={23} /> {tr(" Favoris")}
             </span>
           </div>
           <div className="welcome-mini-label">
-            <Check size={16} /> Sauvegardé sur votre compte
+            <Check size={16} /> {tr(" Sauvegardé sur votre compte")}
           </div>
         </div>
       )}
@@ -139,7 +140,7 @@ export default function Welcome({
     } else finish();
   }
   return (
-    <main className="welcome-page" aria-label="Bienvenue dans Vela">
+    <main className="welcome-page" aria-label={tr("Bienvenue dans Vela")}>
       <div className="welcome-shell">
         <header className="welcome-header">
           <span className="welcome-brand" aria-label="Vela">
@@ -147,7 +148,7 @@ export default function Welcome({
           </span>
           {mode !== "intro" && (
             <button className="text-button" onClick={() => setMode("intro")}>
-              <ArrowLeft size={18} /> Présentation
+              <ArrowLeft size={18} /> {tr(" Présentation")}
             </button>
           )}
         </header>
@@ -185,14 +186,14 @@ export default function Welcome({
                 key={step}
               >
                 <Preview step={step} />
-                <h2>{slides[step].title}</h2>
-                <p>{slides[step].text}</p>
+                <h2>{tr(slides[step].title)}</h2>
+                <p>{tr(slides[step].text)}</p>
               </div>
               <div className="welcome-pagination">
                 <div
                   ref={tabs}
                   role="tablist"
-                  aria-label="Présentation des fonctionnalités"
+                  aria-label={tr("Présentation des fonctionnalités")}
                   onKeyDown={(event) => {
                     let next = step;
                     if (event.key === "ArrowRight") next = (step + 1) % 3;
@@ -212,7 +213,7 @@ export default function Welcome({
                       key={slide.label}
                       role="tab"
                       id={`${id}-tab-${i}`}
-                      aria-label={slide.label}
+                      aria-label={tr(slide.label)}
                       aria-selected={step === i}
                       aria-controls={`${id}-panel`}
                       tabIndex={step === i ? 0 : -1}
@@ -225,40 +226,44 @@ export default function Welcome({
                 <button
                   className="welcome-next text-button"
                   onClick={() => setStep((step + 1) % 3)}
-                  aria-label="Fonctionnalité suivante"
+                  aria-label={tr("Fonctionnalité suivante")}
                 >
                   <ArrowRight size={20} />
                 </button>
               </div>
             </div>
-            <section className="welcome-entry" aria-label="Commencer avec Vela">
+            <section
+              className="welcome-entry"
+              aria-label={tr("Commencer avec Vela")}
+            >
               <h1 ref={heading} tabIndex={-1}>
-                Bienvenue dans Vela.
+                {tr("Bienvenue dans Vela.")}
               </h1>
               <p className="muted">
-                Connectez-vous pour retrouver votre profil, ou créez votre
-                compte gratuitement.
+                {tr(
+                  "Connectez-vous pour retrouver votre profil, ou créez votre compte gratuitement.",
+                )}
               </p>
               <div className="welcome-entry-actions">
                 <button
                   className="button primary"
                   onClick={() => setMode("signup")}
                 >
-                  Créer un compte
+                  {tr("Créer un compte")}
                   <ArrowRight size={18} />
                 </button>
                 <button
                   className="button tonal"
                   onClick={() => setMode("signin")}
                 >
-                  Se connecter
+                  {tr("Se connecter")}
                 </button>
               </div>
               <button className="text-button welcome-guest" onClick={finish}>
-                Explorer sans compte
+                {tr("Explorer sans compte")}
               </button>
               <small className="muted">
-                Le catalogue est accessible sans compte.
+                {tr("Le catalogue est accessible sans compte.")}
               </small>
             </section>
           </div>
@@ -268,30 +273,30 @@ export default function Welcome({
               <Check size={30} />
             </span>
             <h1 ref={heading} tabIndex={-1}>
-              Vérifiez votre boîte mail.
+              {tr("Vérifiez votre boîte mail.")}
             </h1>
             <p>
-              Un lien de confirmation a été demandé pour{" "}
-              <strong>{confirmationEmail}</strong>. Consultez aussi vos
-              courriers indésirables.
+              {tr("Un lien de confirmation a été demandé pour")}{" "}
+              <strong>{confirmationEmail}</strong>
+              {tr(". Consultez aussi vos courriers indésirables.")}
             </p>
             <p className="muted">
-              Après confirmation, revenez ici pour vous connecter.
+              {tr("Après confirmation, revenez ici pour vous connecter.")}
             </p>
             <button
               className="button primary"
               onClick={() => setMode("signin")}
             >
-              Se connecter
+              {tr("Se connecter")}
             </button>
             <button className="text-button" onClick={finish}>
-              Explorer en attendant
+              {tr("Explorer en attendant")}
             </button>
           </section>
         ) : (
           <section className="welcome-auth">
             <h1 className="sr-only" ref={heading} tabIndex={-1}>
-              Votre compte Vela
+              {tr("Votre compte Vela")}
             </h1>
             <AuthForm
               key={mode}
@@ -300,7 +305,7 @@ export default function Welcome({
               success={authenticated}
             />
             <button className="text-button welcome-guest" onClick={finish}>
-              Explorer sans compte
+              {tr("Explorer sans compte")}
             </button>
           </section>
         )}

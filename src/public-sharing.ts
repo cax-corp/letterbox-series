@@ -1,3 +1,4 @@
+import { t as tr } from "./i18n";
 import { cloud } from "./store";
 import {
   validateProfile,
@@ -52,14 +53,14 @@ function publicProfile(p: Profile, fallback: string): Profile {
 export function profileDraft(
   profile: Profile,
   library: Library,
-  fallback = "Mon profil Vela",
+  fallback = tr("Mon profil Vela"),
 ): ShareDraft {
   const p = publicProfile(profile, fallback),
     stats = profileStats(library);
   return {
     kind: "profile",
-    heading: `${p.displayName} sur Vela`,
-    text: `Le profil de ${p.displayName} sur Vela`,
+    heading: tr("{0} sur Vela", p.displayName),
+    text: tr("Le profil de {0} sur Vela", p.displayName),
     target: "profile",
     payload: {
       version: 1,
@@ -76,15 +77,15 @@ export function profileDraft(
 export function reviewDraft(
   profile: Profile,
   entry: Entry,
-  fallback = "Un regard sur Vela",
+  fallback = tr("Un regard sur Vela"),
 ): ShareDraft {
   if (!entry.review.trim())
-    throw new Error("Enregistrez un avis avant de le partager.");
+    throw new Error(tr("Enregistrez un avis avant de le partager."));
   const p = publicProfile(profile, fallback);
   return {
     kind: "review",
-    heading: `${entry.title.name} · L’avis de ${p.displayName}`,
-    text: `${p.displayName} a donné son avis sur ${entry.title.name}`,
+    heading: tr("{0} · L’avis de {1}", entry.title.name, p.displayName),
+    text: tr("{0} a donné son avis sur {1}", p.displayName, entry.title.name),
     target: entry.title.id,
     payload: {
       version: 1,
@@ -161,22 +162,24 @@ export function shareError(error: unknown) {
     ["42P01", "PGRST205"].includes(e?.code || "") ||
     /schema cache|vela_shares.*does not exist/i.test(e?.message || "")
   )
-    return "Le partage public doit être activé dans Supabase avec le script public-sharing.sql. Le guide est dans Réglages → Liens publics.";
+    return tr(
+      "Le partage public doit être activé dans Supabase avec le script public-sharing.sql. Le guide est dans Réglages → Liens publics.",
+    );
   return (
-    e?.message || "Impossible de joindre le service de partage. Réessayez."
+    e?.message || tr("Impossible de joindre le service de partage. Réessayez.")
   );
 }
 export async function publishShare(draft: ShareDraft): Promise<SharedPage> {
   if (!cloud || !draft.payload || draft.kind === "title")
     throw new Error(
-      "Connectez-vous pour créer un lien public de profil ou d’avis.",
+      tr("Connectez-vous pour créer un lien public de profil ou d’avis."),
     );
   const { data, error } = await cloud.auth.getSession();
   if (error) throw error;
   const account = data.session?.user.id;
   if (!account)
     throw new Error(
-      "Connectez-vous pour créer un lien public de profil ou d’avis.",
+      tr("Connectez-vous pour créer un lien public de profil ou d’avis."),
     );
   const key = JSON.stringify([
     account,
@@ -203,7 +206,7 @@ export async function publishShare(draft: ShareDraft): Promise<SharedPage> {
       .single();
     if (result.error) throw new Error(shareError(result.error));
     const page = validateSharedPage(result.data);
-    if (!page) throw new Error("Le lien public n’a pas pu être confirmé.");
+    if (!page) throw new Error(tr("Le lien public n’a pas pu être confirmé."));
     return page;
   })().finally(() => live.delete(key));
   live.set(key, job);
@@ -211,7 +214,7 @@ export async function publishShare(draft: ShareDraft): Promise<SharedPage> {
 }
 export async function readSharedPage(id: string, signal: AbortSignal) {
   if (!cloud || !uuidPattern.test(id))
-    throw new Error("Ce lien public n’est plus disponible.");
+    throw new Error(tr("Ce lien public n’est plus disponible."));
   const result = await cloud
     .from("vela_shares")
     .select("id,kind,payload,updated_at")
@@ -222,7 +225,9 @@ export async function readSharedPage(id: string, signal: AbortSignal) {
   const page = validateSharedPage(result.data);
   if (!page)
     throw new Error(
-      "Ce lien public n’est plus disponible. Il a peut-être été retiré par son auteur.",
+      tr(
+        "Ce lien public n’est plus disponible. Il a peut-être été retiré par son auteur.",
+      ),
     );
   return page;
 }

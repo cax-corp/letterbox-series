@@ -1,3 +1,6 @@
+import LanguageSelect from "./LanguageSelect";
+import { useLanguagePreference } from "./language-preferences";
+import { t as tr, getLanguage, useLanguage } from "./i18n";
 import TasteMap from "./TasteMap";
 import { chooseHomeHero } from "./home-history";
 import { rememberHomeExposure } from "./home-history";
@@ -143,6 +146,7 @@ const pageNames: Page[] = [
   "taste-map",
 ];
 function App() {
+  const language = useLanguage();
   const [welcomeCompleted, setWelcomeCompleted] =
     useState(readWelcomeCompleted);
   const [authReady, setAuthReady] = useState(!cloud);
@@ -231,6 +235,7 @@ function App() {
     setColourThemeValue(value);
     accountSettings.change("palette", value);
   }
+  const languagePreference = useLanguagePreference(user);
   const personal = useProfile(user);
   const viewing = useViewingPreferences(user);
   useEffect(() => {
@@ -285,7 +290,7 @@ function App() {
   );
   const moreAbort = useRef<AbortController | null>(null);
   const searchIdentity = useRef("");
-  searchIdentity.current = `${page}|${kind}|${query}`;
+  searchIdentity.current = `${page}|${kind}|${query}|${language}`;
   const local = useRef(library);
   local.current = library;
   const activeAccount = useRef(user?.id);
@@ -317,7 +322,7 @@ function App() {
     titleSharing.current = true;
     shareCard(draft)
       .then((result) => toast(shareMessage(result)))
-      .catch(() => toast("Le partage est indisponible pour le moment."))
+      .catch(() => toast(tr("Le partage est indisponible pour le moment.")))
       .finally(() => {
         titleSharing.current = false;
       });
@@ -331,9 +336,11 @@ function App() {
     window.scrollTo({ top: 0, behavior: "instant" });
   }
   async function load() {
+    const requestedLanguage = getLanguage();
     setLoading(true);
     setError("");
     const r = await Promise.allSettled([movies(), series()]);
+    if (requestedLanguage !== getLanguage()) return;
     if (r[0].status === "fulfilled") setFilms(r[0].value);
     if (r[1].status === "fulfilled") setShows(r[1].value);
     if (r.some((x) => x.status === "rejected"))
@@ -345,10 +352,10 @@ function App() {
               .map(
                 (x) =>
                   (x as PromiseRejectedResult).reason?.message ||
-                  "Catalogue indisponible.",
+                  tr("Catalogue indisponible."),
               ),
           ),
-        ].join(" ") + " Vos listes restent accessibles.",
+        ].join(" ") + tr(" Vos listes restent accessibles."),
       );
     catalogueAt.current = Date.now();
     setLoading(false);
@@ -380,7 +387,7 @@ function App() {
   }, []);
   useEffect(() => {
     if (!needsWelcome) void load();
-  }, [needsWelcome]);
+  }, [needsWelcome, language]);
   useEffect(() => {
     const media = matchMedia("(prefers-color-scheme: light)");
     const onChange = () => setSystemLight(media.matches);
@@ -407,12 +414,14 @@ function App() {
   useEffect(() => {
     updateSystemAppearance(light, colourTheme).catch(() =>
       toast(
-        "Les couleurs système n’ont pas pu être mises à jour. Réessayez en changeant le thème.",
+        tr(
+          "Les couleurs système n’ont pas pu être mises à jour. Réessayez en changeant le thème.",
+        ),
       ),
     );
   }, [light, colourTheme]);
   async function syncNow() {
-    if (await backup.syncNow()) toast("Synchronisation terminée.");
+    if (await backup.syncNow()) toast(tr("Synchronisation terminée."));
   }
   useEffect(() => {
     const scoped = read(user?.id);
@@ -444,7 +453,9 @@ function App() {
       } catch (e) {
         if (!c.signal.aborted) {
           setResults([]);
-          setError(e instanceof Error ? e.message : "Recherche indisponible.");
+          setError(
+            e instanceof Error ? e.message : tr("Recherche indisponible."),
+          );
         }
       } finally {
         if (!c.signal.aborted) setSearching(false);
@@ -455,7 +466,7 @@ function App() {
       c.abort();
       moreAbort.current?.abort();
     };
-  }, [query, kind, page]);
+  }, [query, kind, page, language]);
   async function loadMore() {
     if (loadingMore || !hasMore) return;
     const identity = searchIdentity.current;
@@ -480,7 +491,9 @@ function App() {
       setTotalResults(result.total);
     } catch (e) {
       if (!c.signal.aborted && searchIdentity.current === identity)
-        setError(e instanceof Error ? e.message : "Chargement indisponible.");
+        setError(
+          e instanceof Error ? e.message : tr("Chargement indisponible."),
+        );
     } finally {
       if (!c.signal.aborted && searchIdentity.current === identity)
         setLoadingMore(false);
@@ -521,7 +534,7 @@ function App() {
       local.current = data;
       setLibrary(data);
     } catch {
-      toast("Stockage plein : exportez votre collection.");
+      toast(tr("Stockage plein : exportez votre collection."));
       return;
     }
     if (user) {
@@ -529,7 +542,9 @@ function App() {
         backupService.changed(user.id);
       } catch {
         toast(
-          "Votre changement est enregistré. Exportez votre collection si le stockage est plein.",
+          tr(
+            "Votre changement est enregistré. Exportez votre collection si le stockage est plein.",
+          ),
         );
       }
     }
@@ -734,7 +749,16 @@ function App() {
       showList,
       user?.id || "local",
     );
-  }, [library, filmList, showList, page, user?.id, feedSession, homeVisit]);
+  }, [
+    library,
+    filmList,
+    showList,
+    page,
+    user?.id,
+    feedSession,
+    homeVisit,
+    language,
+  ]);
   const hero = home.hero;
   useEffect(() => {
     if (
@@ -792,14 +816,14 @@ function App() {
           </span>
         )}
         <span className="media-label">
-          {title.kind === "series" ? "SÉRIE" : "FILM"}
+          {title.kind === "series" ? tr("SÉRIE") : "FILM"}
         </span>
       </div>
       <h3>{title.name}</h3>
       <p>
         {title.year || "—"}
         <span>•</span>
-        {title.genres[0] || "À découvrir"}
+        {title.genres[0] || tr("À découvrir")}
       </p>
     </button>
   );
@@ -811,7 +835,7 @@ function App() {
         ) : (
           <main
             className="welcome-loading"
-            aria-label="Chargement de Vela"
+            aria-label={tr("Chargement de Vela")}
             aria-busy="true"
           >
             <span className="welcome-brand" aria-label="Vela">
@@ -838,10 +862,10 @@ function App() {
         <nav>
           {(
             [
-              [Compass, "discover", "Découvrir"],
-              [Search, "search", "Explorer"],
-              [Sparkles, "recommendations", "Pour vous"],
-              [Bookmark, "library", "Ma collection"],
+              [Compass, "discover", tr("Découvrir")],
+              [Search, "search", tr("Explorer")],
+              [Sparkles, "recommendations", tr("Pour vous")],
+              [Bookmark, "library", tr("Ma collection")],
             ] as const
           ).map(([Icon, p, label]) => (
             <button
@@ -862,12 +886,12 @@ function App() {
             className="nav-link"
             onClick={() => setTheme(light ? "dark" : "light")}
           >
-            {light ? <Moon size={18} /> : <Sun size={18} />}Mode{" "}
-            {light ? "sombre" : "clair"}
+            {light ? <Moon size={18} /> : <Sun size={18} />}
+            {light ? tr("Mode sombre") : tr("Mode clair")}
           </button>
           <button className="nav-link" onClick={() => openSettings()}>
             <Settings size={18} />
-            Réglages
+            {tr("Réglages")}
           </button>
           <button
             className="account"
@@ -885,13 +909,17 @@ function App() {
               size={34}
             />
             <span>
-              {user ? "Mon espace" : cloud ? "Se connecter" : "Votre espace"}
+              {user
+                ? tr("Mon espace")
+                : cloud
+                  ? tr("Se connecter")
+                  : tr("Votre espace")}
               <small>
                 {user
-                  ? "Compte Vela"
+                  ? tr("Compte Vela")
                   : cloud
-                    ? "Compte Vela"
-                    : "Collection locale"}
+                    ? tr("Compte Vela")
+                    : tr("Collection locale")}
               </small>
             </span>
             <ChevronRight size={16} />
@@ -915,7 +943,7 @@ function App() {
             <button
               className="icon-button"
               aria-label={
-                light ? "Passer en mode sombre" : "Passer en mode clair"
+                light ? tr("Passer en mode sombre") : tr("Passer en mode clair")
               }
               onClick={() => setTheme(light ? "dark" : "light")}
             >
@@ -923,7 +951,7 @@ function App() {
             </button>
             <button
               className="icon-button mobile-settings"
-              aria-label="Réglages"
+              aria-label={tr("Réglages")}
               onClick={() => openSettings()}
             >
               <Settings size={22} />
@@ -956,8 +984,10 @@ function App() {
         {page === "taste-map" &&
           (cloud && !user ? (
             <SignInRequired
-              title="Carte de mes goûts"
-              message="Connectez-vous pour explorer votre carte personnelle."
+              title={tr("Carte de mes goûts")}
+              message={tr(
+                "Connectez-vous pour explorer votre carte personnelle.",
+              )}
               signIn={() => setAuth(true)}
             />
           ) : (
@@ -981,6 +1011,7 @@ function App() {
             account={user?.id || "local"}
             backup={backup}
             accountSettings={accountSettings}
+            languagePreference={languagePreference}
             openTasteMap={openTasteMap}
             close={closeSettings}
             signIn={() => setAuth(true)}
@@ -989,21 +1020,23 @@ function App() {
         {(page === "discover" || page === "search") && !tmdbEnabled() && (
           <aside className="catalog-setup">
             <div>
-              <strong>Élargissez votre catalogue avec TMDB</strong>
+              <strong>{tr("Élargissez votre catalogue avec TMDB")}</strong>
               <p>
-                Le catalogue sans clé est limité. Activez TMDB pour rechercher
-                davantage de films et de séries.
+                {tr(
+                  "Le catalogue sans clé est limité. Activez TMDB pour rechercher davantage de films et de séries.",
+                )}
               </p>
             </div>
             <button className="button tonal" onClick={() => openSettings()}>
-              Configurer TMDB <ArrowRight size={18} />
+              {tr("Configurer TMDB ")}
+              <ArrowRight size={18} />
             </button>
           </aside>
         )}
         {page === "discover" && (
           <>
             <section className="intro">
-              <h1>Films et séries</h1>
+              <h1>{tr("Films et séries")}</h1>
             </section>
             <section
               className="hero"
@@ -1017,12 +1050,16 @@ function App() {
               <div className="hero-content">
                 {hero && (
                   <div className="hero-kicker">
-                    {home.personalized ? "Selon vos goûts" : "À découvrir"}
+                    {home.personalized
+                      ? tr("Selon vos goûts")
+                      : tr("À découvrir")}
                   </div>
                 )}
                 <h2>
                   {hero?.name ||
-                    (loading ? "Chargement…" : "Catalogue indisponible")}
+                    (loading
+                      ? tr("Chargement…")
+                      : tr("Catalogue indisponible"))}
                 </h2>
                 {hero && (
                   <div className="hero-meta">
@@ -1033,7 +1070,7 @@ function App() {
                       </>
                     )}
                     {hero.genres.slice(0, 2).join(" / ") ||
-                      (hero.kind === "series" ? "Série" : "Film")}
+                      (hero.kind === "series" ? tr("Série") : tr("Film"))}
                     {hero.score && (
                       <>
                         <i />
@@ -1045,10 +1082,12 @@ function App() {
                 )}
                 <p>
                   {hero
-                    ? hero.summary || "Synopsis indisponible."
+                    ? hero.summary || tr("Synopsis indisponible.")
                     : loading
-                      ? "Chargement des films et séries…"
-                      : "Vérifiez votre connexion ou la configuration du catalogue."}
+                      ? tr("Chargement des films et séries…")
+                      : tr(
+                          "Vérifiez votre connexion ou la configuration du catalogue.",
+                        )}
                 </p>
                 <div className="hero-actions">
                   <button
@@ -1056,7 +1095,8 @@ function App() {
                     disabled={!hero}
                     onClick={() => hero && setSelected(hero)}
                   >
-                    Découvrir <ArrowRight size={17} />
+                    {tr("Découvrir ")}
+                    <ArrowRight size={17} />
                   </button>
                   <button
                     className={
@@ -1071,8 +1111,8 @@ function App() {
                         });
                         toast(
                           library[hero.id]?.watchlist
-                            ? "Retiré de votre liste"
-                            : "Ajouté à votre liste",
+                            ? tr("Retiré de votre liste")
+                            : tr("Ajouté à votre liste"),
                         );
                       }
                     }}
@@ -1082,7 +1122,7 @@ function App() {
                     ) : (
                       <Plus size={17} />
                     )}
-                    Ma liste
+                    {tr("Ma liste")}
                   </button>
                 </div>
               </div>
@@ -1096,10 +1136,10 @@ function App() {
                     onClick={() => setKind(k)}
                   >
                     {k === "all"
-                      ? "À la une"
+                      ? tr("À la une")
                       : k === "movie"
-                        ? "Films"
-                        : "Séries"}
+                        ? tr("Films")
+                        : tr("Séries")}
                   </button>
                 ))}
               </div>
@@ -1107,7 +1147,7 @@ function App() {
             {error && (
               <div className="error" role="alert">
                 {error}
-                <button onClick={load}>Réessayer</button>
+                <button onClick={load}>{tr("Réessayer")}</button>
               </div>
             )}
             {loading ? (
@@ -1117,7 +1157,7 @@ function App() {
                 {kind !== "series" && (
                   <section className="shelf">
                     <div className="section-heading">
-                      <h2>Films</h2>
+                      <h2>{tr("Films")}</h2>
                       <button
                         className="text-button"
                         onClick={() => {
@@ -1125,21 +1165,26 @@ function App() {
                           navigate("search");
                         }}
                       >
-                        Tout explorer <ArrowRight size={16} />
+                        {tr("Tout explorer ")}
+                        <ArrowRight size={16} />
                       </button>
                     </div>
                     <div className="poster-grid">
                       {home.movies.slice(0, 6).map(card)}
                     </div>
                     {!home.movies.length && (
-                      <Empty text="Les films sont indisponibles pour le moment." />
+                      <Empty
+                        text={tr(
+                          "Les films sont indisponibles pour le moment.",
+                        )}
+                      />
                     )}
                   </section>
                 )}
                 {kind !== "movie" && (
                   <section className="shelf">
                     <div className="section-heading">
-                      <h2>Séries</h2>
+                      <h2>{tr("Séries")}</h2>
                       <button
                         className="text-button"
                         onClick={() => {
@@ -1147,7 +1192,8 @@ function App() {
                           navigate("search");
                         }}
                       >
-                        Toutes les séries <ArrowRight size={16} />
+                        {tr("Toutes les séries ")}
+                        <ArrowRight size={16} />
                       </button>
                     </div>
                     <div className="poster-grid">
@@ -1161,7 +1207,7 @@ function App() {
         )}
         {page === "search" && (
           <section className="page-section">
-            <h1>Rechercher</h1>
+            <h1>{tr("Rechercher")}</h1>
             <form
               className="large-search surface"
               onSubmit={(e) => e.preventDefault()}
@@ -1173,15 +1219,15 @@ function App() {
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={
                   tmdbEnabled()
-                    ? "Un titre français ou original…"
-                    : "Un titre de film ou de série…"
+                    ? tr("Un titre français ou original…")
+                    : tr("Un titre de film ou de série…")
                 }
-                aria-label="Rechercher dans le catalogue"
+                aria-label={tr("Rechercher dans le catalogue")}
               />
               {query && (
                 <button
                   type="button"
-                  aria-label="Effacer"
+                  aria-label={tr("Effacer")}
                   onClick={() => setQuery("")}
                 >
                   <X size={19} />
@@ -1195,7 +1241,11 @@ function App() {
                   key={k}
                   onClick={() => setKind(k)}
                 >
-                  {k === "all" ? "Tout" : k === "movie" ? "Films" : "Séries"}
+                  {k === "all"
+                    ? tr("Tout")
+                    : k === "movie"
+                      ? tr("Films")
+                      : tr("Séries")}
                 </button>
               ))}
             </div>
@@ -1203,7 +1253,7 @@ function App() {
               <div className="error" role="alert">
                 {error}
                 <button onClick={() => openSettings()}>
-                  Réglages du catalogue
+                  {tr("Réglages du catalogue")}
                 </button>
               </div>
             )}
@@ -1212,7 +1262,8 @@ function App() {
             ) : query.trim() ? (
               <>
                 <p className="result-count">
-                  {results.length} affichés sur {totalResults} résultat
+                  {results.length} {tr(" affichés sur ")}
+                  {totalResults} {tr(" résultat")}
                   {totalResults > 1 ? "s" : ""}
                 </p>
                 <div className="poster-grid search-grid">
@@ -1228,16 +1279,16 @@ function App() {
                       {loadingMore ? (
                         <>
                           <LoaderCircle size={18} className="spin" />
-                          Chargement…
+                          {tr("Chargement…")}
                         </>
                       ) : (
-                        "Charger plus de résultats"
+                        tr("Charger plus de résultats")
                       )}
                     </button>
                   </div>
                 )}
                 {!results.length && !error && (
-                  <Empty text="Aucun résultat. Essayez un autre titre." />
+                  <Empty text={tr("Aucun résultat. Essayez un autre titre.")} />
                 )}
               </>
             ) : (
@@ -1269,13 +1320,15 @@ function App() {
           (Capacitor.isNativePlatform() ? (
             cloud && !user ? (
               <SignInRequired
-                title="Pour vous"
-                message="Connectez-vous pour accéder à vos recommandations personnalisées."
+                title={tr("Pour vous")}
+                message={tr(
+                  "Connectez-vous pour accéder à vos recommandations personnalisées.",
+                )}
                 signIn={() => setAuth(true)}
               />
             ) : (
               <Recommendations
-                key={`${user?.id || "local"}:${feedSession}`}
+                key={`${user?.id || "local"}:${feedSession}:${language}`}
                 account={user?.id || "local"}
                 paused={Boolean(selected || auth)}
                 library={library}
@@ -1293,12 +1346,12 @@ function App() {
           ))}
         {page === "library" && (
           <section className="page-section">
-            <h1>Collection</h1>
+            <h1>{tr("Collection")}</h1>
             <div className="tabs inline-tabs">
               {[
-                ["watchlist", "À voir", watchlist.length],
-                ["watched", "Vus", watched.length],
-                ["favorite", "Favoris", favorites.length],
+                ["watchlist", tr("À voir"), watchlist.length],
+                ["watched", tr("Vus"), watched.length],
+                ["favorite", tr("Favoris"), favorites.length],
                 ...namedLists.map((name) => [
                   `list:${name}`,
                   name,
@@ -1319,7 +1372,7 @@ function App() {
             </div>
             {!entries.some(inList) && (
               <Empty
-                text="Votre collection est vide."
+                text={tr("Votre collection est vide.")}
                 action={() => navigate("search")}
               />
             )}
@@ -1328,13 +1381,15 @@ function App() {
         {page === "edit-profile" &&
           (cloud && !user ? (
             <SignInRequired
-              title="Profil"
-              message="Connectez-vous pour modifier votre profil et le retrouver sur vos appareils."
+              title={tr("Profil")}
+              message={tr(
+                "Connectez-vous pour modifier votre profil et le retrouver sur vos appareils.",
+              )}
               signIn={() => setAuth(true)}
             />
           ) : (
             <ProfileEditor
-              key={user?.id || "local"}
+              key={`${user?.id || "local"}:${language}`}
               initial={personal.profile}
               library={library}
               defaultName={user?.email?.split("@")[0] || ""}
@@ -1348,13 +1403,15 @@ function App() {
         {page === "profile" &&
           (cloud && !user ? (
             <SignInRequired
-              title="Profil"
-              message="Connectez-vous pour retrouver votre profil, vos statistiques et vos sauvegardes."
+              title={tr("Profil")}
+              message={tr(
+                "Connectez-vous pour retrouver votre profil, vos statistiques et vos sauvegardes.",
+              )}
               signIn={() => setAuth(true)}
             />
           ) : (
             <section className="page-section profile">
-              <h1>Profil</h1>
+              <h1>{tr("Profil")}</h1>
               <ProfileOverview
                 profile={personal.profile}
                 library={library}
@@ -1368,25 +1425,33 @@ function App() {
               {personal.error && <p className="muted fine">{personal.error}</p>}
               <div className="profile-panel surface">
                 <div>
-                  <h2>Synchronisation</h2>
+                  <h2>{tr("Synchronisation")}</h2>
                   <p className="muted">
                     {user
                       ? syncState === "success"
-                        ? "Vos notes et vos listes sont synchronisées."
+                        ? tr("Vos notes et vos listes sont synchronisées.")
                         : syncState === "syncing"
-                          ? "Synchronisation en cours…"
+                          ? tr("Synchronisation en cours…")
                           : syncState === "error"
-                            ? "La synchronisation a échoué. Vos données restent sur cet appareil."
+                            ? tr(
+                                "La synchronisation a échoué. Vos données restent sur cet appareil.",
+                              )
                             : syncState === "pending"
-                              ? "Vos changements sont enregistrés sur cet appareil et attendent la prochaine sauvegarde Supabase."
-                              : "Votre collection est enregistrée sur cet appareil."
-                      : "Connectez Supabase pour retrouver vos listes sur le web et Android."}
+                              ? tr(
+                                  "Vos changements sont enregistrés sur cet appareil et attendent la prochaine sauvegarde Supabase.",
+                                )
+                              : tr(
+                                  "Votre collection est enregistrée sur cet appareil.",
+                                )
+                      : tr(
+                          "Connectez Supabase pour retrouver vos listes sur le web et Android.",
+                        )}
                   </p>
                   {user && backup.state.lastSuccess > 0 && (
                     <p className="muted fine">
-                      Dernière sauvegarde :{" "}
+                      {tr("Dernière sauvegarde :")}{" "}
                       {new Date(backup.state.lastSuccess).toLocaleString(
-                        "fr-FR",
+                        getLanguage(),
                       )}
                       .
                     </p>
@@ -1400,12 +1465,12 @@ function App() {
                       onClick={syncNow}
                     >
                       {syncState === "syncing"
-                        ? "Synchronisation…"
-                        : "Synchroniser"}
+                        ? tr("Synchronisation…")
+                        : tr("Synchroniser")}
                     </button>
                     <button
                       className="icon-button"
-                      aria-label="Se déconnecter"
+                      aria-label={tr("Se déconnecter")}
                       onClick={() => cloud?.auth.signOut()}
                     >
                       <LogOut size={20} />
@@ -1416,43 +1481,46 @@ function App() {
                     className="button primary"
                     onClick={() => (cloud ? setAuth(true) : openSettings())}
                   >
-                    {cloud ? "Se connecter" : "Configurer Supabase"}
+                    {cloud ? tr("Se connecter") : tr("Configurer Supabase")}
                     <ArrowRight size={16} />
                   </button>
                 )}
               </div>
               {syncIssue && (
                 <section className="sync-error" role="alert">
-                  <h3>Synchronisation à rétablir</h3>
-                  <p>{syncIssue.message}</p>
+                  <h3>{tr("Synchronisation à rétablir")}</h3>
+                  <p>{tr(syncIssue.message)}</p>
                   <button
                     className="button tonal"
                     onClick={() => openSettings()}
                   >
-                    Corriger Supabase <ArrowRight size={18} />
+                    {tr("Corriger Supabase ")}
+                    <ArrowRight size={18} />
                   </button>
                 </section>
               )}
               <div className="profile-panel">
                 <div>
-                  <h3>Sauvegarde locale</h3>
+                  <h3>{tr("Sauvegarde locale")}</h3>
                   <p className="muted">
-                    Une sauvegarde JSON de vos notes, listes et visionnages.
+                    {tr(
+                      "Une sauvegarde JSON de vos notes, listes et visionnages.",
+                    )}
                   </p>
                 </div>
                 <button
                   className="button surface"
                   onClick={() =>
                     exportCollection(library).catch(() =>
-                      toast("Export annulé ou indisponible."),
+                      toast(tr("Export annulé ou indisponible.")),
                     )
                   }
                 >
                   <Download size={17} />
-                  Exporter
+                  {tr("Exporter")}
                 </button>
                 <label className="button surface">
-                  Importer
+                  {tr("Importer")}
                   <input
                     type="file"
                     accept="application/json"
@@ -1471,14 +1539,18 @@ function App() {
                             backupService.changed(user.id);
                           } catch {
                             toast(
-                              "Collection importée. Vérifiez l’espace disponible avant la sauvegarde.",
+                              tr(
+                                "Collection importée. Vérifiez l’espace disponible avant la sauvegarde.",
+                              ),
                             );
                           }
                         }
-                        toast("Collection importée.");
+                        toast(tr("Collection importée."));
                       } catch {
                         toast(
-                          "Import impossible : vérifiez le fichier JSON ou la connexion.",
+                          tr(
+                            "Import impossible : vérifiez le fichier JSON ou la connexion.",
+                          ),
                         );
                       }
                       e.target.value = "";
@@ -1489,7 +1561,7 @@ function App() {
             </section>
           ))}
       </main>
-      <nav className="mobile-nav" aria-label="Navigation principale">
+      <nav className="mobile-nav" aria-label={tr("Navigation principale")}>
         <BottomNavigation
           showLabels
           value={page === "edit-profile" ? "profile" : page}
@@ -1498,11 +1570,11 @@ function App() {
         >
           {(
             [
-              [Compass, "discover", "Découvrir"],
-              [Search, "search", "Explorer"],
-              [Sparkles, "recommendations", "Pour vous"],
-              [Bookmark, "library", "Collection"],
-              [User, "profile", "Profil"],
+              [Compass, "discover", tr("Découvrir")],
+              [Search, "search", tr("Explorer")],
+              [Sparkles, "recommendations", tr("Pour vous")],
+              [Bookmark, "library", tr("Collection")],
+              [User, "profile", tr("Profil")],
             ] as const
           ).map(([Icon, p, label]) => (
             <BottomNavigationAction
@@ -1572,7 +1644,7 @@ function Poster({ title }: { title: Title }) {
   return title.image && !failed ? (
     <img
       src={title.image}
-      alt={`Affiche de ${title.name}`}
+      alt={tr("Affiche de {0}", title.name)}
       loading="lazy"
       onError={() => setFailed(true)}
     />
@@ -1590,7 +1662,8 @@ function Empty({ text, action }: { text: string; action?: () => void }) {
       <h3>{text}</h3>
       {action && (
         <button className="button primary" onClick={action}>
-          Explorer le catalogue <ArrowRight size={16} />
+          {tr("Explorer le catalogue ")}
+          <ArrowRight size={16} />
         </button>
       )}
     </div>
@@ -1598,7 +1671,10 @@ function Empty({ text, action }: { text: string; action?: () => void }) {
 }
 function Skeleton() {
   return (
-    <div className="poster-grid skeletons" aria-label="Chargement du catalogue">
+    <div
+      className="poster-grid skeletons"
+      aria-label={tr("Chargement du catalogue")}
+    >
       {[1, 2, 3, 4, 5, 6].map((x) => (
         <div key={x}>
           <div />
@@ -1628,7 +1704,7 @@ function DetailFrame({
       style={style}
     >
       <button className="text-button" onClick={close}>
-        <ArrowLeft size={18} /> Découvrir Vela
+        <ArrowLeft size={18} /> {tr(" Découvrir Vela")}
       </button>
       <div className="public-title-content">{children}</div>
     </section>
@@ -1665,6 +1741,7 @@ function Details({
   close: () => void;
   toast: (s: string) => void;
 }) {
+  const language = useLanguage();
   const [title, setTitle] = useState(initialTitle),
     [detailState, setDetailState] = useState(
       isTmdb(initialTitle) && !inline ? "loading" : "ready",
@@ -1700,11 +1777,11 @@ function Details({
       .catch((e) => {
         if (!c.signal.aborted) {
           setDetailState("error");
-          setDetailError(e.message || "Fiche indisponible.");
+          setDetailError(e.message || tr("Fiche indisponible."));
         }
       });
     return () => c.abort();
-  }, [initialTitle.id, detailRetry, inline]);
+  }, [initialTitle.id, detailRetry, inline, language]);
   return (
     <DetailFrame
       inline={inline}
@@ -1718,11 +1795,13 @@ function Details({
         </div>
         <div>
           <span className="eyebrow">
-            {title.kind === "movie" ? "Film" : "Série"} · {title.year}
+            {title.kind === "movie" ? tr("Film") : tr("Série")} · {title.year}
             {title.duration && ` · ${title.duration}`}
           </span>
           {inline ? <h1>{title.name}</h1> : <h2>{title.name}</h2>}
-          <p className="detail-meta">{title.genres.join(" / ")}</p>
+          <p className="detail-meta">
+            {title.genres.map((genre) => tr(genre)).join(" / ")}
+          </p>
           <div className="detail-score-row">
             {title.score && (
               <p className="detail-score">
@@ -1734,8 +1813,11 @@ function Details({
             <button
               className="detail-share icon-button"
               onClick={() => share()}
-              aria-label={`Partager cette fiche ${title.kind === "movie" ? "film" : "série"}`}
-              title="Partager la fiche"
+              aria-label={tr(
+                "Partager cette fiche {0}",
+                title.kind === "movie" ? tr("film") : tr("série"),
+              )}
+              title={tr("Partager la fiche")}
             >
               <ShareIcon size={18} />
             </button>
@@ -1745,7 +1827,7 @@ function Details({
       <div className="detail-action-bar">
         {readOnly ? (
           <button className="button tonal" onClick={signIn}>
-            Se connecter pour noter ou ajouter à ma liste
+            {tr("Se connecter pour noter ou ajouter à ma liste")}
           </button>
         ) : (
           <>
@@ -1756,21 +1838,21 @@ function Details({
                 }
                 onClick={() => update({ watchlist: !entry.watchlist })}
               >
-                {entry.watchlist ? <Check size={17} /> : <Plus size={17} />}À
-                voir
+                {entry.watchlist ? <Check size={17} /> : <Plus size={17} />}
+                {tr("À voir")}
               </button>
               <button
                 className={"button " + (entry.watched ? "primary" : "surface")}
                 onClick={() => update({ watched: !entry.watched })}
               >
                 <Check size={17} />
-                {entry.watched ? "Vu" : "Marquer vu"}
+                {entry.watched ? tr("Vu") : tr("Marquer vu")}
               </button>
               <button
                 className={
                   "button icon-button " + (entry.favorite ? "liked" : "surface")
                 }
-                aria-label="Coup de cœur"
+                aria-label={tr("Coup de cœur")}
                 aria-pressed={entry.favorite}
                 onClick={() =>
                   update({
@@ -1791,26 +1873,26 @@ function Details({
       <div className="detail-body">
         {detailState === "loading" && (
           <p className="muted" role="status">
-            Chargement de la fiche TMDB…
+            {tr("Chargement de la fiche TMDB…")}
           </p>
         )}
         {detailState === "error" && (
           <div className="error" role="alert">
             {detailError}
             <button onClick={() => setDetailRetry((n) => n + 1)}>
-              Réessayer la fiche
+              {tr("Réessayer la fiche")}
             </button>
           </div>
         )}
         <WhereToWatch title={title} preferences={viewing} settings={settings} />
-        <h3>Synopsis</h3>
+        <h3>{tr("Synopsis")}</h3>
         <p className="synopsis">{title.summary}</p>
         {!readOnly && (
           <TitleReview
             entry={entry}
             update={update}
             share={() => share(true)}
-            saved={() => toast("Avis enregistré.")}
+            saved={() => toast(tr("Avis enregistré."))}
           />
         )}
         <CastGallery cast={title.cast} />
@@ -1823,14 +1905,14 @@ function Details({
               rel="noreferrer"
             >
               <Play size={18} />
-              Voir la bande-annonce sur YouTube ↗
+              {tr("Voir la bande-annonce sur YouTube ↗")}
             </a>
           )}
           {title.trailer && title.trailerKind !== "youtube" && (
             <>
               <button className="text-button" onClick={() => setVideo(!video)}>
                 <Play size={16} />
-                {video ? "Fermer l’extrait" : "Voir l’extrait"}
+                {video ? tr("Fermer l’extrait") : tr("Voir l’extrait")}
               </button>
               {video && (
                 <video
@@ -1852,11 +1934,11 @@ function Details({
             >
               {title.kind === "movie"
                 ? isTmdb(title)
-                  ? "Fiche sur TMDB"
-                  : "Fiche et disponibilité sur Apple TV"
+                  ? tr("Fiche sur TMDB")
+                  : tr("Fiche et disponibilité sur Apple TV")
                 : isTmdb(title)
-                  ? "Fiche sur TMDB"
-                  : "Site de la série"}{" "}
+                  ? tr("Fiche sur TMDB")
+                  : tr("Site de la série")}{" "}
               ↗
             </a>
           )}
@@ -1867,7 +1949,7 @@ function Details({
               target="_blank"
               rel="noreferrer"
             >
-              Fiche IMDb ↗
+              {tr("Fiche IMDb ↗")}
             </a>
           )}
         </div>
@@ -1904,7 +1986,9 @@ function SettingsPage({
   backup,
   accountSettings,
   openTasteMap,
+  languagePreference,
 }: {
+  languagePreference: ReturnType<typeof useLanguagePreference>;
   openTasteMap: () => void;
   accountSettings: ReturnType<typeof useAccountSettings>;
   viewing: ReturnType<typeof useViewingPreferences>;
@@ -1931,28 +2015,64 @@ function SettingsPage({
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => heading.current?.focus({ preventScroll: true }), []);
   return (
-    <section className="settings-page page-section" aria-label="Réglages">
+    <section className="settings-page page-section" aria-label={tr("Réglages")}>
       <button
         className="text-button settings-back"
         onClick={close}
-        aria-label="Retour"
+        aria-label={tr("Retour")}
       >
-        <ArrowLeft size={20} /> Retour
+        <ArrowLeft size={20} /> {tr(" Retour")}
       </button>
       <h1 ref={heading} tabIndex={-1}>
-        Réglages
+        {tr("Réglages")}
       </h1>
       <div className="form-content">
-        <h2>Apparence</h2>
+        <section
+          className="language-settings"
+          aria-label={tr("Langue de l’application")}
+        >
+          <h2>{tr("Langue de l’application")}</h2>
+          <LanguageSelect
+            value={getLanguage()}
+            onChange={languagePreference.save}
+          />
+          <p className="muted fine">
+            {tr(
+              "La langue est liée à votre compte et se retrouve sur vos appareils.",
+            )}
+          </p>
+          {languagePreference.busy && (
+            <p className="muted fine" role="status">
+              {tr("Synchronisation…")}
+            </p>
+          )}
+          {languagePreference.error && (
+            <div className="error" role="status">
+              {tr(languagePreference.error)}
+              <button
+                className="text-button"
+                onClick={() => languagePreference.save(getLanguage())}
+              >
+                {tr("Réessayer")}
+              </button>
+            </div>
+          )}
+        </section>
+        <hr />
+        <h2>{tr("Apparence")}</h2>
         <p className="muted">
           {Capacitor.isNativePlatform()
-            ? "Les couleurs de l’application et des barres Android suivent ce choix."
-            : "Le site suit ce thème sur votre navigateur. Le mode Système s’adapte aux réglages de votre ordinateur ou de votre téléphone."}
+            ? tr(
+                "Les couleurs de l’application et des barres Android suivent ce choix.",
+              )
+            : tr(
+                "Le site suit ce thème sur votre navigateur. Le mode Système s’adapte aux réglages de votre ordinateur ou de votre téléphone.",
+              )}
         </p>
         <div
           className="theme-options"
           role="group"
-          aria-label="Thème de l’application"
+          aria-label={tr("Thème de l’application")}
         >
           {(["dark", "light", "system"] as const).map((value) => (
             <button
@@ -1961,27 +2081,28 @@ function SettingsPage({
               onClick={() => setTheme(value)}
             >
               {value === "dark"
-                ? "Sombre"
+                ? tr("Sombre")
                 : value === "light"
-                  ? "Clair"
-                  : "Système"}
+                  ? tr("Clair")
+                  : tr("Système")}
             </button>
           ))}
         </div>
         <ColourThemePicker value={colourTheme} onChange={setColourTheme} />
         <hr />
-        <section className="taste-entry" aria-label="Vos goûts">
+        <section className="taste-entry" aria-label={tr("Vos goûts")}>
           <div>
-            <h2>Vos goûts</h2>
+            <h2>{tr("Vos goûts")}</h2>
             <p className="muted">
-              Explorez les liens entre vos titres et vos préférences.
+              {tr("Explorez les liens entre vos titres et vos préférences.")}
             </p>
           </div>
           <button
             className="button tonal"
             onClick={account === "local" && cloud ? signIn : openTasteMap}
           >
-            Carte de mes goûts <ArrowRight size={18} />
+            {tr("Carte de mes goûts ")}
+            <ArrowRight size={18} />
           </button>
         </section>
         <hr />
@@ -2005,14 +2126,14 @@ function SettingsPage({
         />
         {accountSettings.pending && account !== "local" && (
           <p className="muted fine" role="status">
-            Réglages en attente de synchronisation.
+            {tr("Réglages en attente de synchronisation.")}
           </p>
         )}
         {accountSettings.error && (
           <div className="error" role="status">
             <p>{accountSettings.error}</p>
             <button className="text-button" onClick={accountSettings.retry}>
-              Réessayer la synchronisation des réglages
+              {tr("Réessayer la synchronisation des réglages")}
             </button>
           </div>
         )}
@@ -2027,31 +2148,33 @@ function SettingsPage({
           }
         />
         <hr />
-        <h2>Compte et catalogue</h2>
+        <h2>{tr("Compte et catalogue")}</h2>
         <p className="muted">
           {cloud && tmdbEnabled()
-            ? "Le catalogue et la synchronisation sont configurés. Aucune clé n’est à renseigner."
-            : "Configuration des services du catalogue et du compte."}
+            ? tr(
+                "Le catalogue et la synchronisation sont configurés. Aucune clé n’est à renseigner.",
+              )
+            : tr("Configuration des services du catalogue et du compte.")}
         </p>
         {cloud && account === "local" && (
           <button className="button primary" onClick={signIn}>
-            Se connecter
+            {tr("Se connecter")}
           </button>
         )}
         <details
           className="advanced-services"
           open={!defaultServices.supabaseUrl || repairNeeded}
         >
-          <summary>Configuration avancée des services</summary>
-          <h2>Catalogue TMDB</h2>
+          <summary>{tr("Configuration avancée des services")}</summary>
+          <h2>{tr("Catalogue TMDB")}</h2>
           <p className="muted">
-            Films et séries, titres français et originaux, affiches, fiches et
-            épisodes. Une clé API gratuite est nécessaire pour un usage non
-            commercial.
+            {tr(
+              "Films et séries, titres français et originaux, affiches, fiches et épisodes. Une clé API gratuite est nécessaire pour un usage non commercial.",
+            )}
           </p>
           <ol className="catalog-help">
             <li>
-              Créez un compte sur{" "}
+              {tr("Créez un compte sur")}{" "}
               <a
                 href="https://www.themoviedb.org/signup"
                 target="_blank"
@@ -2062,20 +2185,22 @@ function SettingsPage({
               .
             </li>
             <li>
-              Dans le navigateur, ouvrez{" "}
+              {tr("Dans le navigateur, ouvrez")}{" "}
               <a
                 href="https://www.themoviedb.org/settings/api"
                 target="_blank"
                 rel="noreferrer"
               >
-                Paramètres → API
+                {tr("Paramètres → API")}
               </a>
-              , puis demandez une clé développeur. Sur téléphone, activez au
-              besoin « site pour ordinateur ».
+              {tr(
+                ", puis demandez une clé développeur. Sur téléphone, activez au besoin « site pour ordinateur ».",
+              )}
             </li>
             <li>
-              Collez ici le jeton de lecture API ou la clé API v3. Ne les
-              envoyez pas dans ChatGPT.
+              {tr(
+                "Collez ici le jeton de lecture API ou la clé API v3. Ne les envoyez pas dans ChatGPT.",
+              )}
             </li>
           </ol>
           <form
@@ -2089,7 +2214,9 @@ function SettingsPage({
                 setTmdbError(
                   error instanceof Error
                     ? error.message
-                    : "TMDB n’est pas joignable. Vérifiez la connexion et réessayez.",
+                    : tr(
+                        "TMDB n’est pas joignable. Vérifiez la connexion et réessayez.",
+                      ),
                 );
               } finally {
                 setCheckingTmdb(false);
@@ -2097,7 +2224,7 @@ function SettingsPage({
             }}
           >
             <label className="field">
-              Jeton de lecture TMDB ou clé API
+              {tr("Jeton de lecture TMDB ou clé API")}
               <input
                 type="password"
                 autoComplete="off"
@@ -2105,12 +2232,13 @@ function SettingsPage({
                 value={tmdbToken}
                 onChange={(e) => setTmdbToken(e.target.value)}
                 required
-                placeholder="Jeton eyJ… ou clé API v3"
+                placeholder={tr("Jeton eyJ… ou clé API v3")}
               />
             </label>
             <p className="muted fine">
-              Enregistré uniquement sur cet appareil. Ce réglage est indépendant
-              de Supabase ; vos listes et notes sont conservées.
+              {tr(
+                "Enregistré uniquement sur cet appareil. Ce réglage est indépendant de Supabase ; vos listes et notes sont conservées.",
+              )}
             </p>
             {tmdbError && (
               <p className="error" role="alert">
@@ -2121,47 +2249,52 @@ function SettingsPage({
               {checkingTmdb ? (
                 <>
                   <LoaderCircle className="spin" size={18} />
-                  Vérification…
+                  {tr("Vérification…")}
                 </>
               ) : (
-                "Activer TMDB"
+                tr("Activer TMDB")
               )}
             </button>
           </form>
           {tmdbEnabled() && (
             <button className="text-button disconnect" onClick={disableTmdb}>
               {defaultServices.tmdbKey
-                ? "Utiliser la configuration Vela"
-                : "Revenir au catalogue limité"}
+                ? tr("Utiliser la configuration Vela")
+                : tr("Revenir au catalogue limité")}
             </button>
           )}
           <hr />
-          <h2>Connecter Supabase</h2>
+          <h2>{tr("Connecter Supabase")}</h2>
           <p className="muted">
-            Sans configuration, Vela garde vos données sur cet appareil. Pour
-            synchroniser, créez un projet Supabase gratuit, exécutez le fichier{" "}
-            <code>supabase/schema.sql</code> et renseignez les identifiants
-            publics du projet.
+            {tr(
+              "Sans configuration, Vela garde vos données sur cet appareil. Pour synchroniser, créez un projet Supabase gratuit, exécutez le fichier",
+            )}{" "}
+            <code>supabase/schema.sql</code>{" "}
+            {tr(" et renseignez les identifiants publics du projet.")}
           </p>
           <details className="sql-guide" open={repairNeeded}>
-            <summary>Corriger l’erreur public.library</summary>
+            <summary>{tr("Corriger l’erreur public.library")}</summary>
             <ol>
               <li>
-                Ouvrez le projet Supabase dont l’URL est renseignée ci-dessous.
+                {tr(
+                  "Ouvrez le projet Supabase dont l’URL est renseignée ci-dessous.",
+                )}
               </li>
               <li>
-                Dans SQL Editor → New query, collez ce script puis appuyez sur
-                Run.
+                {tr(
+                  "Dans SQL Editor → New query, collez ce script puis appuyez sur Run.",
+                )}
               </li>
               <li>
-                Revenez dans Profil et appuyez sur Synchroniser. Le site web n’a
-                pas besoin d’être publié.
+                {tr(
+                  "Revenez dans Profil et appuyez sur Synchroniser. Le site web n’a pas besoin d’être publié.",
+                )}
               </li>
             </ol>
             <label className="field">
-              Script SQL de réparation
+              {tr("Script SQL de réparation")}
               <textarea
-                aria-label="Script SQL de réparation"
+                aria-label={tr("Script SQL de réparation")}
                 readOnly
                 value={repairSql}
                 rows={8}
@@ -2173,16 +2306,18 @@ function SettingsPage({
                 try {
                   await Clipboard.write({ string: repairSql });
                   setCopyMessage(
-                    "Script copié. Collez-le dans SQL Editor de Supabase.",
+                    tr("Script copié. Collez-le dans SQL Editor de Supabase."),
                   );
                 } catch {
                   setCopyMessage(
-                    "Copie indisponible. Sélectionnez le script ci-dessus pour le copier.",
+                    tr(
+                      "Copie indisponible. Sélectionnez le script ci-dessus pour le copier.",
+                    ),
                   );
                 }
               }}
             >
-              Copier le script SQL
+              {tr("Copier le script SQL")}
             </button>
             {copyMessage && (
               <p className="muted" role="status">
@@ -2201,7 +2336,7 @@ function SettingsPage({
             }}
           >
             <label className="field">
-              URL du projet
+              {tr("URL du projet")}
               <input
                 type="url"
                 required
@@ -2211,7 +2346,7 @@ function SettingsPage({
               />
             </label>
             <label className="field">
-              Clé publique (publishable ou anon)
+              {tr("Clé publique (publishable ou anon)")}
               <input
                 required
                 placeholder="sb_publishable_… ou eyJ…"
@@ -2220,9 +2355,9 @@ function SettingsPage({
               />
             </label>
             <p className="muted fine">
-              N’utilisez jamais une clé secret ou service_role. Ces identifiants
-              publics restent sur cet appareil. Les politiques de sécurité du
-              schéma protègent votre collection.
+              {tr(
+                "N’utilisez jamais une clé secret ou service_role. Ces identifiants publics restent sur cet appareil. Les politiques de sécurité du schéma protègent votre collection.",
+              )}
             </p>
             {error && (
               <p className="error" role="alert">
@@ -2230,7 +2365,8 @@ function SettingsPage({
               </p>
             )}
             <button className="button primary">
-              Enregistrer et recharger <ArrowRight size={17} />
+              {tr("Enregistrer et recharger ")}
+              <ArrowRight size={17} />
             </button>
           </form>
           {config.url && (
@@ -2241,7 +2377,7 @@ function SettingsPage({
                 location.reload();
               }}
             >
-              Réinitialiser la configuration locale
+              {tr("Réinitialiser la configuration locale")}
             </button>
           )}
         </details>
@@ -2258,13 +2394,13 @@ function AuthModal({
   toast: (message: string) => void;
 }) {
   return (
-    <Modal label="Connexion" close={close}>
+    <Modal label={tr("Connexion")} close={close}>
       <AuthForm
         success={({ needsConfirmation }) => {
           toast(
             needsConfirmation
-              ? "Confirmez votre adresse avec l’e-mail reçu."
-              : "Vous êtes connecté.",
+              ? tr("Confirmez votre adresse avec l’e-mail reçu.")
+              : tr("Vous êtes connecté."),
           );
           close();
         }}

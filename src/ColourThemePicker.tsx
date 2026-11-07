@@ -1,3 +1,4 @@
+import { t as tr } from "./i18n";
 import { Capacitor } from "@capacitor/core";
 import { colourThemes, type ColourTheme } from "./colour-themes";
 
@@ -20,10 +21,11 @@ export default function ColourThemePicker({
 }) {
   return (
     <fieldset className="colour-themes">
-      <legend>Palette de couleurs</legend>
+      <legend>{tr("Palette de couleurs")}</legend>
       <p className="muted">
-        Les fonds, boutons et le logo s’accordent à votre choix, en mode clair
-        comme en mode sombre.
+        {tr(
+          "Les fonds, boutons et le logo s’accordent à votre choix, en mode clair comme en mode sombre.",
+        )}
       </p>
       <div className="colour-theme-grid">
         {colourThemes.map((p) => (
@@ -46,15 +48,17 @@ export default function ColourThemePicker({
                 ))}
               </span>
             </span>
-            <span className="colour-theme-name">{p.name}</span>
+            <span className="colour-theme-name">{tr(p.name)}</span>
           </label>
         ))}
       </div>
       <p className="muted fine">
-        Choix mémorisé sur cet appareil.
+        {tr("Choix mémorisé sur cet appareil.")}
         {Capacitor.isNativePlatform()
-          ? " L’icône Android sera mise à jour au retour à l’écran d’accueil. Les icônes thématiques du système gardent les couleurs choisies par Android."
-          : " L’icône de l’onglet suit aussi la palette."}
+          ? tr(
+              " L’icône Android sera mise à jour au retour à l’écran d’accueil. Les icônes thématiques du système gardent les couleurs choisies par Android.",
+            )
+          : tr(" L’icône de l’onglet suit aussi la palette.")}
       </p>
     </fieldset>
   );

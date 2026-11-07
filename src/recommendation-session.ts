@@ -1,3 +1,4 @@
+import { getLanguage } from "./i18n";
 import type { Candidate, RecommendationCursor } from "./recommendations";
 import { localDay } from "./feed-history";
 export type RecommendationSession = {
@@ -11,7 +12,11 @@ export function readRecommendationSession(
   account: string,
 ): RecommendationSession {
   try {
-    const value = JSON.parse(localStorage.getItem(prefix + account) || "null");
+    const value = JSON.parse(
+      localStorage.getItem(
+        prefix + account + (getLanguage() === "fr-FR" ? "" : ":en-US"),
+      ) || "null",
+    );
     if (
       value?.day === localDay() &&
       typeof value.profile === "string" &&
@@ -50,7 +55,7 @@ export function saveRecommendationSession(
 ) {
   try {
     localStorage.setItem(
-      prefix + account,
+      prefix + account + (getLanguage() === "fr-FR" ? "" : ":en-US"),
       JSON.stringify({
         day: localDay(),
         profile,

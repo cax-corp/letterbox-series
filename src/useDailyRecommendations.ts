@@ -1,3 +1,4 @@
+import { useLanguage } from "./i18n";
 import { useEffect, useRef } from "react";
 import type { Title } from "./catalog";
 import type { Entry } from "./store";
@@ -13,6 +14,7 @@ export function useDailyRecommendations(
   account = "local",
   openSettings?: () => void,
 ) {
+  const language = useLanguage();
   const handler = useRef(open);
   handler.current = open;
   const settingsHandler = useRef(openSettings);
@@ -69,5 +71,5 @@ export function useDailyRecommendations(
       window.removeEventListener("luma-feed-impression", prepare);
       document.removeEventListener("visibilitychange", resume);
     };
-  }, [library, fallback, account]);
+  }, [library, fallback, account, language]);
 }

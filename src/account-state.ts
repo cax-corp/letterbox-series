@@ -1,3 +1,4 @@
+import { t as tr } from "./i18n";
 import { cloud, getConfig } from "./store";
 import { getColourTheme } from "./colour-themes";
 import {
@@ -104,7 +105,7 @@ export function changePreference<K extends PreferenceName>(
   key: K,
   value: PreferenceValues[K],
 ) {
-  if (!validPreference(key, value)) throw new Error("Réglage invalide.");
+  if (!validPreference(key, value)) throw new Error(tr("Réglage invalide."));
   const current = readAccountPreferences(account);
   if (JSON.stringify(current[key]?.payload.value) === JSON.stringify(value))
     return;
@@ -172,11 +173,14 @@ export async function syncAccountState(
           result.code === "42P01" ||
             result.code === "PGRST205" ||
             result.code === "PGRST202"
-            ? "La synchronisation des réglages nécessite la mise à jour Supabase fournie avec Vela."
-            : result.message || "Synchronisation des réglages indisponible.",
+            ? tr(
+                "La synchronisation des réglages nécessite la mise à jour Supabase fournie avec Vela.",
+              )
+            : result.message ||
+                tr("Synchronisation des réglages indisponible."),
         );
       if (!Array.isArray(result))
-        throw new Error("Réponse de synchronisation invalide.");
+        throw new Error(tr("Réponse de synchronisation invalide."));
       return result;
     }
     try {
@@ -226,7 +230,7 @@ export async function syncAccountState(
         if (fields.includes(sent.key as PreferenceName)) {
           const ack = result.find((r) => r.key === sent.key);
           if (!ack || Date.parse(ack.updated_at) < Date.parse(sent.updated_at))
-            throw new Error("Un réglage n’a pas pu être confirmé.");
+            throw new Error(tr("Un réglage n’a pas pu être confirmé."));
         }
       save(account, confirmed);
       mergeSkipArchive(

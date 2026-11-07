@@ -1,3 +1,4 @@
+import { t as tr, getLanguage } from "./i18n";
 import { serviceDefaults } from "./service-config";
 export type Season = { number: number; name: string; count: number };
 export type Episode = {
@@ -96,7 +97,10 @@ export async function request(url: string, signal?: AbortSignal) {
   const r = await fetch(url, { signal });
   if (!r.ok)
     throw new Error(
-      `Le catalogue ne répond pas (${r.status}). Réessayez dans un instant.`,
+      tr(
+        "Le catalogue ne répond pas ({0}). Réessayez dans un instant.",
+        r.status,
+      ),
     );
   return r.json();
 }
@@ -108,10 +112,11 @@ export async function tmdbRequest(
 ): Promise<any> {
   if (!credential.trim())
     throw new Error(
-      "Activez TMDB dans Réglages → Catalogue avec votre clé gratuite.",
+      tr("Activez TMDB dans Réglages → Catalogue avec votre clé gratuite."),
     );
   const url = new URL(TMDB + path);
-  url.searchParams.set("language", "fr-FR");
+  const requestedLanguage = getLanguage();
+  url.searchParams.set("language", requestedLanguage);
   for (const [k, v] of Object.entries(params))
     url.searchParams.set(k, String(v));
   const headers: Record<string, string> = { Accept: "application/json" };
@@ -125,23 +130,30 @@ export async function tmdbRequest(
     if (error instanceof DOMException && error.name === "AbortError")
       throw error;
     throw new Error(
-      "Impossible de joindre TMDB. Vérifiez votre connexion et réessayez.",
+      tr("Impossible de joindre TMDB. Vérifiez votre connexion et réessayez."),
     );
   }
   if (!r.ok) {
     if (r.status === 401 || r.status === 403)
       throw new Error(
-        "TMDB refuse la clé. Vérifiez votre jeton de lecture ou votre clé API dans Réglages → Catalogue.",
+        tr(
+          "TMDB refuse la clé. Vérifiez votre jeton de lecture ou votre clé API dans Réglages → Catalogue.",
+        ),
       );
     if (r.status === 429)
       throw new Error(
-        "TMDB reçoit trop de demandes. Patientez quelques instants puis réessayez.",
+        tr(
+          "TMDB reçoit trop de demandes. Patientez quelques instants puis réessayez.",
+        ),
       );
     throw new Error(
-      `TMDB est indisponible (${r.status}). Réessayez dans un instant.`,
+      tr("TMDB est indisponible ({0}). Réessayez dans un instant.", r.status),
     );
   }
-  return r.json();
+  const data = await r.json();
+  if (requestedLanguage !== getLanguage())
+    throw new DOMException("Language changed", "AbortError");
+  return data;
 }
 export async function saveTmdbCredential(input: string) {
   const credential = input.trim().replace(/^Bearer\s+/i, "");
@@ -150,7 +162,9 @@ export async function saveTmdbCredential(input: string) {
     !/^eyJ[\w-]+\.[\w-]+\.[\w-]+$/.test(credential)
   )
     throw new Error(
-      "Collez le jeton de lecture API TMDB ou la clé API v3 de 32 caractères.",
+      tr(
+        "Collez le jeton de lecture API TMDB ou la clé API v3 de 32 caractères.",
+      ),
     );
   await tmdbRequest("/configuration", {}, undefined, credential);
   localStorage.setItem("luma-tmdb-token", credential);
@@ -171,7 +185,11 @@ function fromTmdb(x: any, kind: Title["kind"]): Title {
     source: "tmdb",
     kind,
     name:
-      x.title || x.name || x.original_title || x.original_name || "Sans titre",
+      x.title ||
+      x.name ||
+      x.original_title ||
+      x.original_name ||
+      tr("Sans titre"),
     original: x.original_title || x.original_name,
     year: (x.release_date || x.first_air_date || "").slice(0, 4),
     image: x.poster_path
@@ -180,11 +198,13 @@ function fromTmdb(x: any, kind: Title["kind"]): Title {
     backdrop: x.backdrop_path
       ? `https://image.tmdb.org/t/p/w1280${x.backdrop_path}`
       : undefined,
-    summary: x.overview || "Synopsis indisponible en français.",
+    summary: x.overview || tr("Synopsis indisponible en français."),
     genreIds: x.genres ? x.genres.map((g: any) => g.id) : x.genre_ids || [],
     genres: x.genres
       ? x.genres.map((g: any) => g.name)
-      : (x.genre_ids || []).map((id: number) => genres[id]).filter(Boolean),
+      : (x.genre_ids || [])
+          .map((id: number) => tr(genres[id] || ""))
+          .filter(Boolean),
     voteCount: x.vote_count,
     ...(Number.isSafeInteger(x.belongs_to_collection?.id)
       ? { collectionId: x.belongs_to_collection.id }
@@ -193,7 +213,7 @@ function fromTmdb(x: any, kind: Title["kind"]): Title {
     duration: x.runtime
       ? `${x.runtime} min`
       : x.episode_run_time?.[0]
-        ? `${x.episode_run_time[0]} min / épisode`
+        ? tr("{0} min / épisode", x.episode_run_time[0])
         : undefined,
     url: `https://www.themoviedb.org/${kind === "movie" ? "movie" : "tv"}/${x.id}`,
     trailer: trailer
@@ -207,7 +227,7 @@ function fromTmdb(x: any, kind: Title["kind"]): Title {
     seasons: Array.isArray(x.seasons)
       ? x.seasons.map((s: any) => ({
           number: s.season_number,
-          name: s.name || `Saison ${s.season_number}`,
+          name: s.name || tr("Saison {0}", s.season_number),
           count: s.episode_count || 0,
         }))
       : undefined,
@@ -279,7 +299,9 @@ export async function searchCatalog(
     const results = r.flatMap((x) => (x.status === "fulfilled" ? x.value : []));
     if (r.some((x) => x.status === "rejected"))
       throw new Error(
-        "Un catalogue limité est indisponible. Activez TMDB dans les réglages ou réessayez.",
+        tr(
+          "Un catalogue limité est indisponible. Activez TMDB dans les réglages ou réessayez.",
+        ),
       );
     return { results, total: results.length, hasMore: false, page: 1 };
   }
@@ -332,7 +354,7 @@ export async function seasonEpisodes(
   season: number,
   signal?: AbortSignal,
 ): Promise<Episode[]> {
-  if (!isTmdb(title)) throw new Error("Source de saison incorrecte");
+  if (!isTmdb(title)) throw new Error(tr("Source de saison incorrecte"));
   const d = await tmdbRequest(
     `/tv/${title.id.split("-")[2]}/season/${season}`,
     {},
@@ -342,7 +364,7 @@ export async function seasonEpisodes(
     id: x.id,
     season: x.season_number,
     number: x.episode_number,
-    name: x.name || `Épisode ${x.episode_number}`,
+    name: x.name || tr("Épisode {0}", x.episode_number),
   }));
 }
 export async function episodes(
@@ -350,7 +372,7 @@ export async function episodes(
   signal?: AbortSignal,
 ): Promise<Episode[]> {
   if (!/^series-\d+$/.test(id))
-    throw new Error("Cette source nécessite le chargement par saison.");
+    throw new Error(tr("Cette source nécessite le chargement par saison."));
   return request(
     `https://api.tvmaze.com/shows/${id.replace("series-", "")}/episodes`,
     signal,
@@ -362,7 +384,7 @@ async function legacyMovies(
   signal?: AbortSignal,
 ): Promise<Title[]> {
   const d = await request(
-    `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&entity=movie&country=fr&limit=40`,
+    `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&entity=movie&country=${getLanguage() === "en-US" ? "us" : "fr"}&lang=${getLanguage() === "en-US" ? "en_us" : "fr_fr"}&limit=40`,
     signal,
   );
   return d.results.map((x: any) => ({
@@ -374,7 +396,7 @@ async function legacyMovies(
     year: (x.releaseDate || "").slice(0, 4),
     image: (x.artworkUrl100 || "").replace("100x100bb", "600x900bb"),
     summary:
-      x.longDescription || x.shortDescription || "Synopsis indisponible.",
+      x.longDescription || x.shortDescription || tr("Synopsis indisponible."),
     genres: [x.primaryGenreName].filter(Boolean),
     duration: x.trackTimeMillis
       ? `${Math.round(x.trackTimeMillis / 60000)} min`
@@ -402,11 +424,11 @@ async function legacySeries(
       name: x.name,
       year: (x.premiered || "").slice(0, 4),
       image: x.image?.original || "",
-      summary: plain(x.summary || "Synopsis indisponible."),
+      summary: plain(x.summary || tr("Synopsis indisponible.")),
       genres: x.genres || [],
       score: x.rating?.average,
       duration: x.averageRuntime
-        ? `${x.averageRuntime} min / épisode`
+        ? tr("{0} min / épisode", x.averageRuntime)
         : undefined,
       url: x.officialSite || x.url,
     }))
@@ -422,7 +444,7 @@ export async function relatedMoviesPage(
 ): Promise<MoviePage> {
   if (seed.kind !== "movie" || !tmdbEnabled())
     return { results: [], hasMore: false };
-  const key = JSON.stringify([seed.id, seed.name, seed.year]);
+  const key = JSON.stringify([getLanguage(), seed.id, seed.name, seed.year]);
   let resolved = isTmdb(seed) ? seed : resolvedSeeds.get(key);
   if (!resolved) {
     const result = await searchCatalog(seed.name, "movie", 1, signal);
@@ -504,7 +526,7 @@ export async function titleById(
   signal: AbortSignal,
 ): Promise<Title> {
   const match = /^(tmdb-)?(movie|series)-(\d+)$/.exec(id);
-  if (!match) throw new Error("Ce lien de titre est invalide.");
+  if (!match) throw new Error(tr("Ce lien de titre est invalide."));
   const base: Title = {
     id,
     kind: match[2] as Title["kind"],
@@ -543,7 +565,8 @@ export async function titleById(
       signal,
     ),
     x = data.results?.[0];
-  if (!x) throw new Error("Ce titre n’est plus disponible dans le catalogue.");
+  if (!x)
+    throw new Error(tr("Ce titre n’est plus disponible dans le catalogue."));
   return {
     ...base,
     name: x.trackName,

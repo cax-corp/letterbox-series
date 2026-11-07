@@ -1,3 +1,4 @@
+import { t as tr, getLanguage } from "./i18n";
 import { useEffect, useId, useRef, useState } from "react";
 import { ArrowRight, Bookmark, ChevronRight, ShareIcon, Star } from "./icons";
 import type { Entry } from "./store";
@@ -26,19 +27,22 @@ export default function TitleReview({
     if (editing) textarea.current?.focus({ preventScroll: true });
   }, [editing]);
   return (
-    <section className="review-panel" aria-label="Votre avis">
+    <section className="review-panel" aria-label={tr("Votre avis")}>
       <div className="review-title">
-        <h3>Votre avis</h3>
+        <h3>{tr("Votre avis")}</h3>
         <span className="review-own-score">
-          {entry.rating > 0 ? `${entry.rating}/5` : "Non noté"}
+          {entry.rating > 0 ? `${entry.rating}/5` : tr("Non noté")}
         </span>
       </div>
       <div className="review-rating-row">
-        <div className="stars editable" aria-label={`${entry.rating} sur 5`}>
+        <div
+          className="stars editable"
+          aria-label={tr("{0} sur 5", entry.rating)}
+        >
           {[1, 2, 3, 4, 5].map((n) => (
             <button
               key={n}
-              aria-label={`Noter ${n} sur 5`}
+              aria-label={tr("Noter {0} sur 5", n)}
               aria-pressed={entry.rating === n}
               onClick={() =>
                 update({
@@ -67,12 +71,14 @@ export default function TitleReview({
               className="text-button review-edit"
               onClick={() => setEditing(true)}
             >
-              {entry.review.trim() ? "Modifier mon avis" : "Écrire un avis"}{" "}
+              {entry.review.trim()
+                ? tr("Modifier mon avis")
+                : tr("Écrire un avis")}{" "}
               <ArrowRight size={16} />
             </button>
             {entry.review.trim() && (
               <button className="text-button review-share" onClick={share}>
-                <ShareIcon size={17} /> Partager mon avis
+                <ShareIcon size={17} /> {tr(" Partager mon avis")}
               </button>
             )}
           </div>
@@ -88,7 +94,7 @@ export default function TitleReview({
           }}
         >
           <label className="sr-only" htmlFor={reviewId}>
-            Votre critique
+            {tr("Votre critique")}
           </label>
           <textarea
             id={reviewId}
@@ -96,7 +102,7 @@ export default function TitleReview({
             value={review}
             maxLength={5000}
             rows={4}
-            placeholder="Qu’en avez-vous pensé ?"
+            placeholder={tr("Qu’en avez-vous pensé ?")}
             onChange={(e) => setReview(e.target.value)}
             onInput={(e) => {
               const field = e.currentTarget;
@@ -107,7 +113,7 @@ export default function TitleReview({
           />
           <div className="review-composer-footer">
             <span className="muted">
-              {review.length.toLocaleString("fr-FR")} / 5 000
+              {review.length.toLocaleString(getLanguage())} / 5 000
             </span>
             <div>
               <button
@@ -118,14 +124,15 @@ export default function TitleReview({
                   setEditing(false);
                 }}
               >
-                Annuler
+                {tr("Annuler")}
               </button>
               <button
                 className="button primary"
                 type="submit"
-                aria-label="Enregistrer mon avis"
+                aria-label={tr("Enregistrer mon avis")}
               >
-                Enregistrer <ArrowRight size={16} />
+                {tr("Enregistrer ")}
+                <ArrowRight size={16} />
               </button>
             </div>
           </div>
@@ -145,13 +152,13 @@ export function PersonalTracking({
     <details className="detail-disclosure personal-tracking">
       <summary>
         <span>
-          <Bookmark size={18} /> Suivi personnel
+          <Bookmark size={18} /> {tr(" Suivi personnel")}
         </span>
         <ChevronRight className="disclosure-chevron" size={18} />
       </summary>
       <div className="tracking-content">
         <label className="field">
-          Date du visionnage
+          {tr("Date du visionnage")}
           <input
             type="date"
             value={entry.watchedAt}
@@ -161,10 +168,10 @@ export function PersonalTracking({
           />
         </label>
         <label className="field">
-          Vos listes personnelles
+          {tr("Vos listes personnelles")}
           <input
             defaultValue={(entry.lists || []).join(", ")}
-            placeholder="Soirée cinéma, À revoir…"
+            placeholder={tr("Soirée cinéma, À revoir…")}
             maxLength={500}
             onBlur={(e) =>
               update({
@@ -179,7 +186,9 @@ export function PersonalTracking({
               })
             }
           />
-          <span className="muted fine">Séparez les noms par une virgule.</span>
+          <span className="muted fine">
+            {tr("Séparez les noms par une virgule.")}
+          </span>
         </label>
       </div>
     </details>

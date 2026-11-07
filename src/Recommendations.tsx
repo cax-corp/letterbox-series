@@ -1,3 +1,4 @@
+import { t as tr, recommendationReason } from "./i18n";
 import {
   useCallback,
   useEffect,
@@ -176,7 +177,9 @@ export default function Recommendations({
     if (!paused && active?.id && !document.hidden) {
       if (!rememberSuggestion(active, account)) {
         setError(
-          "Le stockage local est indisponible. Les cartes consultées ne peuvent pas être conservées après fermeture.",
+          tr(
+            "Le stockage local est indisponible. Les cartes consultées ne peuvent pas être conservées après fermeture.",
+          ),
         );
         setManual(true);
       }
@@ -264,7 +267,7 @@ export default function Recommendations({
             let timer: ReturnType<typeof setTimeout>;
             const abort = () => {
               clearTimeout(timer);
-              reject(new DOMException("Annulé", "AbortError"));
+              reject(new DOMException(tr("Annulé"), "AbortError"));
             };
             const check = () => {
               if (c.signal.aborted) return abort();
@@ -368,7 +371,7 @@ export default function Recommendations({
           setError(
             e instanceof Error
               ? e.message
-              : "La suite ne peut pas être chargée.",
+              : tr("La suite ne peut pas être chargée."),
           );
           setManual(true);
         }
@@ -423,7 +426,7 @@ export default function Recommendations({
   return (
     <section
       className="recommendations-page"
-      aria-label="Pour vous"
+      aria-label={tr("Pour vous")}
       data-moving={moving}
     >
       {createPortal(
@@ -439,13 +442,13 @@ export default function Recommendations({
         </div>,
         document.body,
       )}
-      <h1 className="sr-only">Pour vous</h1>
+      <h1 className="sr-only">{tr("Pour vous")}</h1>
       <div
         className="recommendation-scroll"
         ref={root}
         tabIndex={0}
         role="feed"
-        aria-label="Films recommandés"
+        aria-label={tr("Films recommandés")}
         aria-busy={loading}
       >
         <div
@@ -478,14 +481,16 @@ export default function Recommendations({
             {loading && (
               <span role="status" className="feed-progress">
                 <LoaderCircle size={18} className="spin" />
-                Chargement…
+                {tr("Chargement…")}
               </span>
             )}
             {error && (
               <div className="error" role="alert">
-                {error}
-                <button onClick={() => next()}>Réessayer la suite</button>
-                <button onClick={configure}>Réglages</button>
+                {tr(error)}
+                <button onClick={() => next()}>
+                  {tr("Réessayer la suite")}
+                </button>
+                <button onClick={configure}>{tr("Réglages")}</button>
               </div>
             )}
             {!loading && !error && more && manual && (
@@ -496,17 +501,17 @@ export default function Recommendations({
                   next();
                 }}
               >
-                Charger la suite
+                {tr("Charger la suite")}
               </button>
             )}
             {!loading && !more && !error && (
               <p className="feed-progress">
                 {items.length
-                  ? "Aucun autre film inédit disponible pour aujourd’hui."
-                  : "Aucun autre film inédit disponible pour aujourd’hui."}
+                  ? tr("Aucun autre film inédit disponible pour aujourd’hui.")
+                  : tr("Aucun autre film inédit disponible pour aujourd’hui.")}
                 {!tmdbEnabled() && (
                   <button className="text-button" onClick={configure}>
-                    Activer TMDB
+                    {tr("Activer TMDB")}
                   </button>
                 )}
               </p>
@@ -624,11 +629,13 @@ function RecommendationCard({
         )}
       </div>
       <div className="recommendation-shade" />
-      <span className="recommendation-reason">{reason}</span>
+      <span className="recommendation-reason">
+        {recommendationReason(reason)}
+      </span>
       {pulse > 0 && (
         <span className="like-burst" key={pulse} aria-hidden="true">
           <Bookmark size={90} fill="currentColor" />
-          <span>À voir</span>
+          <span>{tr("À voir")}</span>
         </span>
       )}
       <div className="recommendation-content">
@@ -647,14 +654,15 @@ function RecommendationCard({
         <p className="recommendation-synopsis">{title.summary}</p>
         <div className="recommendation-actions">
           <button className="button primary" onClick={() => open(title)}>
-            Détails <ArrowRight size={18} />
+            {tr("Détails ")}
+            <ArrowRight size={18} />
           </button>
           <button
             className="icon-button"
             aria-label={
               liked
-                ? `Retirer J’aime pour ${title.name}`
-                : `J’aime ${title.name}`
+                ? tr("Retirer J’aime pour {0}", title.name)
+                : tr("J’aime {0}", title.name)
             }
             aria-pressed={liked}
             onClick={() => {
@@ -674,7 +682,7 @@ function RecommendationCard({
           </button>
           <button
             className="icon-button"
-            aria-label={`Je n’aime pas ${title.name}`}
+            aria-label={tr("Je n’aime pas {0}", title.name)}
             onClick={() =>
               update(title, {
                 favorite: false,
@@ -689,8 +697,8 @@ function RecommendationCard({
             className="icon-button"
             aria-label={
               entry?.watchlist
-                ? `Retirer ${title.name} de ma liste`
-                : `Ajouter ${title.name} à ma liste`
+                ? tr("Retirer {0} de ma liste", title.name)
+                : tr("Ajouter {0} à ma liste", title.name)
             }
             aria-pressed={Boolean(entry?.watchlist)}
             onClick={() => update(title, { watchlist: !entry?.watchlist })}

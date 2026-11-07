@@ -19,7 +19,8 @@ public final class DailyRecommendations {
     private static final int SCHEDULER_VERSION=3;
     public static SharedPreferences prefs(Context c){return c.getSharedPreferences("luma-daily",Context.MODE_PRIVATE);}
     public static JSONObject config(Context c){try{return new JSONObject(prefs(c).getString("config","{}"));}catch(JSONException e){return new JSONObject();}}
-    public static void channel(Context c){if(Build.VERSION.SDK_INT>=26){NotificationChannel channel=new NotificationChannel(CHANNEL,"Recommandations Vela",NotificationManager.IMPORTANCE_DEFAULT);channel.setDescription("Votre idée de film à l’heure choisie");c.getSystemService(NotificationManager.class).createNotificationChannel(channel);}}
+    public static boolean english(Context c){return "en-US".equals(config(c).optString("language"));}
+    public static void channel(Context c){if(Build.VERSION.SDK_INT>=26){boolean en=english(c);NotificationChannel channel=new NotificationChannel(CHANNEL,en?"Vela recommendations":"Recommandations Vela",NotificationManager.IMPORTANCE_DEFAULT);channel.setDescription(en?"Your movie pick at your chosen time":"Votre idée de film à l’heure choisie");c.getSystemService(NotificationManager.class).createNotificationChannel(channel);}}
     public static boolean allowed(Context c){
         if(!NotificationManagerCompat.from(c).areNotificationsEnabled())return false;
         if(Build.VERSION.SDK_INT>=33&&ContextCompat.checkSelfPermission(c,Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED)return false;
@@ -114,8 +115,9 @@ public final class DailyRecommendations {
                 Intent intent=new Intent(c,MainActivity.class).setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP|Intent.FLAG_ACTIVITY_CLEAR_TOP);
                 if(title!=null)intent.putExtra("luma_recommendation",title.toString());else intent.putExtra("luma_open_recommendations",true);
                 PendingIntent opened=PendingIntent.getActivity(c,test?TEST_ID:NOTIFICATION_ID,intent,PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
-                String heading=title==null?"Votre pause cinéma vous attend":"À découvrir : "+title.optString("name");
-                String text=title==null?"Ouvrez Vela pour découvrir vos prochaines recommandations.":item.optString("reason","Un film choisi pour vos goûts");
+                boolean en=english(c);
+                String heading=title==null?(en?"Your movie break awaits":"Votre pause cinéma vous attend"):(en?"Discover: ":"À découvrir : ")+title.optString("name");
+                String text=title==null?(en?"Open Vela to discover your next recommendations.":"Ouvrez Vela pour découvrir vos prochaines recommandations."):item.optString("reason",en?"A movie picked for your tastes":"Un film choisi pour vos goûts");
                 NotificationCompat.Builder notification=new NotificationCompat.Builder(c,CHANNEL).setSmallIcon(app.luma.cinema.R.drawable.ic_stat_luma)
                     .setContentTitle(test?"Test Vela · "+heading:heading).setContentText(text).setAutoCancel(true).setContentIntent(opened)
                     .setCategory(NotificationCompat.CATEGORY_REMINDER)

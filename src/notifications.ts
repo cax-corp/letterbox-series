@@ -1,3 +1,4 @@
+import { t as tr, getLanguage } from "./i18n";
 import {
   Capacitor,
   registerPlugin,
@@ -18,6 +19,7 @@ export type DailyOptions = {
 };
 export type DailyPayload = DailyOptions & {
   preparedAt: number;
+  language?: string;
   excluded: Partial<Title>[];
   candidates: { title: Title; reason: string }[];
 };
@@ -110,6 +112,7 @@ export function buildDailyPayload(
   );
   return {
     ...options,
+    language: getLanguage(),
     preparedAt: Date.now(),
     excluded: blocked.map((entry) => ({
       id: entry.title.id,
@@ -117,9 +120,10 @@ export function buildDailyPayload(
       name: entry.title.name,
       year: entry.title.year,
     })),
-    candidates: candidates
-      .slice(0, 30)
-      .map((title) => ({ title, reason: "Une idée choisie pour vos goûts" })),
+    candidates: candidates.slice(0, 30).map((title) => ({
+      title,
+      reason: tr("Une idée choisie pour vos goûts"),
+    })),
   };
 }
 
@@ -140,12 +144,14 @@ export async function setDailyRecommendations(
     !options.days.length ||
     options.days.some((d) => !Number.isInteger(d) || d < 0 || d > 6)
   )
-    throw new Error("Choisissez une heure et au moins un jour.");
+    throw new Error(tr("Choisissez une heure et au moins un jour."));
   if (options.enabled) {
     const permission = await adapter.requestNotificationPermission();
     if (!permission.granted)
       throw new Error(
-        "Les notifications sont bloquées par Android. Autorisez-les dans les paramètres du téléphone.",
+        tr(
+          "Les notifications sont bloquées par Android. Autorisez-les dans les paramètres du téléphone.",
+        ),
       );
   }
   return adapter.configure({

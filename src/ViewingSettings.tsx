@@ -1,5 +1,9 @@
+import { t as tr, useLanguage } from "./i18n";
 import { useEffect, useState } from "react";
-import { countries, type ViewingPreferences } from "./viewing-preferences";
+import {
+  localizedCountries,
+  type ViewingPreferences,
+} from "./viewing-preferences";
 import { providerCatalog, type Provider } from "./watch-providers";
 export function CountrySelect({
   value,
@@ -10,17 +14,18 @@ export function CountrySelect({
   onChange: (v: string) => void;
   required?: boolean;
 }) {
+  useLanguage();
   return (
     <label className="field">
-      Pays de résidence
+      {tr("Pays de résidence")}
       <select
-        aria-label="Pays de résidence"
+        aria-label={tr("Pays de résidence")}
         value={value}
         required={required}
         onChange={(e) => onChange(e.target.value)}
       >
-        <option value="">Choisir un pays</option>
-        {countries.map((c) => (
+        <option value="">{tr("Choisir un pays")}</option>
+        {localizedCountries().map((c) => (
           <option key={c.code} value={c.code}>
             {c.name}
           </option>
@@ -38,6 +43,7 @@ export default function ViewingSettings({
   save: (country: string, providers: number[]) => void;
   message: string;
 }) {
+  const language = useLanguage();
   const [providers, setProviders] = useState<Provider[]>([]),
     [query, setQuery] = useState(""),
     [error, setError] = useState(""),
@@ -63,7 +69,7 @@ export default function ViewingSettings({
         if (!c.signal.aborted) setLoading(false);
       });
     return () => c.abort();
-  }, [value.country, retry]);
+  }, [value.country, retry, language]);
   const shown = providers
     .filter((p) =>
       p.name.toLocaleLowerCase().includes(query.toLocaleLowerCase()),
@@ -74,11 +80,12 @@ export default function ViewingSettings({
         Number(value.providers.includes(a.id)),
     );
   return (
-    <section className="viewing-settings" aria-label="Pays et services">
-      <h2>Pays et services</h2>
+    <section className="viewing-settings" aria-label={tr("Pays et services")}>
+      <h2>{tr("Pays et services")}</h2>
       <p className="muted">
-        Les disponibilités dépendent de votre pays. Choisissez vos services pour
-        les retrouver en premier sur les fiches.
+        {tr(
+          "Les disponibilités dépendent de votre pays. Choisissez vos services pour les retrouver en premier sur les fiches.",
+        )}
       </p>
       <CountrySelect
         value={value.country}
@@ -87,7 +94,7 @@ export default function ViewingSettings({
       {value.country && (
         <>
           <label className="field">
-            Rechercher un service
+            {tr("Rechercher un service")}
             <input
               type="search"
               placeholder="Netflix, Prime Video, Disney+…"
@@ -97,19 +104,22 @@ export default function ViewingSettings({
           </label>
           {loading && (
             <p role="status" className="muted">
-              Chargement des services…
+              {tr("Chargement des services…")}
             </p>
           )}
           {error && (
             <div role="alert" className="error">
-              {error}
+              {tr(error)}
               <button onClick={() => setRetry((n) => n + 1)}>
-                Réessayer les services
+                {tr("Réessayer les services")}
               </button>
             </div>
           )}
           <fieldset className="provider-choices">
-            <legend>Mes services ({value.providers.length})</legend>
+            <legend>
+              {tr("Mes services (")}
+              {value.providers.length})
+            </legend>
             {shown.slice(0, all || query ? undefined : 12).map((p) => (
               <label key={p.id} className="provider-choice">
                 <input
@@ -130,23 +140,24 @@ export default function ViewingSettings({
             ))}
           </fieldset>
           {!loading && !error && !shown.length && (
-            <p className="muted">Aucun service trouvé.</p>
+            <p className="muted">{tr("Aucun service trouvé.")}</p>
           )}
           {!all && !query && shown.length > 12 && (
             <button className="text-button" onClick={() => setAll(true)}>
-              Afficher tous les services ({shown.length})
+              {tr("Afficher tous les services (")}
+              {shown.length})
             </button>
           )}
           <p className="muted fine">
-            Sélectionnez votre formule exacte si plusieurs offres portent le
-            même nom. Les services choisis ne garantissent pas que tous leurs
-            titres soient inclus.
+            {tr(
+              "Sélectionnez votre formule exacte si plusieurs offres portent le même nom. Les services choisis ne garantissent pas que tous leurs titres soient inclus.",
+            )}
           </p>
         </>
       )}
       {message && (
         <p className="muted fine" role="status">
-          {message}
+          {tr(message)}
         </p>
       )}
     </section>

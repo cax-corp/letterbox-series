@@ -1,3 +1,6 @@
+import LanguageSelect from "./LanguageSelect";
+import { saveGuestLanguage } from "./language-preferences";
+import { t as tr, useLanguage } from "./i18n";
 import { useId, useState } from "react";
 import { Capacitor } from "@capacitor/core";
 import { ArrowRight, LoaderCircle } from "./icons";
@@ -15,6 +18,7 @@ export default function AuthForm({
   initialEmail?: string;
   success: (result: AuthResult) => void;
 }) {
+  const language = useLanguage();
   const passwordHint = useId();
   const [signup, setSignup] = useState(initialMode === "signup"),
     [country, setCountry] = useState(""),
@@ -24,14 +28,15 @@ export default function AuthForm({
     [error, setError] = useState("");
   return (
     <div className="form-content">
-      <h2>{signup ? "Créer un compte" : "Connexion"}</h2>
+      <h2>{signup ? tr("Créer un compte") : tr("Connexion")}</h2>
+      <LanguageSelect value={language} onChange={saveGuestLanguage} />
       <form
         onSubmit={async (event) => {
           event.preventDefault();
           if (busy) return;
           if (!cloud) {
             setError(
-              "Le service de connexion est indisponible pour le moment.",
+              tr("Le service de connexion est indisponible pour le moment."),
             );
             return;
           }
@@ -44,6 +49,11 @@ export default function AuthForm({
                   password,
                   options: {
                     data: {
+                      vela_language: {
+                        version: 1,
+                        code: language,
+                        updated: new Date().toISOString(),
+                      },
                       vela_viewing: {
                         ...emptyViewing,
                         country,
@@ -68,7 +78,7 @@ export default function AuthForm({
             setError(
               issue instanceof Error
                 ? issue.message
-                : "Connexion indisponible. Réessayez.",
+                : tr("Connexion indisponible. Réessayez."),
             );
           } finally {
             setBusy(false);
@@ -76,7 +86,7 @@ export default function AuthForm({
         }}
       >
         <label className="field">
-          E-mail
+          {tr("E-mail")}
           <input
             type="email"
             autoComplete="email"
@@ -87,10 +97,10 @@ export default function AuthForm({
           />
         </label>
         <label className="field">
-          Mot de passe
+          {tr("Mot de passe")}
           <input
             type="password"
-            aria-label="Mot de passe"
+            aria-label={tr("Mot de passe")}
             aria-describedby={signup ? passwordHint : undefined}
             autoComplete={signup ? "new-password" : "current-password"}
             minLength={8}
@@ -100,7 +110,7 @@ export default function AuthForm({
           />
           {signup && (
             <small id={passwordHint} className="muted">
-              8 caractères minimum.
+              {tr("8 caractères minimum.")}
             </small>
           )}
         </label>
@@ -115,12 +125,12 @@ export default function AuthForm({
         <button className="button primary" disabled={busy} aria-busy={busy}>
           {busy ? (
             <>
-              <LoaderCircle className="spin" size={18} /> Patientez…
+              <LoaderCircle className="spin" size={18} /> {tr(" Patientez…")}
             </>
           ) : signup ? (
-            "Créer mon compte"
+            tr("Créer mon compte")
           ) : (
-            "Se connecter"
+            tr("Se connecter")
           )}
         </button>
       </form>
@@ -132,7 +142,7 @@ export default function AuthForm({
           setError("");
         }}
       >
-        {signup ? "J’ai déjà un compte" : "Créer un compte gratuit"}
+        {signup ? tr("J’ai déjà un compte") : tr("Créer un compte gratuit")}
         <ArrowRight size={15} />
       </button>
     </div>

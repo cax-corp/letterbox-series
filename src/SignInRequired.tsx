@@ -1,3 +1,4 @@
+import { t as tr } from "./i18n";
 import { User } from "./icons";
 export default function SignInRequired({
   title,
@@ -13,9 +14,9 @@ export default function SignInRequired({
       <div className="sign-in-panel surface">
         <User size={32} />
         <h1>{title}</h1>
-        <p className="muted">{message}</p>
+        <p className="muted">{tr(message)}</p>
         <button className="button primary" onClick={signIn}>
-          Se connecter
+          {tr("Se connecter")}
         </button>
       </div>
     </section>

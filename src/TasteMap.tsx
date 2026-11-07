@@ -1,3 +1,4 @@
+import { t as tr } from "./i18n";
 import { updateSystemAppearance } from "./appearance";
 import { useTasteSound } from "./useTasteSound";
 import { normalTitle } from "./taste-features";
@@ -25,6 +26,9 @@ const stardust = Array.from({ length: 95 }, (_, i) => ({
   y: ((i * i * 23.17) % 400) - 200,
   r: i % 7 === 0 ? 0.75 : 0.35,
 }));
+function pointLabel(point: { label: string; genre?: number }) {
+  return point.genre === undefined ? point.label : tr(point.label);
+}
 const labels: Record<TasteItem["kind"], string> = {
   positive: "Apprécié",
   negative: "Refusé ou mal noté",
@@ -200,7 +204,7 @@ export default function TasteMap({
   const soundButton = (
     <button
       className="atlas-sound"
-      aria-label="Son de la carte"
+      aria-label={tr("Son de la carte")}
       aria-pressed={sound.enabled && !sound.unavailable}
       disabled={sound.unavailable}
       onClick={() => {
@@ -212,10 +216,10 @@ export default function TasteMap({
         {sound.enabled && !sound.unavailable ? "◖))" : "◖×"}
       </span>
       {sound.unavailable
-        ? "Son indisponible"
+        ? tr("Son indisponible")
         : sound.enabled
-          ? "Son activé"
-          : "Son désactivé"}
+          ? tr("Son activé")
+          : tr("Son désactivé")}
     </button>
   );
   return (
@@ -233,12 +237,12 @@ export default function TasteMap({
       onChangeCapture={() => {
         if (phase === "ready") sound.play("select", true);
       }}
-      aria-label="Carte de mes goûts"
+      aria-label={tr("Carte de mes goûts")}
     >
       <header className="atlas-header">
         <button className="text-button settings-back" onClick={close}>
           <ArrowLeft size={20} />
-          Retour aux réglages
+          {tr("Retour aux réglages")}
         </button>
         <span className="atlas-wordmark" aria-hidden="true">
           vela<span>.</span> <small>/ NEURAL ATLAS</small>
@@ -253,29 +257,32 @@ export default function TasteMap({
             <span />
             <i />
           </div>
-          <span className="atlas-eyebrow">Module expérimental / 01</span>
+          <span className="atlas-eyebrow">
+            {tr("Module expérimental / 01")}
+          </span>
           <h1 ref={heading} tabIndex={-1}>
-            Carte de mes goûts
+            {tr("Carte de mes goûts")}
           </h1>
-          <p>Vos films. Vos affinités. Une constellation à explorer.</p>
+          <p>{tr("Vos films. Vos affinités. Une constellation à explorer.")}</p>
           <button className="button atlas-start" onClick={launch}>
-            Démarrer la carte <ArrowRight size={20} />
+            {tr("Démarrer la carte ")}
+            <ArrowRight size={20} />
           </button>
           <div className="atlas-launch-stats">
             <span>
-              <strong>{map.items.length}</strong> titres personnels
+              <strong>{map.items.length}</strong> {tr(" titres personnels")}
             </span>
             <span>
-              <strong>{map.edges.length}</strong> connexions
+              <strong>{map.edges.length}</strong> {tr(" connexions")}
             </span>
             <span>
-              <strong>LOCAL</strong> calcul sur cet appareil
+              <strong>LOCAL</strong> {tr(" calcul sur cet appareil")}
             </span>
           </div>
           <p className="atlas-honesty">
-            Un décor de science-fiction, de vrais goûts. Les liens proviennent
-            de vos titres, de leurs genres et de leurs synopsis. Aucune lecture
-            de pensées, promis.
+            {tr(
+              "Un décor de science-fiction, de vrais goûts. Les liens proviennent de vos titres, de leurs genres et de leurs synopsis. Aucune lecture de pensées, promis.",
+            )}
           </p>
         </div>
       ) : phase === "boot" ? (
@@ -284,14 +291,16 @@ export default function TasteMap({
             <i />
             <span>V</span>
           </div>
-          <span className="atlas-eyebrow">Initialisation / Neural Atlas</span>
+          <span className="atlas-eyebrow">
+            {tr("Initialisation / Neural Atlas")}
+          </span>
           <h1 ref={readyHeading} tabIndex={-1}>
-            Connexion à votre univers
+            {tr("Connexion à votre univers")}
           </h1>
           <div
             className="atlas-progress"
             role="progressbar"
-            aria-label="Initialisation de la carte"
+            aria-label={tr("Initialisation de la carte")}
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={(step + 1) * 25}
@@ -299,18 +308,20 @@ export default function TasteMap({
             <i style={{ width: `${(step + 1) * 25}%` }} />
           </div>
           <div className="atlas-boot-readout">
-            <span role="status">{bootSteps[step]}</span>
+            <span role="status">{tr(bootSteps[step])}</span>
             <strong>{String((step + 1) * 25).padStart(3, "0")}%</strong>
           </div>
           <div className="atlas-boot-log" aria-hidden="true">
             {bootSteps.map((label, i) => (
               <p key={label} className={i <= step ? "is-loaded" : ""}>
-                <span>{i <= step ? "[ OK ]" : "[ -- ]"}</span> {label}
+                <span>{i <= step ? "[ OK ]" : "[ -- ]"}</span> {tr(label)}
               </p>
             ))}
           </div>
           <p className="atlas-honesty">
-            Séquence d’ouverture visuelle · données déjà sur cet appareil.
+            {tr(
+              "Séquence d’ouverture visuelle · données déjà sur cet appareil.",
+            )}
           </p>
           <button
             className="text-button"
@@ -319,43 +330,48 @@ export default function TasteMap({
               sound.play("ready", true);
             }}
           >
-            Passer l’intro <ArrowRight size={16} />
+            {tr("Passer l’intro ")}
+            <ArrowRight size={16} />
           </button>
         </div>
       ) : (
         <div className="atlas-workspace">
           <div className="atlas-title-row">
             <div>
-              <span className="atlas-eyebrow">Neural Atlas / exploration</span>
+              <span className="atlas-eyebrow">
+                {tr("Neural Atlas / exploration")}
+              </span>
               <h1 ref={readyHeading} tabIndex={-1}>
-                Carte de mes goûts
+                {tr("Carte de mes goûts")}
               </h1>
             </div>
             <span className="atlas-live">
               <i />
-              LOCAL · ACTIF
+              {tr("LOCAL · ACTIF")}
             </span>
           </div>
           <div className="atlas-metrics">
             <span>
-              <b>{map.shown}</b> POINTS / {map.items.length} TITRES
+              <b>{map.shown}</b> {tr(" POINTS / ")}
+              {map.items.length} {tr(" TITRES")}
             </span>
             <span>
               <b>{map.nodes.filter((n) => n.genre !== undefined).length}</b>{" "}
-              GENRES
+              {tr("GENRES")}
             </span>
             <span>
-              <b>{map.edges.length}</b> LIENS
+              <b>{map.edges.length}</b> {tr(" LIENS")}
             </span>
-            <span>VOTRE BIBLIOTHÈQUE / VOS SIGNAUX</span>
+            <span>{tr("VOTRE BIBLIOTHÈQUE / VOS SIGNAUX")}</span>
           </div>
           {!map.items.length ? (
             <div className="taste-empty surface">
               <Heart size={32} />
-              <h2>Votre carte commence avec vos goûts.</h2>
+              <h2>{tr("Votre carte commence avec vos goûts.")}</h2>
               <p className="muted">
-                Notez des titres, ajoutez des coups de cœur ou remplissez votre
-                liste « À voir » pour la découvrir.
+                {tr(
+                  "Notez des titres, ajoutez des coups de cœur ou remplissez votre liste « À voir » pour la découvrir.",
+                )}
               </p>
             </div>
           ) : (
@@ -363,21 +379,21 @@ export default function TasteMap({
               <div
                 className="taste-filters"
                 role="group"
-                aria-label="Afficher les goûts"
+                aria-label={tr("Afficher les goûts")}
               >
                 {[
-                  ["all", "Tout"],
-                  ["positive", "Appréciés"],
-                  ["watchlist", "À voir"],
-                  ["negative", "Refusés"],
-                  ["skip", "Passés"],
+                  ["all", tr("Tout")],
+                  ["positive", tr("Appréciés")],
+                  ["watchlist", tr("À voir")],
+                  ["negative", tr("Refusés")],
+                  ["skip", tr("Passés")],
                 ].map(([key, label]) => (
                   <button
                     key={key}
                     aria-pressed={filter === key}
                     onClick={() => setFilter(key)}
                   >
-                    {label}
+                    {tr(label)}
                   </button>
                 ))}
               </div>
@@ -387,7 +403,7 @@ export default function TasteMap({
                 >
                   {keyboardScene && (
                     <span className="atlas-keyboard-hint">
-                      Flèches : rotation · + / − : zoom
+                      {tr("Flèches : rotation · + / − : zoom")}
                     </span>
                   )}
                   <div className="atlas-scene-grid" aria-hidden="true" />
@@ -397,7 +413,7 @@ export default function TasteMap({
                   <div className="taste-controls">
                     <button
                       className="icon-button"
-                      aria-label="Zoomer"
+                      aria-label={tr("Zoomer")}
                       onClick={() =>
                         move({
                           zoom: Math.min(1.8, current.current.zoom + 0.15),
@@ -408,7 +424,7 @@ export default function TasteMap({
                     </button>
                     <button
                       className="icon-button"
-                      aria-label="Dézoomer"
+                      aria-label={tr("Dézoomer")}
                       onClick={() =>
                         move({
                           zoom: Math.max(0.6, current.current.zoom - 0.15),
@@ -423,14 +439,16 @@ export default function TasteMap({
                         move({ rotation: initialTasteRotation, zoom: 1 })
                       }
                     >
-                      Recentrer
+                      {tr("Recentrer")}
                     </button>
                   </div>
                   <svg
                     className="taste-scene"
                     viewBox="-250 -220 500 440"
                     role="img"
-                    aria-label="Carte interactive en trois dimensions de vos goûts"
+                    aria-label={tr(
+                      "Carte interactive en trois dimensions de vos goûts",
+                    )}
                     tabIndex={0}
                     onKeyDown={(e) => {
                       setKeyboardScene(true);
@@ -653,9 +671,11 @@ export default function TasteMap({
                             }
                           >
                             <title>
-                              {point.label}
+                              {point.genre !== undefined
+                                ? tr(point.label)
+                                : point.label}
                               {point.item
-                                ? ` · ${labels[point.item.kind]}`
+                                ? ` · ${tr(labels[point.item.kind])}`
                                 : ""}
                             </title>
                             {point.item && (
@@ -701,9 +721,9 @@ export default function TasteMap({
                                 y={point.y - r - 8}
                                 textAnchor="middle"
                               >
-                                {point.label.length > 26
-                                  ? `${point.label.slice(0, 25)}…`
-                                  : point.label}
+                                {pointLabel(point).length > 26
+                                  ? `${pointLabel(point).slice(0, 25)}…`
+                                  : pointLabel(point)}
                               </text>
                             )}
                           </g>
@@ -711,15 +731,16 @@ export default function TasteMap({
                       })}
                   </svg>
                   <p className="muted fine taste-instructions">
-                    Glissez pour tourner · Pincez ou utilisez + / − pour zoomer
-                    · Cliquez sur une étoile.
+                    {tr(
+                      "Glissez pour tourner · Pincez ou utilisez + / − pour zoomer · Cliquez sur une étoile.",
+                    )}
                   </p>
                   <div className="taste-legend">
                     {["positive", "watchlist", "negative", "skip"].map(
                       (kind) => (
                         <span key={kind}>
                           <i className={kind} />
-                          {labels[kind as TasteItem["kind"]]}
+                          {tr(labels[kind as TasteItem["kind"]])}
                         </span>
                       ),
                     )}
@@ -727,24 +748,24 @@ export default function TasteMap({
                 </div>
                 <aside
                   className="taste-inspector surface"
-                  aria-label="Détails du point sélectionné"
+                  aria-label={tr("Détails du point sélectionné")}
                 >
                   <label className="field">
-                    Rechercher un titre
+                    {tr("Rechercher un titre")}
                     <div className="taste-search">
                       <Search size={18} />
                       <input
-                        aria-label="Rechercher un titre"
+                        aria-label={tr("Rechercher un titre")}
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
-                        placeholder="Un film, une série…"
+                        placeholder={tr("Un film, une série…")}
                       />
                     </div>
                   </label>
                   <label className="field">
-                    Choisir un point
+                    {tr("Choisir un point")}
                     <select
-                      aria-label="Choisir un point"
+                      aria-label={tr("Choisir un point")}
                       value={
                         chosenGenre ||
                         visibleItems.some((item) => item.id === selected)
@@ -757,12 +778,12 @@ export default function TasteMap({
                         {visibleItems.length} titre
                         {visibleItems.length > 1 ? "s" : ""}
                       </option>
-                      <optgroup label="Genres">
+                      <optgroup label={tr("Genres")}>
                         {map.nodes
                           .filter((node) => node.genre !== undefined)
                           .map((node) => (
                             <option key={node.id} value={node.id}>
-                              {node.label}
+                              {tr(node.label)}
                             </option>
                           ))}
                       </optgroup>
@@ -776,37 +797,50 @@ export default function TasteMap({
                   {chosen ? (
                     <>
                       <span className={`taste-status ${chosen.kind}`}>
-                        {labels[chosen.kind]}
+                        {tr(labels[chosen.kind])}
                       </span>
                       <h2>{chosen.title.name}</h2>
                       <p className="muted">
                         {chosen.title.year} ·{" "}
-                        {chosen.title.genres.join(" / ") ||
-                          "Genre non renseigné"}
+                        {chosen.title.genres.map((g) => tr(g)).join(" / ") ||
+                          tr("Genre non renseigné")}
                       </p>
                       {chosen.rating > 0 && (
-                        <p>Votre note : {chosen.rating}/5</p>
+                        <p>
+                          {tr("Votre note : ")}
+                          {chosen.rating}/5
+                        </p>
                       )}
                       {chosen.favorite && (
                         <p className="taste-favorite">
                           <Heart size={16} />
-                          Coup de cœur
+                          {tr("Coup de cœur")}
                         </p>
                       )}
                       <p className="muted">
                         {chosen.kind === "skip"
-                          ? "Un signal faible et temporaire. Passer rapidement un titre pèse beaucoup moins qu’un refus explicite."
+                          ? tr(
+                              "Un signal faible et temporaire. Passer rapidement un titre pèse beaucoup moins qu’un refus explicite.",
+                            )
                           : chosen.kind === "watchlist"
-                            ? "Une envie de découverte. Ce titre ne compte pas comme un film déjà aimé."
+                            ? tr(
+                                "Une envie de découverte. Ce titre ne compte pas comme un film déjà aimé.",
+                              )
                             : chosen.kind === "negative"
-                              ? "Ce signal réduit la priorité des recommandations semblables."
+                              ? tr(
+                                  "Ce signal réduit la priorité des recommandations semblables.",
+                                )
                               : chosen.kind === "positive"
-                                ? "Ce titre aide à trouver d’autres films proches. Plusieurs favoris d’une même famille sont équilibrés pour garder de la variété."
-                                : "Un visionnage sans note donne peu d’indications sur vos préférences."}
+                                ? tr(
+                                    "Ce titre aide à trouver d’autres films proches. Plusieurs favoris d’une même famille sont équilibrés pour garder de la variété.",
+                                  )
+                                : tr(
+                                    "Un visionnage sans note donne peu d’indications sur vos préférences.",
+                                  )}
                       </p>
                       {map.neighbours.get(chosen.id)?.length ? (
                         <div className="taste-neighbours">
-                          <h3>Liens proches</h3>
+                          <h3>{tr("Liens proches")}</h3>
                           {map.neighbours.get(chosen.id)!.map((neighbour) => (
                             <button
                               className="text-button"
@@ -827,7 +861,7 @@ export default function TasteMap({
                         className="button tonal"
                         onClick={() => open(chosen.title)}
                       >
-                        Ouvrir la fiche
+                        {tr("Ouvrir la fiche")}
                         <ArrowRight size={18} />
                       </button>
                     </>
@@ -836,21 +870,21 @@ export default function TasteMap({
                       <span
                         className={`taste-status ${chosenGenre.weight < 0 ? "negative" : ""}`}
                       >
-                        Genre ·{" "}
+                        {tr("Genre ·")}{" "}
                         {chosenGenre.weight > 0.2
-                          ? "Affinité positive"
+                          ? tr("Affinité positive")
                           : chosenGenre.weight < -0.2
-                            ? "Affinité négative"
-                            : "Signaux légers ou partagés"}
+                            ? tr("Affinité négative")
+                            : tr("Signaux légers ou partagés")}
                       </span>
-                      <h2>{chosenGenre.label}</h2>
+                      <h2>{tr(chosenGenre.label)}</h2>
                       <p className="muted">
-                        Ce repère relie vos titres de ce genre. Son affinité
-                        résume vos notes, coups de cœur et envies, en
-                        équilibrant les familles de films.
+                        {tr(
+                          "Ce repère relie vos titres de ce genre. Son affinité résume vos notes, coups de cœur et envies, en équilibrant les familles de films.",
+                        )}
                       </p>
                       <div className="taste-neighbours">
-                        <h3>Titres liés</h3>
+                        <h3>{tr("Titres liés")}</h3>
                         {map.items
                           .filter((item) =>
                             item.genres.length
@@ -874,36 +908,33 @@ export default function TasteMap({
                     <div className="taste-select-hint">
                       <Bookmark size={28} />
                       <p className="muted">
-                        Choisissez un point ou un titre pour voir son rôle dans
-                        vos recommandations.
+                        {tr(
+                          "Choisissez un point ou un titre pour voir son rôle dans vos recommandations.",
+                        )}
                       </p>
                     </div>
                   )}
                 </aside>
               </div>
               <details className="taste-explanation">
-                <summary>Comment lire cette carte ?</summary>
+                <summary>{tr("Comment lire cette carte ?")}</summary>
                 <p className="muted">
-                  Les repères représentent les genres de vos titres. Les points
-                  sont rapprochés par leurs genres et les mots de leurs
-                  synopsis, comme dans le classement local. Un lien entre deux
-                  titres indique une similarité, pas une recommandation
-                  garantie. La taille des points reflète la force du signal ; la
-                  couleur indique son sens. Les points à l’arrière sont atténués
-                  ; les titres sélectionnés et leurs connexions sont mis en
-                  évidence. Les petites poussières du fond sont décoratives.
+                  {tr(
+                    "Les repères représentent les genres de vos titres. Les points sont rapprochés par leurs genres et les mots de leurs synopsis, comme dans le classement local. Un lien entre deux titres indique une similarité, pas une recommandation garantie. La taille des points reflète la force du signal ; la couleur indique son sens. Les points à l’arrière sont atténués ; les titres sélectionnés et leurs connexions sont mis en évidence. Les petites poussières du fond sont décoratives.",
+                  )}
                 </p>
                 <p className="muted">
-                  La disposition est une projection en 3D pour explorer les
-                  goûts : les distances n’expriment ni un pourcentage de
-                  compatibilité ni l’ensemble des paramètres du moteur. Vos
-                  anciens favoris restent conservés.
+                  {tr(
+                    "La disposition est une projection en 3D pour explorer les goûts : les distances n’expriment ni un pourcentage de compatibilité ni l’ensemble des paramètres du moteur. Vos anciens favoris restent conservés.",
+                  )}
                 </p>
                 {map.items.length > map.shown && (
                   <p className="muted">
-                    {map.shown} points représentatifs sur {map.items.length}{" "}
-                    titres sont affichés pour garder la carte fluide. La
-                    recherche permet de consulter les autres titres.
+                    {map.shown} {tr(" points représentatifs sur ")}
+                    {map.items.length}{" "}
+                    {tr(
+                      "titres sont affichés pour garder la carte fluide. La recherche permet de consulter les autres titres.",
+                    )}
                   </p>
                 )}
               </details>
@@ -911,8 +942,8 @@ export default function TasteMap({
           )}
           <footer className="atlas-footer">
             <span>VELA / NEURAL ATLAS</span>
-            <span>Genres + synopsis · distances illustratives</span>
-            <span>Aucun serveur de calcul</span>
+            <span>{tr("Genres + synopsis · distances illustratives")}</span>
+            <span>{tr("Aucun serveur de calcul")}</span>
           </footer>
         </div>
       )}

@@ -1,3 +1,4 @@
+import { t as tr, getLanguage } from "./i18n";
 import { useEffect, useRef, useState } from "react";
 import type { Entry } from "./store";
 import type { Title } from "./catalog";
@@ -49,7 +50,8 @@ export default function NotificationSettings({
             setDraft({ ...defaultNotificationPreference, ...value.config });
         })
         .catch(() => {
-          if (live) setMessage("Le réglage Android ne peut pas être chargé.");
+          if (live)
+            setMessage(tr("Le réglage Android ne peut pas être chargé."));
         });
     void load();
     const resume = () => {
@@ -91,14 +93,14 @@ export default function NotificationSettings({
       dirty.current = false;
       setMessage(
         draft.enabled
-          ? "Horaire enregistré."
-          : "Les notifications sont désactivées.",
+          ? tr("Horaire enregistré.")
+          : tr("Les notifications sont désactivées."),
       );
     } catch (error) {
       setMessage(
         error instanceof Error
           ? error.message
-          : "Le réglage n’a pas pu être enregistré.",
+          : tr("Le réglage n’a pas pu être enregistré."),
       );
     } finally {
       setBusy(false);
@@ -108,8 +110,9 @@ export default function NotificationSettings({
     <section className="notification-settings" aria-label="Notifications">
       <h2>Notifications</h2>
       <p className="muted">
-        Une recommandation aux jours et à l’heure de votre choix, dans
-        l’application Android.
+        {tr(
+          "Une recommandation aux jours et à l’heure de votre choix, dans l’application Android.",
+        )}
       </p>
       <label className="setting-switch">
         <input
@@ -117,10 +120,10 @@ export default function NotificationSettings({
           checked={draft.enabled}
           onChange={(e) => patch({ enabled: e.target.checked })}
         />
-        Recevoir une recommandation
+        {tr("Recevoir une recommandation")}
       </label>
       <label className="field">
-        Heure de la recommandation
+        {tr("Heure de la recommandation")}
         <input
           type="time"
           required
@@ -136,16 +139,16 @@ export default function NotificationSettings({
       <div
         className="notification-days"
         role="group"
-        aria-label="Jours des notifications"
+        aria-label={tr("Jours des notifications")}
       >
         {[
-          [1, "Lun"],
-          [2, "Mar"],
-          [3, "Mer"],
-          [4, "Jeu"],
-          [5, "Ven"],
-          [6, "Sam"],
-          [0, "Dim"],
+          [1, tr("Lun")],
+          [2, tr("Mar")],
+          [3, tr("Mer")],
+          [4, tr("Jeu")],
+          [5, tr("Ven")],
+          [6, tr("Sam")],
+          [0, tr("Dim")],
         ].map(([day, label]) => (
           <button
             key={day}
@@ -168,12 +171,12 @@ export default function NotificationSettings({
         disabled={busy || (draft.enabled && !draft.days.length)}
         onClick={save}
       >
-        {busy ? "Enregistrement…" : "Enregistrer l’horaire"}
+        {busy ? tr("Enregistrement…") : tr("Enregistrer l’horaire")}
       </button>
       {supported && draft.enabled && state && !state.granted && (
         <>
           <p className="muted" role="status">
-            Autorisez les notifications sur ce téléphone.
+            {tr("Autorisez les notifications sur ce téléphone.")}
           </p>
           <button
             className="text-button"
@@ -182,12 +185,14 @@ export default function NotificationSettings({
                 .openSettings()
                 .catch(() =>
                   setMessage(
-                    "Ouvrez les paramètres de notifications Android de Vela.",
+                    tr(
+                      "Ouvrez les paramètres de notifications Android de Vela.",
+                    ),
                   ),
                 )
             }
           >
-            Notifications dans Android ↗
+            {tr("Notifications dans Android ↗")}
           </button>
         </>
       )}
@@ -196,8 +201,8 @@ export default function NotificationSettings({
         state.granted &&
         state.nextAt > 0 && (
           <p className="muted fine">
-            Prochaine recommandation :{" "}
-            {new Date(state.nextAt).toLocaleString("fr-FR", {
+            {tr("Prochaine recommandation :")}{" "}
+            {new Date(state.nextAt).toLocaleString(getLanguage(), {
               weekday: "long",
               hour: "2-digit",
               minute: "2-digit",
@@ -213,23 +218,27 @@ export default function NotificationSettings({
               .openExactAlarmSettings?.()
               .catch(() =>
                 setMessage(
-                  "Ouvrez Alarmes et rappels dans les paramètres Android de Vela.",
+                  tr(
+                    "Ouvrez Alarmes et rappels dans les paramètres Android de Vela.",
+                  ),
                 ),
               )
           }
         >
-          Autoriser les horaires précis ↗
+          {tr("Autoriser les horaires précis ↗")}
         </button>
       )}
       <p className="muted fine">
-        Heure locale de chaque appareil.{" "}
+        {tr("Heure locale de chaque appareil.")}{" "}
         {supported
-          ? "Les rappels fonctionnent aussi lorsque Vela est fermé."
-          : "Cet horaire sera repris dans l’application Android après connexion au même compte."}
+          ? tr("Les rappels fonctionnent aussi lorsque Vela est fermé.")
+          : tr(
+              "Cet horaire sera repris dans l’application Android après connexion au même compte.",
+            )}
       </p>
       {message && (
         <p className="muted" role="status">
-          {message}
+          {tr(message)}
         </p>
       )}
     </section>

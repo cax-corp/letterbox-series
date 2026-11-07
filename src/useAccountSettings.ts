@@ -1,3 +1,4 @@
+import { t as tr } from "./i18n";
 import { useEffect, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { backupService } from "./backup";
@@ -85,7 +86,7 @@ export function useAccountSettings(
             error:
               error instanceof Error
                 ? error.message
-                : "Synchronisation des réglages indisponible.",
+                : tr("Synchronisation des réglages indisponible."),
           }));
         return false;
       } finally {

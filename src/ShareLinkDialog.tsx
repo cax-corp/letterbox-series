@@ -1,3 +1,4 @@
+import { t as tr } from "./i18n";
 import { useEffect, useState } from "react";
 import Modal from "./Modal";
 import { publishShare, type ShareDraft } from "./public-sharing";
@@ -42,37 +43,45 @@ export default function ShareLinkDialog({
     try {
       toast(shareMessage(await (copy ? copyShareLink(link) : shareCard(link))));
     } catch {
-      toast("Impossible de partager ce lien. Réessayez.");
+      toast(tr("Impossible de partager ce lien. Réessayez."));
     } finally {
       setBusy(false);
     }
   }
   return (
-    <Modal label="Partager un lien public" close={close}>
+    <Modal label={tr("Partager un lien public")} close={close}>
       <div className="form-content share-link-panel">
-        <h2>Partager {draft.kind === "profile" ? "mon profil" : "cet avis"}</h2>
+        <h2>
+          {tr("Partager ")}
+          {draft.kind === "profile" ? tr("mon profil") : tr("cet avis")}
+        </h2>
         <p className="muted">
-          Ce lien est accessible sans compte. Il contient uniquement{" "}
+          {tr("Ce lien est accessible sans compte. Il contient uniquement")}{" "}
           {draft.kind === "profile"
-            ? "votre nom public, votre avatar, votre bio, vos favoris et vos statistiques résumées"
-            : "cet avis, sa note et votre profil public"}
-          . Vous pourrez le retirer dans les réglages.
+            ? tr(
+                "votre nom public, votre avatar, votre bio, vos favoris et vos statistiques résumées",
+              )
+            : tr("cet avis, sa note et votre profil public")}
+          {tr(". Vous pourrez le retirer dans les réglages.")}
         </p>
         {!link && !error && (
           <p role="status">
-            <LoaderCircle className="spin" size={18} /> Préparation du lien…
+            <LoaderCircle className="spin" size={18} />{" "}
+            {tr(" Préparation du lien…")}
           </p>
         )}
         {error && (
           <div className="error" role="alert">
-            <p>{error}</p>
-            <button onClick={() => setRetry((n) => n + 1)}>Réessayer</button>
+            <p>{tr(error)}</p>
+            <button onClick={() => setRetry((n) => n + 1)}>
+              {tr("Réessayer")}
+            </button>
           </div>
         )}
         {link && (
           <>
             <label className="field">
-              Lien public
+              {tr("Lien public")}
               <input
                 readOnly
                 value={link.url}
@@ -85,19 +94,20 @@ export default function ShareLinkDialog({
                 disabled={busy}
                 onClick={() => send(false)}
               >
-                <ShareIcon size={18} /> Partager le lien
+                <ShareIcon size={18} /> {tr(" Partager le lien")}
               </button>
               <button
                 className="button tonal"
                 disabled={busy}
                 onClick={() => send(true)}
               >
-                Copier le lien
+                {tr("Copier le lien")}
               </button>
             </div>
             <p className="muted fine">
-              La page reflète le contenu au moment du partage. Partagez à
-              nouveau pour la mettre à jour : le lien reste identique.
+              {tr(
+                "La page reflète le contenu au moment du partage. Partagez à nouveau pour la mettre à jour : le lien reste identique.",
+              )}
             </p>
           </>
         )}

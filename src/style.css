@@ -5258,3 +5258,25 @@ body.taste-terminal-active > #root > .mobile-nav {
   stroke: none;
   filter: none;
 }
+.ai-development-credit {
+  display: grid;
+  gap: 8px;
+  max-width: 580px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.7;
+  margin: 24px 0;
+}
+.ai-development-credit > span {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.language-settings {
+  display: grid;
+  gap: 16px;
+}
+.language-settings .field {
+  margin: 0;
+}

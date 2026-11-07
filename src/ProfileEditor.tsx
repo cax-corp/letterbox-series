@@ -1,3 +1,4 @@
+import { t as tr } from "./i18n";
 import { useEffect, useRef, useState } from "react";
 import Avatar from "./Avatar";
 import {
@@ -59,7 +60,9 @@ export default function ProfileEditor({
       const exists = d.featured.some((t) => t.id === title.id);
       if (!exists && d.featured.length >= 4) {
         setError(
-          "Vous pouvez mettre quatre titres à l’honneur. Retirez-en un pour le remplacer.",
+          tr(
+            "Vous pouvez mettre quatre titres à l’honneur. Retirez-en un pour le remplacer.",
+          ),
         );
         return d;
       }
@@ -82,14 +85,14 @@ export default function ProfileEditor({
   return (
     <section
       className="profile-editor page-section"
-      aria-label="Modifier mon profil"
+      aria-label={tr("Modifier mon profil")}
     >
       <button className="text-button settings-back" onClick={close}>
         <ArrowLeft size={20} />
-        Retour au profil
+        {tr("Retour au profil")}
       </button>
       <h1 ref={heading} tabIndex={-1}>
-        À votre image.
+        {tr("À votre image.")}
       </h1>
       <form
         onSubmit={async (e) => {
@@ -102,10 +105,12 @@ export default function ProfileEditor({
             if (mounted.current) {
               toast(
                 outcome === "cloud"
-                  ? "Profil enregistré et synchronisé avec Supabase."
+                  ? tr("Profil enregistré et synchronisé avec Supabase.")
                   : connected
-                    ? "Profil enregistré sur cet appareil. Il sera synchronisé avec la prochaine sauvegarde."
-                    : "Profil enregistré sur cet appareil.",
+                    ? tr(
+                        "Profil enregistré sur cet appareil. Il sera synchronisé avec la prochaine sauvegarde.",
+                      )
+                    : tr("Profil enregistré sur cet appareil."),
               );
               close();
             }
@@ -114,7 +119,7 @@ export default function ProfileEditor({
               setError(
                 e instanceof Error
                   ? e.message
-                  : "Le profil ne peut pas être enregistré.",
+                  : tr("Le profil ne peut pas être enregistré."),
               );
           } finally {
             if (mounted.current) setSaving(false);
@@ -124,12 +129,16 @@ export default function ProfileEditor({
         <div className="profile-edit-preview">
           <Avatar profile={draft} name={draft.displayName} size={128} />
           <p>
-            {avatarOptions.find((a) => a.id === draft.avatar)?.label} ·{" "}
-            {avatarBackgrounds.find((b) => b.id === draft.background)?.label}
+            {tr(avatarOptions.find((a) => a.id === draft.avatar)?.label || "")}{" "}
+            ·{" "}
+            {tr(
+              avatarBackgrounds.find((b) => b.id === draft.background)?.label ||
+                "",
+            )}
           </p>
         </div>
         <label className="field">
-          Nom affiché
+          {tr("Nom affiché")}
           <input
             required
             maxLength={40}
@@ -141,20 +150,22 @@ export default function ProfileEditor({
           />
         </label>
         <label className="field">
-          Quelques mots sur vous
+          {tr("Quelques mots sur vous")}
           <textarea
             maxLength={160}
             rows={3}
             value={draft.bio}
             onChange={(e) => setDraft((d) => ({ ...d, bio: e.target.value }))}
-            placeholder="Vos genres préférés, votre rituel cinéma…"
+            placeholder={tr("Vos genres préférés, votre rituel cinéma…")}
           />
           <small className="muted">{draft.bio.length}/160</small>
         </label>
         <fieldset>
-          <legend>Choisissez votre avatar</legend>
+          <legend>{tr("Choisissez votre avatar")}</legend>
           <p className="muted fine">
-            28 visages et personnages, 10 fonds. Ou gardez votre initiale.
+            {tr(
+              "28 visages et personnages, 10 fonds. Ou gardez votre initiale.",
+            )}
           </p>
           <div className="avatar-choices">
             {avatarOptions.map((a) => (
@@ -163,7 +174,7 @@ export default function ProfileEditor({
                 type="button"
                 className={draft.avatar === a.id ? "selected" : ""}
                 aria-pressed={draft.avatar === a.id}
-                aria-label={a.label}
+                aria-label={tr(a.label)}
                 onClick={() => setDraft((d) => ({ ...d, avatar: a.id }))}
               >
                 <Avatar
@@ -176,19 +187,19 @@ export default function ProfileEditor({
                     <Check size={12} />
                   </span>
                 )}
-                <span>{a.label}</span>
+                <span>{tr(a.label)}</span>
               </button>
             ))}
           </div>
         </fieldset>
         <fieldset>
-          <legend>Couleur du fond</legend>
+          <legend>{tr("Couleur du fond")}</legend>
           <div className="avatar-colors">
             {avatarBackgrounds.map((b) => (
               <button
                 type="button"
                 key={b.id}
-                aria-label={b.label}
+                aria-label={tr(b.label)}
                 aria-pressed={draft.background === b.id}
                 style={{ background: b.color, color: b.ink }}
                 onClick={() => setDraft((d) => ({ ...d, background: b.id }))}
@@ -199,10 +210,11 @@ export default function ProfileEditor({
           </div>
         </fieldset>
         <fieldset>
-          <legend>Vos quatre incontournables</legend>
+          <legend>{tr("Vos quatre incontournables")}</legend>
           <p className="muted fine">
-            Mettez à l’honneur jusqu’à quatre films ou séries de votre
-            collection. Cette sélection ne change pas vos likes.
+            {tr(
+              "Mettez à l’honneur jusqu’à quatre films ou séries de votre collection. Cette sélection ne change pas vos likes.",
+            )}
           </p>
           {draft.featured.length > 0 && (
             <ol className="featured-order">
@@ -216,7 +228,7 @@ export default function ProfileEditor({
                       type="button"
                       className="icon-button"
                       disabled={i === 0}
-                      aria-label={`Déplacer ${t.name} vers la gauche`}
+                      aria-label={tr("Déplacer {0} vers la gauche", t.name)}
                       onClick={() => move(i, -1)}
                     >
                       <ArrowLeft size={18} />
@@ -225,7 +237,7 @@ export default function ProfileEditor({
                       type="button"
                       className="icon-button"
                       disabled={i === draft.featured.length - 1}
-                      aria-label={`Déplacer ${t.name} vers la droite`}
+                      aria-label={tr("Déplacer {0} vers la droite", t.name)}
                       onClick={() => move(i, 1)}
                     >
                       <ArrowRight size={18} />
@@ -233,7 +245,7 @@ export default function ProfileEditor({
                     <button
                       type="button"
                       className="icon-button"
-                      aria-label={`Retirer ${t.name} des incontournables`}
+                      aria-label={tr("Retirer {0} des incontournables", t.name)}
                       onClick={() => toggle(t)}
                     >
                       <X size={18} />
@@ -246,7 +258,7 @@ export default function ProfileEditor({
           {choices.length > 0 || query ? (
             <>
               <label className="field">
-                Rechercher dans ma collection
+                {tr("Rechercher dans ma collection")}
                 <input
                   type="search"
                   value={query}
@@ -282,31 +294,39 @@ export default function ProfileEditor({
               </div>
               {choices.length > 60 && (
                 <p className="muted fine">
-                  Affinez la recherche pour trouver d’autres titres de votre
-                  collection.
+                  {tr(
+                    "Affinez la recherche pour trouver d’autres titres de votre collection.",
+                  )}
                 </p>
               )}
             </>
           ) : (
             <p className="muted">
-              Ajoutez des titres à votre collection depuis Explorer pour pouvoir
-              les choisir ici.
+              {tr(
+                "Ajoutez des titres à votre collection depuis Explorer pour pouvoir les choisir ici.",
+              )}
             </p>
           )}
         </fieldset>
         <p className="muted fine">
           {connected
-            ? "Votre nom, votre avatar et vos incontournables sont synchronisés avec votre compte Supabase. Les avatars sont inclus dans Vela. Hors connexion, vos choix attendent la prochaine sauvegarde."
-            : "Votre profil reste sur cet appareil. Connectez-vous pour personnaliser et sauvegarder le profil de votre compte."}
+            ? tr(
+                "Votre nom, votre avatar et vos incontournables sont synchronisés avec votre compte Supabase. Les avatars sont inclus dans Vela. Hors connexion, vos choix attendent la prochaine sauvegarde.",
+              )
+            : tr(
+                "Votre profil reste sur cet appareil. Connectez-vous pour personnaliser et sauvegarder le profil de votre compte.",
+              )}
         </p>
         {error && (
           <p className="error" role="alert">
-            {error}
+            {tr(error)}
           </p>
         )}
         <div className="profile-editor-actions">
           <button className="button primary" disabled={saving || busy}>
-            {saving || busy ? "Enregistrement…" : "Enregistrer mon profil"}
+            {saving || busy
+              ? tr("Enregistrement…")
+              : tr("Enregistrer mon profil")}
           </button>
           <button
             type="button"
@@ -314,7 +334,7 @@ export default function ProfileEditor({
             disabled={saving || busy}
             onClick={close}
           >
-            Annuler
+            {tr("Annuler")}
           </button>
         </div>
       </form>

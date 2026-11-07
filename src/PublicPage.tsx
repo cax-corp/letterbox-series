@@ -1,3 +1,4 @@
+import { t as tr, useLanguage, getLanguage } from "./i18n";
 import { useEffect, useState } from "react";
 import Avatar from "./Avatar";
 import { readSharedPage, uuidPattern, type SharedPage } from "./public-sharing";
@@ -21,6 +22,7 @@ export default function PublicPage({
   renderTitle: (title: Title) => React.ReactNode;
   open: (title: Title) => void;
 }) {
+  const language = useLanguage();
   const [page, setPage] = useState<SharedPage | null>(null),
     [title, setTitle] = useState<Title | null>(null),
     [error, setError] = useState(""),
@@ -41,7 +43,7 @@ export default function PublicPage({
       if (!c.signal.aborted) setError(e.message);
     });
     return () => c.abort();
-  }, [route.kind, route.id, retry]);
+  }, [route.kind, route.id, retry, language]);
   useEffect(() => {
     const previous = document.title;
     const name = title?.name || page?.payload.profile.displayName;
@@ -53,12 +55,12 @@ export default function PublicPage({
   if (error)
     return (
       <section className="page-section public-page">
-        <h1>Lien public</h1>
+        <h1>{tr("Lien public")}</h1>
         <p className="error" role="alert">
-          {error}
+          {tr(error)}
         </p>
         <button className="button tonal" onClick={() => setRetry((n) => n + 1)}>
-          Réessayer
+          {tr("Réessayer")}
         </button>
       </section>
     );
@@ -66,7 +68,7 @@ export default function PublicPage({
   if (!page)
     return (
       <p className="page-section muted" role="status">
-        Chargement de la page partagée…
+        {tr("Chargement de la page partagée…")}
       </p>
     );
   const p = page.payload.profile,
@@ -75,7 +77,9 @@ export default function PublicPage({
   return (
     <section
       className="page-section public-page"
-      aria-label={page.kind === "profile" ? "Profil public" : "Avis public"}
+      aria-label={
+        page.kind === "profile" ? tr("Profil public") : tr("Avis public")
+      }
     >
       <div className="profile-head">
         <Avatar profile={p} name={p.displayName} size={92} />
@@ -87,10 +91,10 @@ export default function PublicPage({
       {s && (
         <div className="stats">
           {[
-            [s.watched, "Histoires vues"],
-            [s.favorites, "Coups de cœur"],
-            [s.reviews, "Avis"],
-            [s.average ?? "—", "Note moyenne / 5"],
+            [s.watched, tr("Histoires vues")],
+            [s.favorites, tr("Coups de cœur")],
+            [s.reviews, tr("Avis")],
+            [s.average ?? "—", tr("Note moyenne / 5")],
           ].map(([n, label]) => (
             <div key={label}>
               <strong>{n}</strong>
@@ -103,7 +107,9 @@ export default function PublicPage({
         <article className="profile-review surface public-review">
           <button className="public-review-title" onClick={() => open(r.title)}>
             <h2>{r.title.name}</h2>
-            <span>{r.title.year} · Ouvrir la fiche ↗</span>
+            <span>
+              {r.title.year} {tr(" · Ouvrir la fiche ↗")}
+            </span>
           </button>
           {r.rating > 0 && (
             <p className="review-rating">
@@ -116,7 +122,7 @@ export default function PublicPage({
       ) : (
         p.featured.length > 0 && (
           <section className="profile-section">
-            <h2>Les incontournables</h2>
+            <h2>{tr("Les incontournables")}</h2>
             <div className="profile-featured">
               {p.featured.map((t) => (
                 <button
@@ -140,9 +146,11 @@ export default function PublicPage({
         )
       )}
       <p className="muted fine">
-        Partagé le {new Date(page.updated_at).toLocaleDateString("fr-FR")}.
-        Cette page présente le contenu publié par son auteur au moment du
-        partage.
+        {tr("Partagé le ")}
+        {new Date(page.updated_at).toLocaleDateString(getLanguage())}
+        {tr(
+          ". Cette page présente le contenu publié par son auteur au moment du partage.",
+        )}
       </p>
     </section>
   );

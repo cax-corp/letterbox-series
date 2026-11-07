@@ -1,3 +1,4 @@
+import { t as tr } from "./i18n";
 import { useState } from "react";
 import type { CastMember } from "./catalog";
 import { User, ChevronRight } from "./icons";
@@ -8,7 +9,7 @@ export default function CastGallery({ cast }: { cast?: CastMember[] }) {
   return (
     <details
       className="cast-gallery detail-disclosure"
-      aria-label="Distribution"
+      aria-label={tr("Distribution")}
       onToggle={(e) => {
         setOpen(e.currentTarget.open);
         if (!e.currentTarget.open) setAll(false);
@@ -16,7 +17,8 @@ export default function CastGallery({ cast }: { cast?: CastMember[] }) {
     >
       <summary>
         <span>
-          <User size={18} /> Voir les acteurs <small>{cast.length}</small>
+          <User size={18} /> {tr(" Voir les acteurs ")}
+          <small>{cast.length}</small>
         </span>
         <ChevronRight className="disclosure-chevron" size={18} />
       </summary>
@@ -52,7 +54,8 @@ export default function CastGallery({ cast }: { cast?: CastMember[] }) {
           </div>
           {!all && cast.length > 6 && (
             <button className="text-button" onClick={() => setAll(true)}>
-              Voir plus d’interprètes ({cast.length})
+              {tr("Voir plus d’interprètes (")}
+              {cast.length})
             </button>
           )}
         </div>

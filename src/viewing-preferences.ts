@@ -1,3 +1,4 @@
+import { t as tr, getLanguage } from "./i18n";
 import { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { cloud, getConfig } from "./store";
@@ -5,13 +6,20 @@ const codes =
   "AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS YE YT ZA ZM ZW".split(
     " ",
   );
-const countryNames = new Intl.DisplayNames(["fr"], { type: "region" });
-export const countries = codes
-  .map((code) => ({
-    code,
-    name: countryNames.of(code) || code,
-  }))
-  .sort((a, b) => a.name.localeCompare(b.name, "fr"));
+const countryLists = new Map<string, { code: string; name: string }[]>();
+export function localizedCountries() {
+  const locale = getLanguage();
+  let result = countryLists.get(locale);
+  if (!result) {
+    const names = new Intl.DisplayNames([locale], { type: "region" });
+    result = codes
+      .map((code) => ({ code, name: names.of(code) || code }))
+      .sort((a, b) => a.name.localeCompare(b.name, locale));
+    countryLists.set(locale, result);
+  }
+  return result;
+}
+export const countries = localizedCountries();
 export type ViewingPreferences = {
   version: 1;
   country: string;
@@ -95,11 +103,11 @@ export async function syncViewingPreferences(account: string) {
       const result = await response.json();
       if (!response.ok || result.id !== account)
         throw new Error(
-          result.msg || "La synchronisation des services a échoué.",
+          result.msg || tr("La synchronisation des services a échoué."),
         );
       remote = validateViewing(result.user_metadata?.vela_viewing);
       if (!remote || remote.updated !== chosen.updated)
-        throw new Error("Les préférences n’ont pas pu être confirmées.");
+        throw new Error(tr("Les préférences n’ont pas pu être confirmées."));
     }
     window.dispatchEvent(
       new CustomEvent("vela-viewing-state", { detail: account }),
@@ -137,7 +145,9 @@ export function useViewingPreferences(user: User | null) {
     syncViewingPreferences(account).catch(() => {
       if (active)
         setMessage(
-          "Les préférences restent disponibles sur cet appareil. La synchronisation sera réessayée avec la sauvegarde.",
+          tr(
+            "Les préférences restent disponibles sur cet appareil. La synchronisation sera réessayée avec la sauvegarde.",
+          ),
         );
     });
     return () => {
@@ -154,21 +164,23 @@ export function useViewingPreferences(user: User | null) {
       ).toISOString(),
     });
     if (!next) {
-      setMessage("Choisissez un pays valide.");
+      setMessage(tr("Choisissez un pays valide."));
       return;
     }
     try {
       localStorage.setItem(key(account), JSON.stringify(next));
       setRevision((n) => n + 1);
-      setMessage("Préférences enregistrées.");
+      setMessage(tr("Préférences enregistrées."));
     } catch {
-      setMessage("Le stockage de cet appareil est plein.");
+      setMessage(tr("Le stockage de cet appareil est plein."));
       return;
     }
     if (user)
       syncViewingPreferences(account).catch(() =>
         setMessage(
-          "Enregistré sur cet appareil. La synchronisation du pays et des services sera réessayée avec votre sauvegarde.",
+          tr(
+            "Enregistré sur cet appareil. La synchronisation du pays et des services sera réessayée avec votre sauvegarde.",
+          ),
         ),
       );
   }

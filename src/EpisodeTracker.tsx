@@ -1,3 +1,4 @@
+import { t as tr, useLanguage } from "./i18n";
 import { useEffect, useRef, useState } from "react";
 import {
   episodes,
@@ -17,6 +18,7 @@ export default function EpisodeTracker({
   entry: Entry;
   update: (patch: Partial<Entry>) => void;
 }) {
+  const language = useLanguage();
   const [seasons, setSeasons] = useState<Season[]>(title.seasons || []),
     [loaded, setLoaded] = useState<Record<number, Episode[]>>({}),
     [states, setStates] = useState<
@@ -26,6 +28,10 @@ export default function EpisodeTracker({
   const controllers = useRef<AbortController[]>([]);
   const pending = useRef(new Set<number>());
   useEffect(() => {
+    setSeasons(title.seasons || []);
+    setLoaded({});
+    setStates({});
+    pending.current.clear();
     let active = true;
     const c = new AbortController();
     controllers.current.push(c);
@@ -38,7 +44,7 @@ export default function EpisodeTracker({
           setSeasons(
             nums.map((n) => ({
               number: n,
-              name: `Saison ${n}`,
+              name: tr("Saison {0}", n),
               count: data.filter((e) => e.season === n).length,
             })),
           );
@@ -57,7 +63,7 @@ export default function EpisodeTracker({
       active = false;
       controllers.current.forEach((c) => c.abort());
     };
-  }, [title.id]);
+  }, [title.id, language, title.seasons]);
   async function load(season: number) {
     if (loaded[season] || pending.current.has(season)) return;
     pending.current.add(season);
@@ -80,21 +86,23 @@ export default function EpisodeTracker({
   return (
     <section className="episodes">
       <h3>
-        Votre progression{" "}
+        {tr("Votre progression")}{" "}
         <span>
-          {entry.episodes.length} / {total} épisodes
+          {entry.episodes.length} / {total} {tr(" épisodes")}
         </span>
       </h3>
       {legacyState === "loading" && (
-        <p className="muted">Chargement des épisodes…</p>
+        <p className="muted">{tr("Chargement des épisodes…")}</p>
       )}
       {legacyState === "error" && (
-        <p className="error">Les épisodes sont indisponibles pour le moment.</p>
+        <p className="error">
+          {tr("Les épisodes sont indisponibles pour le moment.")}
+        </p>
       )}
       {!seasons.length &&
         legacyState !== "loading" &&
         legacyState !== "error" && (
-          <p className="muted">Aucun épisode répertorié.</p>
+          <p className="muted">{tr("Aucun épisode répertorié.")}</p>
         )}
       {seasons.map((season) => (
         <details
@@ -115,13 +123,13 @@ export default function EpisodeTracker({
             </span>
           </summary>
           {states[season.number] === "loading" && (
-            <p className="muted">Chargement de la saison…</p>
+            <p className="muted">{tr("Chargement de la saison…")}</p>
           )}
           {states[season.number] === "error" && (
             <div className="error">
-              Cette saison n’a pas pu être chargée.
+              {tr("Cette saison n’a pas pu être chargée.")}
               <button onClick={() => load(season.number)}>
-                Réessayer la saison
+                {tr("Réessayer la saison")}
               </button>
             </div>
           )}

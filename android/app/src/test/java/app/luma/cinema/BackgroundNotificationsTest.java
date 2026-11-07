@@ -42,6 +42,20 @@ public class BackgroundNotificationsTest {
         @Override public void reject(String value){error=value;}
     }
     private DailyRecommendationsPlugin plugin(){return new DailyRecommendationsPlugin(){@Override public Context getContext(){return context;}};}
+    @Test public void languageRefreshPostsEnglishWithoutActivityAndKeepsSchedule()throws Exception{
+        long due=System.currentTimeMillis()-100;
+        DailyRecommendations.prefs(context).edit().putLong("scheduledAt",due).apply();
+        JSObject next=new JSObject(configuration().toString()).put("language","en-US");
+        next.getJSONArray("candidates").getJSONObject(0).getJSONObject("title").put("name","Space journey").put("summary","An astronaut explores a distant planet.");
+        next.getJSONArray("candidates").getJSONObject(0).put("reason","A pick based on your tastes");
+        Call call=new Call(new JSObject().put("context",next));plugin().updateContext(call);
+        assertNull(call.error);assertEquals(due,DailyRecommendations.prefs(context).getLong("scheduledAt",0));
+        new RecommendationAlarmReceiver().onReceive(context,dueIntent(due,false));
+        Notification notification=shadowOf(context.getSystemService(NotificationManager.class)).getNotification(DailyRecommendations.NOTIFICATION_ID);
+        assertNotNull(notification);assertEquals("Discover: Space journey",notification.extras.getCharSequence(Notification.EXTRA_TITLE).toString());
+        assertEquals("A pick based on your tastes",notification.extras.getCharSequence(Notification.EXTRA_TEXT).toString());
+        assertNull(shadowOf(RuntimeEnvironment.getApplication()).peekNextStartedActivity());
+    }
     @Test public void exactAlarmIsRegisteredWithIdlePermissionAndGeneration(){
         DailyRecommendations.schedule(context,false);
         ShadowAlarmManager.ScheduledAlarm alarm=shadowOf(context.getSystemService(AlarmManager.class)).peekNextScheduledAlarm();

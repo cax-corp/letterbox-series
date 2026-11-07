@@ -1,3 +1,4 @@
+import { t as tr } from "./i18n";
 import { useEffect, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import {
@@ -69,7 +70,9 @@ export function useProfile(user: User | null) {
     } catch {
       if (owner.current === account)
         setError(
-          "Profil enregistré sur cet appareil. La synchronisation Supabase sera réessayée avec la sauvegarde.",
+          tr(
+            "Profil enregistré sur cet appareil. La synchronisation Supabase sera réessayée avec la sauvegarde.",
+          ),
         );
       return "local" as const;
     } finally {

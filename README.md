@@ -284,3 +284,15 @@ La rotation utilise une orientation 3D composée autour des axes de l’écran. 
 Le cadre de focus natif du SVG est retiré. Le clavier reste utilisable : flèches et +/−, contour bleu discret et rappel des commandes uniquement lors de la navigation au clavier. Les boutons conservent leurs indicateurs de focus.
 
 Le moteur de recommandations continue d’utiliser toute la bibliothèque, sans plafond de 170 ou 300 favoris. Le dessin passe de 120 à **300 points personnels** ; les compteurs distinguent points affichés et titres disponibles. La recherche et le sélecteur ne tronquent plus à 250 titres. Sélectionner un titre hors de l’échantillon l’intègre au dessin, tout en conservant la limite de rendu. Aucun changement de données Supabase ni de favoris.
+
+### Langues du compte et mention de développement — 2.6.0
+
+**Français (`fr-FR`)** et **English (US) (`en-US`)** sont disponibles à l’inscription et dans Réglages → Langue de l’application. La sélection est conservée dans les métadonnées privées du compte Supabase, sous `vela_language` (code, version et date), avec une copie hors connexion par compte/projet. Aucune nouvelle migration SQL n’est nécessaire. Les pays et abonnements restent des choix indépendants : une interface anglaise peut conserver des offres françaises.
+
+L’interface utilise un dictionnaire local de traductions explicites, sans service de traduction ni transformation du DOM. Les textes d’accessibilité, les dates, les pays, le parcours d’accueil, les réglages, le profil, les liens publics et la carte suivent ce choix. Les avis, noms affichés et biographies des utilisateurs restent inchangés. Les raisons du moteur local sont traduites à l’affichage, sans modifier ses caractéristiques ni ses scores.
+
+Les requêtes TMDB demandent la langue choisie pour les titres, synopsis, genres et épisodes. Un changement recharge catalogue/recherche/fiches et empêche une réponse tardive de la langue précédente de les remplacer. Les pools de recommandations sont séparés par langue ; l’historique des titres déjà affichés reste commun au compte pour conserver l’exclusion quotidienne. Les anciennes entrées de collection et pages partagées restent leurs instantanés d’origine ; ouvrir une fiche TMDB récupère les informations dans la langue courante. Les sources externes ne fournissant pas toutes les traductions peuvent conserver leur texte original.
+
+La langue se restaure à la connexion, puis à la reprise/au retour du réseau, et les modifications sont envoyées immédiatement. Un échec conserve le choix local et propose une nouvelle tentative. Les écritures ne concernent que la clé `vela_language`, sans remplacer profil, pays ou services. Les programmations Android gardent leurs heures/jours ; le contexte des notifications transporte la langue et leurs textes restent localisés lorsque l’application est fermée.
+
+Le pied de page des paramètres comporte une mention discrète : « ChatGPT a été utilisé pour accompagner le développement de Vela. » Elle n’est affichée sur aucune autre page.

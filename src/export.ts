@@ -1,3 +1,4 @@
+import { t as tr } from "./i18n";
 import { Capacitor } from "@capacitor/core";
 import { Filesystem, Directory, Encoding } from "@capacitor/filesystem";
 import { Share } from "@capacitor/share";
@@ -10,7 +11,7 @@ export async function exportCollection(data: unknown) {
       directory: Directory.Cache,
       encoding: Encoding.UTF8,
     });
-    await Share.share({ title: "Ma collection Vela", url: file.uri });
+    await Share.share({ title: tr("Ma collection Vela"), url: file.uri });
   } else {
     const url = URL.createObjectURL(
       new Blob([json], { type: "application/json" }),

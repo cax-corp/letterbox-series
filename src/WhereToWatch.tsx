@@ -1,10 +1,14 @@
+import { t as tr, useLanguage } from "./i18n";
 import { useEffect, useState } from "react";
 import {
   watchOffers,
   type Provider,
   type WatchOffers,
 } from "./watch-providers";
-import { countries, type ViewingPreferences } from "./viewing-preferences";
+import {
+  localizedCountries,
+  type ViewingPreferences,
+} from "./viewing-preferences";
 import type { Title } from "./catalog";
 import { ChevronRight } from "./icons";
 
@@ -36,7 +40,7 @@ function ProviderIcons({
       {limit && providers.length > limit && (
         <span
           className="provider-overflow"
-          aria-label={`${providers.length - limit} autres services`}
+          aria-label={tr("{0} autres services", providers.length - limit)}
         >
           +{providers.length - limit}
         </span>
@@ -53,6 +57,7 @@ export default function WhereToWatch({
   preferences: ViewingPreferences;
   settings: () => void;
 }) {
+  const language = useLanguage();
   const [data, setData] = useState<WatchOffers | null>(null),
     [error, setError] = useState(""),
     [loading, setLoading] = useState(false),
@@ -75,6 +80,7 @@ export default function WhereToWatch({
       });
     return () => c.abort();
   }, [
+    language,
     title.id,
     preferences.country,
     Boolean(preferences.providers.length),
@@ -93,11 +99,11 @@ export default function WhereToWatch({
     : [];
   const rows = data
     ? ([
-        ["Abonnement", own(data.flatrate)],
-        ["Gratuit", own(data.free)],
-        ["Avec publicité", own(data.ads)],
-        ["À l’achat", own(data.buy)],
-        ["À la location", own(data.rent)],
+        [tr("Abonnement"), own(data.flatrate)],
+        [tr("Gratuit"), own(data.free)],
+        [tr("Avec publicité"), own(data.ads)],
+        [tr("À l’achat"), own(data.buy)],
+        [tr("À la location"), own(data.rent)],
       ] as const)
     : [];
   const paid = data
@@ -109,34 +115,36 @@ export default function WhereToWatch({
     : [];
   const preview = streaming.length ? streaming : paid;
   return (
-    <section className="where-to-watch" aria-label="Où regarder">
+    <section className="where-to-watch" aria-label={tr("Où regarder")}>
       {!preferences.country ? (
         <button className="availability-prompt" onClick={settings}>
-          Disponible sur{" "}
+          {tr("Disponible sur")}{" "}
           <span>
-            Choisir mon pays <ChevronRight size={16} />
+            {tr("Choisir mon pays ")}
+            <ChevronRight size={16} />
           </span>
         </button>
       ) : !preferences.providers.length ? (
         <button className="availability-prompt" onClick={settings}>
-          Disponible sur{" "}
+          {tr("Disponible sur")}{" "}
           <span>
-            Choisir mes services <ChevronRight size={16} />
+            {tr("Choisir mes services ")}
+            <ChevronRight size={16} />
           </span>
         </button>
       ) : loading ? (
         <p className="availability-status muted" role="status">
-          Recherche des disponibilités…
+          {tr("Recherche des disponibilités…")}
         </p>
       ) : error ? (
         <div className="availability-error" role="alert">
-          <span>Disponibilités indisponibles</span>
+          <span>{tr("Disponibilités indisponibles")}</span>
           <button
             className="text-button"
-            title={error}
+            title={tr(error)}
             onClick={() => setRetry((n) => n + 1)}
           >
-            Réessayer
+            {tr("Réessayer")}
           </button>
         </div>
       ) : data ? (
@@ -144,14 +152,14 @@ export default function WhereToWatch({
           <summary>
             <span className="availability-label">
               {!streaming.length && paid.length
-                ? "Location / achat"
-                : "Disponible sur"}
+                ? tr("Location / achat")
+                : tr("Disponible sur")}
             </span>
             {preview.length ? (
               <ProviderIcons providers={preview} limit={4} />
             ) : (
               <span className="availability-empty muted">
-                Aucun de mes services
+                {tr("Aucun de mes services")}
               </span>
             )}
             <ChevronRight className="disclosure-chevron" size={18} />
@@ -167,12 +175,17 @@ export default function WhereToWatch({
               ))}
             {!rows.some(([, list]) => list.length > 0) && (
               <p className="muted fine">
-                Aucune offre renseignée pour vos services dans ce pays.
+                {tr("Aucune offre renseignée pour vos services dans ce pays.")}
               </p>
             )}
             <div className="availability-footer">
               <span>
-                {countries.find((c) => c.code === preferences.country)?.name} ·{" "}
+                {
+                  localizedCountries().find(
+                    (c) => c.code === preferences.country,
+                  )?.name
+                }{" "}
+                ·{" "}
                 <a
                   href="https://www.justwatch.com/"
                   target="_blank"
@@ -183,7 +196,7 @@ export default function WhereToWatch({
                 / TMDB
               </span>
               <button className="text-button" onClick={settings}>
-                Modifier mes services
+                {tr("Modifier mes services")}
               </button>
             </div>
           </div>

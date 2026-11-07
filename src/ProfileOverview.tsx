@@ -1,3 +1,4 @@
+import { t as tr, getLanguage } from "./i18n";
 import { useMemo, useState } from "react";
 import Avatar from "./Avatar";
 import type { Profile } from "./profile";
@@ -25,12 +26,12 @@ export default function ProfileOverview({
   pending: boolean;
   share: (draft: ShareDraft) => void;
 }) {
-  const stats = useMemo(() => profileStats(library), [library]),
+  const stats = useMemo(() => profileStats(library), [library, getLanguage()]),
     [reviewLimit, setReviewLimit] = useState(3);
   const name =
     profile.displayName ||
     email?.split("@")[0] ||
-    "Le premier rôle, c’est vous.";
+    tr("Le premier rôle, c’est vous.");
   const reviews = Object.values(library)
     .filter((e) => e.review.trim())
     .sort((a, b) => Date.parse(b.updated) - Date.parse(a.updated));
@@ -43,36 +44,37 @@ export default function ProfileOverview({
           <h2>{name}</h2>
           {profile.bio && <p className="profile-bio">{profile.bio}</p>}
           <p className="muted">
-            {email || "Votre collection est enregistrée sur cet appareil."}
+            {email || tr("Votre collection est enregistrée sur cet appareil.")}
           </p>
         </div>
       </div>
       <div className="profile-actions">
         <button className="button tonal" onClick={edit}>
-          Modifier mon profil
+          {tr("Modifier mon profil")}
         </button>
         <button
           className="button surface"
           onClick={() =>
-            share(profileShare(profile, library, "Mon profil Vela"))
+            share(profileShare(profile, library, tr("Mon profil Vela")))
           }
         >
           <ShareIcon size={18} />
-          Partager mon profil
+          {tr("Partager mon profil")}
         </button>
       </div>
       {pending && (
         <p className="muted fine">
-          Les changements du profil sont enregistrés sur cet appareil et
-          attendent leur synchronisation Supabase.
+          {tr(
+            "Les changements du profil sont enregistrés sur cet appareil et attendent leur synchronisation Supabase.",
+          )}
         </p>
       )}
       <div className="stats">
         {[
-          [stats.watched, "Histoires vues"],
-          [stats.watchlist, "Envies à venir"],
-          [stats.favorites, "Coups de cœur"],
-          [stats.average ?? "—", "Note moyenne / 5"],
+          [stats.watched, tr("Histoires vues")],
+          [stats.watchlist, tr("Envies à venir")],
+          [stats.favorites, tr("Coups de cœur")],
+          [stats.average ?? "—", tr("Note moyenne / 5")],
         ].map(([n, label]) => (
           <div key={label}>
             <strong>{n}</strong>
@@ -82,14 +84,15 @@ export default function ProfileOverview({
       </div>
       <section
         className="profile-section"
-        aria-label="Les incontournables du profil"
+        aria-label={tr("Les incontournables du profil")}
       >
         <div className="section-heading">
           <div>
-            <h2>Mes incontournables</h2>
+            <h2>{tr("Mes incontournables")}</h2>
           </div>
           <button className="text-button" onClick={edit}>
-            Choisir <Plus size={16} />
+            {tr("Choisir ")}
+            <Plus size={16} />
           </button>
         </div>
         <div className="profile-featured">
@@ -100,7 +103,7 @@ export default function ProfileOverview({
                 className="featured-film"
                 key={title.id}
                 onClick={() => open(title)}
-                aria-label={`Ouvrir ${title.name}`}
+                aria-label={tr("Ouvrir {0}", title.name)}
               >
                 <span className="featured-poster">
                   {title.image ? (
@@ -111,7 +114,8 @@ export default function ProfileOverview({
                 </span>
                 <strong>{title.name}</strong>
                 <small>
-                  {title.year} · {title.kind === "movie" ? "Film" : "Série"}
+                  {title.year} ·{" "}
+                  {title.kind === "movie" ? tr("Film") : tr("Série")}
                 </small>
               </button>
             ) : (
@@ -119,10 +123,10 @@ export default function ProfileOverview({
                 key={i}
                 className="featured-empty"
                 onClick={edit}
-                aria-label={`Choisir le favori ${i + 1}`}
+                aria-label={tr("Choisir le favori {0}", i + 1)}
               >
                 <Plus size={24} />
-                <span>Votre choix</span>
+                <span>{tr("Votre choix")}</span>
               </button>
             );
           })}
@@ -130,32 +134,33 @@ export default function ProfileOverview({
       </section>
       <section
         className="profile-section activity-panel surface"
-        aria-label="Activité du profil"
+        aria-label={tr("Activité du profil")}
       >
-        <h2>Votre activité</h2>
+        <h2>{tr("Votre activité")}</h2>
         <p className="muted">
-          {stats.movies} films et {stats.series} séries vus · {stats.reviews}{" "}
-          avis rédigés
+          {stats.movies} {tr(" films et ")}
+          {stats.series} {tr(" séries vus · ")}
+          {stats.reviews} {tr("avis rédigés")}
         </p>
         <div className="activity-summary">
           <div>
             <strong>{stats.thisMonth}</strong>
-            <span>vus ce mois-ci</span>
+            <span>{tr("vus ce mois-ci")}</span>
           </div>
           <div>
             <strong>{stats.activeDays}</strong>
-            <span>jours de visionnage</span>
+            <span>{tr("jours de visionnage")}</span>
           </div>
           <div>
             <strong>{stats.streak}</strong>
-            <span>jours de suite</span>
+            <span>{tr("jours de suite")}</span>
           </div>
         </div>
         <div
           className="activity-chart"
           role="img"
           aria-label={stats.months
-            .map((m) => `${m.label} : ${m.count} visionnages`)
+            .map((m) => tr("{0} : {1} visionnages", m.label, m.count))
             .join(", ")}
         >
           {stats.months.map((m) => (
@@ -175,30 +180,33 @@ export default function ProfileOverview({
         {stats.genres.length > 0 && (
           <div className="profile-genres">
             {stats.genres.map(([genre, count]) => (
-              <span key={genre}>
-                {genre}
+              <span key={tr(genre)}>
+                {tr(genre)}
                 <small>{count}</small>
               </span>
             ))}
           </div>
         )}
         <p className="muted fine">
-          D’après les titres marqués vus et leur date de visionnage. Les
-          épisodes ne comptent pas comme des films.
+          {tr(
+            "D’après les titres marqués vus et leur date de visionnage. Les épisodes ne comptent pas comme des films.",
+          )}
         </p>
       </section>
-      <section className="profile-section" aria-label="Mes avis">
+      <section className="profile-section" aria-label={tr("Mes avis")}>
         <div className="section-heading">
           <div>
             <h2>
-              Mes avis <small>{reviews.length}</small>
+              {tr("Mes avis ")}
+              <small>{reviews.length}</small>
             </h2>
           </div>
         </div>
         {!reviews.length ? (
           <p className="muted">
-            Vos critiques apparaîtront ici. Écrivez votre premier avis depuis la
-            fiche d’un film ou d’une série.
+            {tr(
+              "Vos critiques apparaîtront ici. Écrivez votre premier avis depuis la fiche d’un film ou d’une série.",
+            )}
           </p>
         ) : (
           reviews.slice(0, reviewLimit).map((entry) => (
@@ -219,11 +227,11 @@ export default function ProfileOverview({
               <button
                 className="text-button"
                 onClick={() =>
-                  share(reviewShare(profile, entry, "Un regard sur Vela"))
+                  share(reviewShare(profile, entry, tr("Un regard sur Vela")))
                 }
               >
                 <ShareIcon size={17} />
-                Partager cet avis
+                {tr("Partager cet avis")}
               </button>
             </article>
           ))
@@ -233,7 +241,7 @@ export default function ProfileOverview({
             className="button tonal"
             onClick={() => setReviewLimit((n) => n + 6)}
           >
-            Afficher plus d’avis
+            {tr("Afficher plus d’avis")}
           </button>
         )}
       </section>

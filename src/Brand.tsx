@@ -1,3 +1,4 @@
+import { t as tr } from "./i18n";
 /** Original wordmark treatment, with a point in the selected accent colour. */
 export function Brand() {
   return (
@@ -12,7 +13,7 @@ export function SettingsFooter() {
     <footer
       className="settings-footer"
       role="contentinfo"
-      aria-label="À propos de Vela"
+      aria-label={tr("À propos de Vela")}
     >
       <div className="settings-brand">
         <span className="footer-brand" aria-label="Vela">
@@ -25,12 +26,16 @@ export function SettingsFooter() {
         </span>
         <span>A CAX Corporation company</span>
       </div>
+      <p className="ai-development-credit">
+        <span>{tr("Développé avec l’aide de l’IA")}</span>
+        {tr("ChatGPT a été utilisé pour accompagner le développement de Vela.")}
+      </p>
       <p className="catalog-attribution">
-        Catalogue :{" "}
+        {tr("Catalogue :")}{" "}
         <a href="https://www.themoviedb.org/" target="_blank" rel="noreferrer">
           TMDB
         </a>{" "}
-        (si activé),{" "}
+        {tr("(si activé),")}{" "}
         <a
           href="https://developer.apple.com/library/archive/documentation/AudioVideo/Conceptual/iTuneSearchAPI/"
           target="_blank"
@@ -38,7 +43,7 @@ export function SettingsFooter() {
         >
           iTunes
         </a>{" "}
-        et{" "}
+        {tr("et")}{" "}
         <a href="https://www.tvmaze.com/api" target="_blank" rel="noreferrer">
           TVmaze
         </a>{" "}
@@ -46,7 +51,7 @@ export function SettingsFooter() {
         <br />
         This product uses the TMDB API but is not endorsed or certified by TMDB.
         <br />
-        Les affiches appartiennent à leurs ayants droit.
+        {tr("Les affiches appartiennent à leurs ayants droit.")}
       </p>
     </footer>
   );

@@ -1,3 +1,4 @@
+import { t as tr } from "./i18n";
 import { useEffect, useState } from "react";
 import { cloud } from "./store";
 import { shareError } from "./public-sharing";
@@ -54,42 +55,47 @@ export default function PublicSharingSettings({
     if (error) setError(shareError(error));
     else {
       setRows((previous) => previous.filter((r) => r.id !== id));
-      setMessage("Lien retiré. Il ne donne plus accès à cette page.");
+      setMessage(tr("Lien retiré. Il ne donne plus accès à cette page."));
     }
   }
   return (
-    <section aria-label="Liens publics" className="public-sharing-settings">
-      <h2>Liens publics</h2>
+    <section
+      aria-label={tr("Liens publics")}
+      className="public-sharing-settings"
+    >
+      <h2>{tr("Liens publics")}</h2>
       <p className="muted">
-        Seuls les profils et avis que vous partagez sont publiés. Votre e-mail,
-        votre pays, vos services et votre collection restent privés. Partagez à
-        nouveau pour actualiser une page existante.
+        {tr(
+          "Seuls les profils et avis que vous partagez sont publiés. Votre e-mail, votre pays, vos services et votre collection restent privés. Partagez à nouveau pour actualiser une page existante.",
+        )}
       </p>
       {account === "local" ? (
         <button className="button tonal" onClick={signIn}>
-          Se connecter pour publier un profil ou un avis
+          {tr("Se connecter pour publier un profil ou un avis")}
         </button>
       ) : !expanded ? (
         <button className="button tonal" onClick={() => setExpanded(true)}>
-          Gérer mes liens publics
+          {tr("Gérer mes liens publics")}
         </button>
       ) : (
         <>
           {loading && (
             <p role="status" className="muted">
-              Chargement des liens…
+              {tr("Chargement des liens…")}
             </p>
           )}
           {error && (
             <div className="error" role="alert">
-              {error}
+              {tr(error)}
               <button onClick={() => setRetry((n) => n + 1)}>
-                Réessayer les liens
+                {tr("Réessayer les liens")}
               </button>
             </div>
           )}
           {!loading && !error && !rows.length && (
-            <p className="muted">Vous n’avez pas encore publié de lien.</p>
+            <p className="muted">
+              {tr("Vous n’avez pas encore publié de lien.")}
+            </p>
           )}
           <div className="published-share-list">
             {rows.map((row) => (
@@ -100,8 +106,11 @@ export default function PublicSharingSettings({
                   rel="noreferrer"
                 >
                   {row.kind === "profile"
-                    ? "Mon profil"
-                    : `Mon avis · ${row.payload?.review?.title?.name || "Titre"}`}{" "}
+                    ? tr("Mon profil")
+                    : tr(
+                        "Mon avis · {0}",
+                        row.payload?.review?.title?.name || "Titre",
+                      )}{" "}
                   ↗
                 </a>
                 <button
@@ -109,7 +118,7 @@ export default function PublicSharingSettings({
                   disabled={Boolean(busy)}
                   onClick={() => remove(row.id)}
                 >
-                  Retirer ce lien
+                  {tr("Retirer ce lien")}
                 </button>
               </div>
             ))}
@@ -118,33 +127,33 @@ export default function PublicSharingSettings({
       )}
       {message && (
         <p className="muted fine" role="status">
-          {message}
+          {tr(message)}
         </p>
       )}
       <details className="advanced-services">
-        <summary>Activer le partage sur votre projet Supabase</summary>
+        <summary>{tr("Activer le partage sur votre projet Supabase")}</summary>
         <p className="muted">
-          Dans le SQL Editor de votre projet, exécutez ce script une fois. Il
-          ajoute les pages partagées sans rendre la bibliothèque privée
-          accessible.
+          {tr(
+            "Dans le SQL Editor de votre projet, exécutez ce script une fois. Il ajoute les pages partagées sans rendre la bibliothèque privée accessible.",
+          )}
         </p>
         <button
           className="button tonal"
           onClick={async () => {
             try {
               await Clipboard.write({ string: sql });
-              setMessage("Script SQL copié.");
+              setMessage(tr("Script SQL copié."));
             } catch {
               setMessage(
-                "La copie a échoué. Sélectionnez le script ci-dessous.",
+                tr("La copie a échoué. Sélectionnez le script ci-dessous."),
               );
             }
           }}
         >
-          Copier le SQL du partage public
+          {tr("Copier le SQL du partage public")}
         </button>
         <textarea
-          aria-label="Script SQL du partage public"
+          aria-label={tr("Script SQL du partage public")}
           readOnly
           value={sql}
           rows={8}

@@ -1,3 +1,5 @@
+import { syncLanguagePreference } from "./language-preferences";
+import { t as tr } from "./i18n";
 import { syncAccountState } from "./account-state";
 import { syncViewingPreferences } from "./viewing-preferences";
 import { syncUserProfile } from "./profile-sync";
@@ -112,7 +114,7 @@ export function createBackupService(runtime: Runtime) {
   }
   function setFrequency(account: string, frequency: BackupFrequency) {
     if (!["daily", "weekly", "manual"].includes(frequency))
-      throw new Error("Fréquence invalide.");
+      throw new Error(tr("Fréquence invalide."));
     return save(account, { ...state(account), frequency });
   }
   function synchronize(account: string, force = false): Promise<BackupResult> {
@@ -196,6 +198,7 @@ export const backupService = createBackupService({
   afterSync: async (account) => {
     await syncUserProfile(account);
     await syncViewingPreferences(account);
+    await syncLanguagePreference(account);
     await syncAccountState(account, true);
   },
   emit: (key) => {

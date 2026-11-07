@@ -1,3 +1,4 @@
+import { t as tr } from "./i18n";
 import { createClient } from "@supabase/supabase-js";
 import { serviceDefaults } from "./service-config";
 import type { Title } from "./catalog";
@@ -18,7 +19,7 @@ export type Entry = {
 export function parseCollection(json: string): Record<string, Entry> {
   const data: unknown = JSON.parse(json);
   if (!data || typeof data !== "object" || Array.isArray(data))
-    throw new Error("Collection invalide");
+    throw new Error(tr("Collection invalide"));
   for (const [id, value] of Object.entries(data)) {
     const v = value as Entry;
     if (
@@ -69,7 +70,7 @@ export function parseCollection(json: string): Record<string, Entry> {
       ) ||
       !/^\d{4}-\d{2}-\d{2}$/.test(v.watchedAt)
     )
-      throw new Error("Collection invalide");
+      throw new Error(tr("Collection invalide"));
   }
   return data as Record<string, Entry>;
 }
@@ -119,17 +120,17 @@ const c = getConfig();
 export const cloud = c.url && c.key ? createClient(c.url, c.key) : null;
 export function saveConfig(url: string, key: string) {
   if (!/^https:\/\/[a-z0-9.-]+\.supabase\.co\/?$/.test(url.trim()))
-    throw new Error("Utilisez l’URL HTTPS de votre projet Supabase.");
-  if (!key.trim()) throw new Error("La clé publique est nécessaire.");
+    throw new Error(tr("Utilisez l’URL HTTPS de votre projet Supabase."));
+  if (!key.trim()) throw new Error(tr("La clé publique est nécessaire."));
   if (key.startsWith("sb_secret_"))
-    throw new Error("Utilisez uniquement une clé publique.");
+    throw new Error(tr("Utilisez uniquement une clé publique."));
   try {
     const payload = JSON.parse(atob(key.split(".")[1]));
     if (payload.role === "service_role") throw new Error("private");
   } catch (e) {
     if (e instanceof Error && e.message === "private")
       throw new Error(
-        "La clé service_role ne doit jamais être utilisée dans Vela.",
+        tr("La clé service_role ne doit jamais être utilisée dans Vela."),
       );
   }
   localStorage.setItem(
@@ -169,7 +170,9 @@ export async function sync(
   client = cloud,
 ): Promise<SyncResult> {
   if (!client)
-    throw new Error("Configurez Supabase pour sauvegarder votre collection.");
+    throw new Error(
+      tr("Configurez Supabase pour sauvegarder votre collection."),
+    );
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 60000);
   try {
@@ -188,7 +191,7 @@ export async function sync(
       for (const row of data || []) {
         const entry = row.entry as Entry;
         if (!entry?.title?.id)
-          throw new Error("Une entrée de la sauvegarde est invalide.");
+          throw new Error(tr("Une entrée de la sauvegarde est invalide."));
         Object.assign(
           remote,
           parseCollection(JSON.stringify({ [entry.title.id]: entry })),

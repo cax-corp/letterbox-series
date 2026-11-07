@@ -1,3 +1,4 @@
+import { t as tr, getLanguage } from "./i18n";
 import { tmdbRequest, isTmdb, type Title } from "./catalog";
 export type Provider = { id: number; name: string; logo: string };
 export type WatchOffers = {
@@ -46,7 +47,7 @@ export async function providerCatalog(
   signal: AbortSignal,
 ): Promise<Provider[]> {
   if (!/^[A-Z]{2}$/.test(country)) return [];
-  const key = "providers:" + country,
+  const key = "providers:" + country + ":" + getLanguage(),
     saved = remembered<Provider[]>(key, 24 * HOUR);
   if (saved) return saved;
   const responses = await Promise.all([
@@ -69,11 +70,13 @@ export async function watchOffers(
 ): Promise<WatchOffers> {
   if (!isTmdb(title))
     throw new Error(
-      "Disponibilités non renseignées pour cette ancienne source. Retrouvez le titre via la recherche TMDB.",
+      tr(
+        "Disponibilités non renseignées pour cette ancienne source. Retrouvez le titre via la recherche TMDB.",
+      ),
     );
   if (!/^[A-Z]{2}$/.test(country))
-    throw new Error("Choisissez votre pays dans les réglages.");
-  const key = title.id + ":" + country,
+    throw new Error(tr("Choisissez votre pays dans les réglages."));
+  const key = title.id + ":" + country + ":" + getLanguage(),
     saved = remembered<WatchOffers>(key, 6 * HOUR);
   if (saved) return saved;
   const kind = title.kind === "movie" ? "movie" : "tv";

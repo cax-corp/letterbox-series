@@ -77,7 +77,7 @@ public class DailyRecommendationsPlugin extends Plugin {
         synchronized(DailyRecommendations.class){
             JSONObject saved=DailyRecommendations.config(getContext());if(!saved.optBoolean("enabled")){getState(call);return;}
             try{
-                for(String key:new String[]{"preparedAt","candidates","excluded"})saved.put(key,context.opt(key));
+                for(String key:new String[]{"preparedAt","candidates","excluded","language"})saved.put(key,context.opt(key));
                 for(String old:new String[]{"token","genreQuery","weights","seedIds"})saved.remove(old);
                 // Updating the reserve must NOT replace the generation or postpone an imminent alarm.
                 DailyRecommendations.prefs(getContext()).edit().putString("config",saved.toString()).commit();
@@ -90,7 +90,7 @@ public class DailyRecommendationsPlugin extends Plugin {
         JSObject context=call.getObject("context");
         if(context!=null)synchronized(DailyRecommendations.class){
             JSONObject saved=DailyRecommendations.config(getContext());
-            try{for(String key:new String[]{"preparedAt","candidates","excluded"})saved.put(key,context.opt(key));DailyRecommendations.prefs(getContext()).edit().putString("config",saved.toString()).commit();}catch(JSONException ignored){}
+            try{for(String key:new String[]{"preparedAt","candidates","excluded","language"})saved.put(key,context.opt(key));DailyRecommendations.prefs(getContext()).edit().putString("config",saved.toString()).commit();}catch(JSONException ignored){}
         }
         DailyRecommendations.test(getContext(),Boolean.TRUE.equals(call.getBoolean("immediate",false)),context==null?DailyRecommendations.config(getContext()).optBoolean("reliableAlarm",false):context.optBoolean("reliableAlarm",false));getState(call);
     }

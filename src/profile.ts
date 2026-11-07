@@ -1,3 +1,4 @@
+import { t as tr } from "./i18n";
 import type { Title } from "./catalog";
 export const avatarOptions = [
   { id: "initial", label: "Votre initiale" },
@@ -79,7 +80,7 @@ export function featuredTitle(t: Title): Title {
     !["movie", "series"].includes(t.kind) ||
     /^(?:tmdb-)?(movie|series)-/.exec(t.id)?.[1] !== t.kind
   )
-    throw new Error("Titre favori invalide.");
+    throw new Error(tr("Titre favori invalide."));
   return {
     id: t.id,
     kind: t.kind,
@@ -140,7 +141,7 @@ export function makeProfile(
     ).toISOString(),
   });
   if (!profile?.displayName)
-    throw new Error("Choisissez un nom entre 1 et 40 caractères.");
+    throw new Error(tr("Choisissez un nom entre 1 et 40 caractères."));
   return profile;
 }
 export const profileKey = (project: string, account: string) =>

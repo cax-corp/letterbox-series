@@ -1,3 +1,4 @@
+import { t as tr } from "./i18n";
 import React, { useEffect, useRef } from "react";
 import { X } from "./icons";
 export default function Modal({
@@ -67,7 +68,7 @@ export default function Modal({
       >
         <button
           className="modal-close surface"
-          aria-label="Fermer"
+          aria-label={tr("Fermer")}
           onClick={close}
         >
           <X size={20} />

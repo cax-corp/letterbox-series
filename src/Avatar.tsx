@@ -1,3 +1,4 @@
+import { t as tr, getLanguage } from "./i18n";
 import type { CSSProperties, ReactNode } from "react";
 import { avatarBackgrounds, type AvatarId, type Profile } from "./profile";
 
@@ -385,7 +386,7 @@ export default function Avatar({
           "--avatar-background": background.color,
         } as CSSProperties
       }
-      aria-label={`Avatar de ${name || "Vela"}`}
+      aria-label={tr("Avatar de {0}", name || "Vela")}
       role="img"
     >
       {profile.avatar === "initial" ? (
@@ -394,7 +395,7 @@ export default function Avatar({
           style={{ fontSize: size * 0.43 }}
           aria-hidden="true"
         >
-          {Array.from(name.trim())[0]?.toLocaleUpperCase("fr-FR") || "V"}
+          {Array.from(name.trim())[0]?.toLocaleUpperCase(getLanguage()) || "V"}
         </span>
       ) : (
         <svg
