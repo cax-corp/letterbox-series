@@ -5232,7 +5232,7 @@ body.taste-terminal-active > #root > .mobile-nav {
   border-color: #1b355d;
 }
 .atlas-terminal .taste-inspector::before {
-  content: "CONNEXIONS / SIGNAL";
+  content: attr(data-heading);
   letter-spacing: 1.5px;
 }
 .atlas-terminal .atlas-metrics {

@@ -680,5 +680,15 @@
   "Mode clair": "Light mode",
   "Mode sombre": "Dark mode",
   "et": "and",
-  "E-mail": "Email"
+  "E-mail": "Email",
+  "CONNEXIONS / SIGNAL": "CONNECTIONS / SIGNAL",
+  "titre": "title",
+  "Sans genre": "Uncategorized",
+  "Autorisez les notifications dans Android pour activer ce réglage.": "Allow notifications in Android to enable this setting.",
+  "Vérifiez l’heure et les jours choisis.": "Check the selected time and days.",
+  "La réserve ne peut pas être actualisée.": "The recommendation reserve could not be refreshed.",
+  "Contexte manquant": "Missing context",
+  "Ouvrez manuellement les paramètres Android de Vela.": "Open Vela’s Android settings manually.",
+  "Ouvrez manuellement Batterie dans les paramètres Android de Vela.": "Open Battery in Vela’s Android settings manually.",
+  "Ouvrez les paramètres de notifications Android pour Vela.": "Open Android notification settings for Vela."
 }

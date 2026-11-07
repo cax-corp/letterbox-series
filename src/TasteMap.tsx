@@ -748,6 +748,7 @@ export default function TasteMap({
                 </div>
                 <aside
                   className="taste-inspector surface"
+                  data-heading={tr("CONNEXIONS / SIGNAL")}
                   aria-label={tr("Détails du point sélectionné")}
                 >
                   <label className="field">
@@ -775,7 +776,7 @@ export default function TasteMap({
                       onChange={(e) => choose(e.target.value)}
                     >
                       <option value="">
-                        {visibleItems.length} titre
+                        {visibleItems.length} {tr("titre")}
                         {visibleItems.length > 1 ? "s" : ""}
                       </option>
                       <optgroup label={tr("Genres")}>
