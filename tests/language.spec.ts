@@ -296,3 +296,25 @@ test("synchronisation en échec : langue conservée au redémarrage puis nouvell
     .toBe("en-US");
   await expect(section.locator(".error")).toHaveCount(0);
 });
+
+test("un changement de langue conserve le brouillon du profil", async ({
+  page,
+}) => {
+  const state = { metadata: {}, writes: [] as any[] };
+  await backend(page, state);
+  await page.goto("/#profile/edit");
+  await page.getByLabel("Nom affiché", { exact: true }).fill("Nora");
+  await page
+    .getByLabel("Quelques mots sur vous")
+    .fill("Mon brouillon reste dans ma langue.");
+  await page.evaluate(async () => {
+    const module = await import("/src/i18n.ts");
+    module.setAppLanguage("en-US");
+  });
+  await expect(page.getByLabel("Display name", { exact: true })).toHaveValue(
+    "Nora",
+  );
+  await expect(page.getByLabel("A few words about you")).toHaveValue(
+    "Mon brouillon reste dans ma langue.",
+  );
+});

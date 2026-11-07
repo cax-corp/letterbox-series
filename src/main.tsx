@@ -1389,7 +1389,7 @@ function App() {
             />
           ) : (
             <ProfileEditor
-              key={`${user?.id || "local"}:${language}`}
+              key={user?.id || "local"}
               initial={personal.profile}
               library={library}
               defaultName={user?.email?.split("@")[0] || ""}
