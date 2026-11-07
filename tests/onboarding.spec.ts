@@ -112,7 +112,7 @@ async function setup(page: Page, signed = false, native = true) {
 }
 test("première ouverture Android : trois volets, navigation clavier/retour, couleurs et petit écran", async ({
   page,
-}) => {
+}, testInfo) => {
   const calls = await setup(page);
   await page.goto("/");
   const welcome = page.getByRole("main", {
@@ -155,7 +155,7 @@ test("première ouverture Android : trois volets, navigation clavier/retour, cou
   await page.setViewportSize({ width: 390, height: 844 });
   await tabs.nth(0).click();
   await page.screenshot({
-    path: "/workspace/artifacts/Vela-2.4.0-bienvenue-sombre.png",
+    path: testInfo.outputPath("Vela-2.4.0-bienvenue-sombre.png"),
     fullPage: true,
   });
   await page.evaluate(() => {
@@ -170,13 +170,13 @@ test("première ouverture Android : trois volets, navigation clavier/retour, cou
     "champagne",
   );
   await page.screenshot({
-    path: "/workspace/artifacts/Vela-2.4.0-bienvenue-clair.png",
+    path: testInfo.outputPath("Vela-2.4.0-bienvenue-clair.png"),
     fullPage: true,
   });
 });
 test("explorer sans compte : catalogue puis redémarrage sans répéter la présentation", async ({
   page,
-}) => {
+}, testInfo) => {
   const calls = await setup(page);
   await page.goto("/");
   await page
@@ -194,7 +194,7 @@ test("explorer sans compte : catalogue puis redémarrage sans répéter la prés
 });
 test("inscription : formulaire complet, pays obligatoire et confirmation avant connexion", async ({
   page,
-}) => {
+}, testInfo) => {
   const calls = await setup(page);
   await page.goto("/");
   await page
@@ -234,13 +234,13 @@ test("inscription : formulaire complet, pays obligatoire et confirmation avant c
     user.email,
   );
   await page.screenshot({
-    path: "/workspace/artifacts/Vela-2.4.0-connexion.png",
+    path: testInfo.outputPath("Vela-2.4.0-connexion.png"),
     fullPage: true,
   });
 });
 test("connexion : erreur récupérable puis compte connecté et accueil mémorisé", async ({
   page,
-}) => {
+}, testInfo) => {
   const calls = await setup(page);
   calls.failLogin = true;
   await page.goto("/");
@@ -272,7 +272,7 @@ test("connexion : erreur récupérable puis compte connecté et accueil mémoris
 });
 test("compte déjà connecté : restauration directe de la session sans accueil de première ouverture", async ({
   page,
-}) => {
+}, testInfo) => {
   await setup(page, true);
   await page.goto("/");
   await expect(page.locator(".account")).toContainText("Mon espace");
@@ -283,7 +283,7 @@ test("compte déjà connecté : restauration directe de la session sans accueil 
 });
 test("lien public Android et site web : accès direct sans présentation imposée", async ({
   page,
-}) => {
+}, testInfo) => {
   await setup(page);
   await page.goto("/#/title/tmdb-movie-42");
   await expect(page.locator(".public-title h1")).toHaveText("Film partagé");

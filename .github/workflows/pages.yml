@@ -21,6 +21,14 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npm test
+      - name: Rapports des tests en échec
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Vela-tests-en-echec
+          path: test-results
+          retention-days: 7
+          if-no-files-found: ignore
       - run: npm run build:web
         env:
           VITE_PUBLIC_SITE_URL: ${{ vars.VITE_PUBLIC_SITE_URL }}

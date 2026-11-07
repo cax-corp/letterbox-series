@@ -73,7 +73,7 @@ test("carte : tous les liens correspondent aux genres ou aux similarités du mod
 });
 test("carte 3D : sélection, rotation, zoom, filtres et retour aux réglages sur mobile et PC", async ({
   page,
-}) => {
+}, testInfo) => {
   await page.addInitScript(
     (library) =>
       localStorage.setItem("luma-library-v1", JSON.stringify(library)),
@@ -90,6 +90,9 @@ test("carte 3D : sélection, rotation, zoom, filtres et retour aux réglages sur
     exact: true,
   });
   await expect(map).toBeVisible();
+  await page
+    .getByRole("button", { name: "Démarrer la carte", exact: true })
+    .click();
   await page
     .getByLabel("Choisir un point", { exact: true })
     .selectOption("genre:878");
@@ -130,12 +133,12 @@ test("carte 3D : sélection, rotation, zoom, filtres et retour aux réglages sur
   }
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.screenshot({
-    path: "/workspace/artifacts/Vela-carte-des-gouts-PC.png",
+    path: testInfo.outputPath("Vela-carte-des-gouts-PC.png"),
     fullPage: true,
   });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({
-    path: "/workspace/artifacts/Vela-carte-des-gouts-mobile.png",
+    path: testInfo.outputPath("Vela-carte-des-gouts-mobile.png"),
     fullPage: true,
   });
   await page
@@ -157,8 +160,227 @@ test("carte vide : aucun goût inventé", async ({ page }) => {
   );
   await page.route("**/api.tvmaze.com/**", (r) => r.fulfill({ json: [] }));
   await page.goto("/#settings/tastes");
+  await page
+    .getByRole("button", { name: "Démarrer la carte", exact: true })
+    .click();
   await expect(
     page.getByText("Votre carte commence avec vos goûts.", { exact: true }),
   ).toBeVisible();
   await expect(page.locator(".taste-point")).toHaveCount(0);
+});
+
+test("terminal SF : lancement volontaire, intro accélérable, son local et retour au thème initial", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.addInitScript((library) => {
+    localStorage.setItem("luma-library-v1", JSON.stringify(library));
+    localStorage.setItem("luma-theme", "light");
+    (window as any).atlasAudio = { contexts: 0, notes: 0, closed: 0 };
+    const Original = window.AudioContext;
+    window.AudioContext = class extends Original {
+      constructor(...args: ConstructorParameters<typeof AudioContext>) {
+        super(...args);
+        (window as any).atlasAudio.contexts++;
+      }
+      createOscillator() {
+        const oscillator = super.createOscillator();
+        const start = oscillator.start.bind(oscillator);
+        oscillator.start = (...args) => {
+          (window as any).atlasAudio.notes++;
+          start(...args);
+        };
+        return oscillator;
+      }
+      close() {
+        (window as any).atlasAudio.closed++;
+        return super.close();
+      }
+    };
+  }, seed);
+  await page.route("**/itunes.apple.com/**", (r) =>
+    r.fulfill({ json: { results: [] } }),
+  );
+  await page.route("**/api.tvmaze.com/**", (r) => r.fulfill({ json: [] }));
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto("/#settings/tastes");
+  expect(await page.evaluate(() => (window as any).atlasAudio.contexts)).toBe(
+    0,
+  );
+  await expect(page.locator(".sidebar")).toBeVisible();
+  await expect(page.locator(".taste-scene")).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "Démarrer la carte", exact: true })
+    .click();
+  const progress = page.getByRole("progressbar", {
+    name: "Initialisation de la carte",
+  });
+  await expect(progress).toBeVisible();
+  await expect(page.locator(".sidebar")).toBeHidden();
+  await expect(page.locator(".topbar")).toBeHidden();
+  await expect
+    .poll(() => page.evaluate(() => (window as any).atlasAudio.notes))
+    .toBeGreaterThan(0);
+  await expect(page.getByRole("status")).toHaveText(
+    "Chargement de vos préférences mentales",
+  );
+  await page
+    .getByRole("button", { name: "Son de la carte", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Son de la carte", exact: true }),
+  ).toHaveAttribute("aria-pressed", "false");
+  await expect
+    .poll(() => page.evaluate(() => (window as any).atlasAudio.closed))
+    .toBe(1);
+  await page
+    .getByRole("button", { name: "Passer l’intro", exact: true })
+    .click();
+  await expect(page.locator(".taste-scene")).toBeVisible();
+  const notes = await page.evaluate(() => (window as any).atlasAudio.notes);
+  await page
+    .getByLabel("Choisir un point", { exact: true })
+    .selectOption("movie-1");
+  expect(await page.evaluate(() => (window as any).atlasAudio.notes)).toBe(
+    notes,
+  );
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute(
+    "content",
+    "#050c10",
+  );
+  await page
+    .getByRole("button", { name: "Retour aux réglages", exact: true })
+    .click();
+  await expect(page.locator("body")).not.toHaveClass(/taste-terminal-active/);
+  await expect(page.locator(".sidebar")).toBeVisible();
+  await expect(page.locator('meta[name="theme-color"]')).not.toHaveAttribute(
+    "content",
+    "#050c10",
+  );
+  await page
+    .getByRole("button", { name: "Carte de mes goûts", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Son de la carte", exact: true }),
+  ).toHaveAttribute("aria-pressed", "false");
+  await page
+    .getByRole("button", { name: "Son de la carte", exact: true })
+    .click();
+  await expect
+    .poll(() => page.evaluate(() => (window as any).atlasAudio.contexts))
+    .toBe(2);
+  await page.evaluate(() => {
+    Object.defineProperty(document, "hidden", {
+      configurable: true,
+      value: true,
+    });
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  await expect
+    .poll(() => page.evaluate(() => (window as any).atlasAudio.closed))
+    .toBe(2);
+  await page.evaluate(() => {
+    Object.defineProperty(document, "hidden", {
+      configurable: true,
+      value: false,
+    });
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  await page
+    .getByRole("button", { name: "Démarrer la carte", exact: true })
+    .click();
+  await expect
+    .poll(() => page.evaluate(() => (window as any).atlasAudio.contexts))
+    .toBe(3);
+  await page
+    .getByRole("button", { name: "Retour aux réglages", exact: true })
+    .click();
+  await expect
+    .poll(() => page.evaluate(() => (window as any).atlasAudio.closed))
+    .toBe(3);
+});
+
+test("terminal SF : fin naturelle, nettoyage audio et animations réduites sans intro", async ({
+  page,
+}) => {
+  await page.addInitScript(
+    (library) =>
+      localStorage.setItem("luma-library-v1", JSON.stringify(library)),
+    seed,
+  );
+  await page.route("**/itunes.apple.com/**", (r) =>
+    r.fulfill({ json: { results: [] } }),
+  );
+  await page.route("**/api.tvmaze.com/**", (r) => r.fulfill({ json: [] }));
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.goto("/#settings/tastes");
+  await page
+    .getByRole("button", { name: "Démarrer la carte", exact: true })
+    .click();
+  await expect(page.locator(".taste-page")).toHaveAttribute(
+    "data-phase",
+    "ready",
+  );
+  await expect(page.getByRole("progressbar")).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "Retour aux réglages", exact: true })
+    .click();
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page
+    .getByRole("button", { name: "Carte de mes goûts", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Démarrer la carte", exact: true })
+    .click();
+  await expect(page.locator(".taste-page")).toHaveAttribute(
+    "data-phase",
+    "ready",
+  );
+  await expect(page.getByRole("progressbar")).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "Son de la carte", exact: true })
+    .click();
+  await page
+    .getByRole("button", { name: "Son de la carte", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Zoomer", exact: true }).click();
+  await expect(page.locator(".taste-scene")).toBeVisible();
+});
+
+test("terminal SF : audio indisponible sans bloquer la carte", async ({
+  page,
+}) => {
+  await page.addInitScript((library) => {
+    localStorage.setItem("luma-library-v1", JSON.stringify(library));
+    Object.defineProperty(window, "AudioContext", {
+      value: undefined,
+      configurable: true,
+    });
+    Object.defineProperty(window, "webkitAudioContext", {
+      value: undefined,
+      configurable: true,
+    });
+  }, seed);
+  await page.route("**/itunes.apple.com/**", (r) =>
+    r.fulfill({ json: { results: [] } }),
+  );
+  await page.route("**/api.tvmaze.com/**", (r) => r.fulfill({ json: [] }));
+  await page.goto("/#settings/tastes");
+  await page
+    .getByRole("button", { name: "Démarrer la carte", exact: true })
+    .click();
+  await expect(
+    page.getByRole("button", { name: "Son de la carte", exact: true }),
+  ).toBeDisabled();
+  await expect(
+    page.getByRole("button", { name: "Son de la carte", exact: true }),
+  ).toHaveText("◖×Son indisponible");
+  await expect(page.locator(".taste-scene")).toBeVisible();
+  await page
+    .getByLabel("Choisir un point", { exact: true })
+    .selectOption("movie-1");
+  await expect(
+    page.getByRole("complementary", { name: "Détails du point sélectionné" }),
+  ).toContainText("Station 1");
 });
