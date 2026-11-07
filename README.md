@@ -117,15 +117,15 @@ L’application ne se rabat pas silencieusement sur iTunes si une clé TMDB conf
 
 ## Publier sur GitHub Pages
 
-La version web reprend les fonctions de l’APK, avec une navigation adaptée au PC, à la tablette et au téléphone. Sur PC, Pour vous prend le focus clavier à l’ouverture pour permettre les flèches/Page précédente/Page suivante. Les profils gardent une largeur de lecture adaptée et les paramètres web ne présentent pas de commandes Android inopérantes. Le partage actuel par cartes et texte n’est pas transformé en liens profonds.
+La version web adapte la navigation au PC, à la tablette et au téléphone. « Pour vous » reste réservé à l’APK et propose son téléchargement sur le web. Les profils et paramètres gardent une largeur de lecture adaptée. Les fiches, profils et avis se partagent par liens publics consultables sans compte, sans image jointe.
 
 1. Importer les sources à la racine de `cax-corp/letterbox-series`, branche `main`, si elles ne sont pas déjà présentes.
 2. Dans **Settings → Pages → Build and deployment → Source**, choisir **GitHub Actions**.
 3. Lancer **Actions → Deploy Vela to GitHub Pages → Run workflow** sur `main` ; le workflow teste, compile puis publie à chaque push sur cette branche.
-4. Attendre la réussite du déploiement. Le site prévu est `https://cax-corp.github.io/letterbox-series/` ; il n’est actif qu’après publication réussie.
+4. Attendre la réussite du déploiement. Le site public est `https://vela.thomasbarial.com/` ; il n’est actif qu’après publication réussie.
 5. Ouvrir les réglages du site pour utiliser le même projet Supabase et la même clé TMDB que dans l’APK, puis se connecter au même compte. Synchroniser d’abord l’APK pour retrouver ses changements récents.
 
-`base: './'` permet le sous-répertoire GitHub Pages et un futur domaine personnalisé à la racine. La navigation interne utilise les fragments d’URL et n’exige pas de règle de réécriture serveur. `.nojekyll` est inclus dans la distribution. Le sous-domaine envisagé est `vela.thomasbarial.com` ; sa configuration DNS et les App Links ne sont pas appliqués par cette version.
+`base: './'` permet le sous-répertoire GitHub Pages et un futur domaine personnalisé à la racine. La navigation interne utilise les fragments d’URL et n’exige pas de règle de réécriture serveur. `.nojekyll` est inclus dans la distribution. Le domaine personnalisé est `vela.thomasbarial.com`. Depuis 2.3.2, les liens partagés par défaut depuis Android utilisent `https://vela.thomasbarial.com/` pour les fiches, profils et avis. Les fragments et identifiants publics restent identiques ; aucune migration Supabase n’est nécessaire. Les Android App Links ne sont pas configurés par cette version.
 
 [Guide d’import, publication, Supabase et futur domaine](docs/publication-web.md).
 

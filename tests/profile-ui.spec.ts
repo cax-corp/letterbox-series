@@ -543,7 +543,7 @@ test("partage Android : lien de fiche immédiat sans image ni écriture de fichi
     .toBe(1);
   const shared = await page.evaluate(() => (window as any).nativeShares[0]);
   expect(shared.url).toBe(
-    "https://cax-corp.github.io/letterbox-series/#/title/movie-1",
+    "https://vela.thomasbarial.com/#/title/movie-1",
   );
   expect(shared.files).toBeUndefined();
   expect(await page.evaluate(() => (window as any).nativeWrites.length)).toBe(

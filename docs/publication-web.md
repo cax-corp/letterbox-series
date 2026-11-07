@@ -2,7 +2,7 @@
 
 La version web contient les fonctions du Vela 2.1 actuel : films/séries, recherche TMDB, collection, notes et avis, profils et avatars prédéfinis, statistiques et sauvegardes Supabase. Les recommandations personnalisées « Pour vous » sont réservées à l’application mobile pour le moment ; le site affiche un message et propose le téléchargement de l’APK Android. Elle adapte la navigation au PC et au mobile. Les notifications programmées quand l’app est fermée restent une fonction de l’APK Android ; le site ne prétend pas les envoyer navigateur fermé.
 
-La création de liens de partage ouvrant le site ou l’APK est volontairement reportée. Le partage existant de cartes PNG et de texte reste en place. Cette publication ne configure ni Android App Links, ni domaine Cloudflare.
+Les fiches, profils et avis se partagent par liens publics sans image. Depuis 2.3.2, l’APK utilise par défaut `https://vela.thomasbarial.com/`. Les liens conservent les mêmes fragments et identifiants Supabase ; aucun nouveau script SQL n’est nécessaire pour ce changement de domaine. Les Android App Links ne sont pas configurés.
 
 ## Quel fichier utiliser ?
 
@@ -62,13 +62,13 @@ La configuration publique Vela est intégrée dans `src/service-config.ts`. Pour
 
 Les valeurs `VITE_` sont intégrées au JavaScript public du site, y compris celles issues des secrets GitHub. Cela ne doit contenir que les identifiants client prévus pour cet usage. Les politiques RLS existantes protègent les collections ; les secrets serveur n’ont aucune place dans ce build. Relancer le workflow après avoir changé ces valeurs.
 
-## 4. Plus tard : vela.thomasbarial.com
+## 4. Domaine personnalisé : vela.thomasbarial.com
 
 Le code utilise des chemins relatifs : le même build fonctionne dans `/letterbox-series/` et à la racine d’un domaine personnalisé. Aucun fichier CNAME n’est imposé maintenant pour conserver l’URL GitHub Pages utilisable.
 
 Quand le DNS est prêt : renseigner `vela.thomasbarial.com` dans **GitHub → Settings → Pages → Custom domain**, puis, côté Cloudflare, créer le CNAME `vela` vers `cax-corp.github.io` — sans `https://` ni `/letterbox-series/`. Commencer en **DNS only** le temps de la vérification et du certificat GitHub, puis activer **Enforce HTTPS** lorsqu’il est disponible. La vérification éventuelle de propriété du domaine se fait avec les valeurs fournies par GitHub, pas avec une valeur inventée dans le projet.
 
-Ajouter ensuite `https://vela.thomasbarial.com/` aux URL autorisées de Supabase et l’utiliser comme Site URL. Le nouveau domaine constitue une nouvelle origine : se reconnecter et, si nécessaire, remettre la configuration dans ses réglages. Les données sauvegardées dans le même compte Supabase se restaurent. La synchronisation des liens de partage et l’ouverture automatique de l’APK restent une tâche ultérieure.
+Ajouter ensuite `https://vela.thomasbarial.com/` aux URL autorisées de Supabase et l’utiliser comme Site URL. Le nouveau domaine constitue une nouvelle origine : se reconnecter et, si nécessaire, remettre la configuration dans ses réglages. Les données sauvegardées dans le même compte Supabase se restaurent. Les nouveaux liens partagés par l’APK 2.3.2 utilisent ce domaine par défaut. L’ouverture automatique de l’APK reste une tâche ultérieure. Une substitution `VITE_PUBLIC_SITE_URL` reste possible pour un autre déploiement ; elle doit utiliser la nouvelle adresse pour ce site.
 
 
 ## Reconstruire le site localement

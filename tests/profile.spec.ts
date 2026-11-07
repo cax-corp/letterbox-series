@@ -14,7 +14,12 @@ import {
   writeProfileRecord,
 } from "../src/profile-sync";
 import { profileStats } from "../src/profile-stats";
-import { profileShare, reviewShare, publicTitleUrl } from "../src/sharing";
+import {
+  profileShare,
+  reviewShare,
+  publicTitleUrl,
+  sharedPageUrl,
+} from "../src/sharing";
 import { empty, type Library } from "../src/store";
 import { createBackupService } from "../src/backup";
 const descriptor = Object.getOwnPropertyDescriptor(globalThis, "localStorage"),
@@ -239,7 +244,10 @@ test("partage : nom choisi et avis, aucune adresse e-mail ni historique privé d
   expect(publicTitleUrl(e.title)).toContain("#/title/tmdb-movie-4");
   expect(
     publicTitleUrl({ ...title(), id: "tmdb-series-7", kind: "series" }),
-  ).toBe("https://cax-corp.github.io/letterbox-series/#/title/tmdb-series-7");
+  ).toBe("https://vela.thomasbarial.com/#/title/tmdb-series-7");
+  expect(sharedPageUrl("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")).toBe(
+    "https://vela.thomasbarial.com/#/s/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+  );
 });
 test("la sauvegarde quotidienne inclut le profil et n’est pas validée si son envoi échoue", async () => {
   const service = createBackupService({

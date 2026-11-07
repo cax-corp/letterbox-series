@@ -6,7 +6,7 @@ import { profileDraft, reviewDraft, type ShareDraft } from "./public-sharing";
 export { profileDraft as profileShare, reviewDraft as reviewShare };
 export type { ShareDraft };
 export type ShareOutcome = "shared" | "copied" | "cancelled";
-const canonical = "https://cax-corp.github.io/letterbox-series/";
+const canonical = "https://vela.thomasbarial.com/";
 export function webBaseUrl() {
   const override = import.meta.env?.VITE_PUBLIC_SITE_URL?.trim();
   if (override) {
