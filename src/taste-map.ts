@@ -37,7 +37,8 @@ const hash = (s: string) =>
 export function buildTasteMap(
   library: Library,
   skips: SkipSignal[] = [],
-  limit = 120,
+  limit = 300,
+  focusId?: string,
 ) {
   const profile = buildTasteProfile(library, skips);
   const items: TasteItem[] = profile.entries
@@ -99,22 +100,19 @@ export function buildTasteMap(
       if (group[row] && shown.length < limit) shown.push(group[row]);
     row++;
   }
+  const focus = items.find((item) => item.id === focusId);
+  if (focus && !shown.some((item) => item.id === focus.id) && shown.length)
+    shown[shown.length - 1] = focus;
   const used = [
     ...new Set(
       shown.flatMap((item) => (item.genres.length ? item.genres : [0])),
     ),
   ].sort((a, b) => a - b);
-  const allGenres = [
-    0,
-    ...Object.keys(movieGenreNames)
-      .map(Number)
-      .sort((a, b) => a - b),
-  ];
+  // Genre hubs start inside an irregular volume. Nothing is placed on a spherical shell.
   const nodes: TasteNode[] = used.map((genre) => {
-    const i = allGenres.indexOf(genre),
-      y = 1 - (2 * (i + 0.5)) / allGenres.length,
-      r = Math.sqrt(1 - y * y),
-      phi = i * Math.PI * (3 - Math.sqrt(5));
+    const seed = hash(`genre:${genre}`);
+    const angle = (seed % 6283) / 1000;
+    const radius = 65 + ((seed >>> 8) % 80);
     return {
       id: `genre:${genre}`,
       genre,
@@ -123,9 +121,9 @@ export function buildTasteMap(
           ? "Sans genre"
           : movieGenreNames[genre].replace(/^(?:les? |la |l’)/, ""),
       weight: profile.genres.get(genre) || 0,
-      x: Math.cos(phi) * r * 135,
-      y: y * 135,
-      z: Math.sin(phi) * r * 135,
+      x: Math.cos(angle) * radius * 1.18,
+      y: (((seed >>> 16) % 201) - 100) * 0.8,
+      z: Math.sin(angle) * radius * 0.85,
     };
   });
   const byId = new Map(nodes.map((n) => [n.id, n]));
@@ -179,69 +177,122 @@ export function buildTasteMap(
       });
     }
   }
-  // Deterministic spring layout: genre anchors stay fixed; related titles attract, distinct dots repel.
-  const films = nodes.filter((node) => node.item);
-  for (let iteration = 0; iteration < 55; iteration++) {
-    const moves = new Map(films.map((n) => [n.id, { x: 0, y: 0, z: 0 }]));
+  // Rest-length springs plus repulsion create clusters and branches in 3D.
+  // Hubs also move. A gentle centering force replaces the former hard sphere boundary.
+  const velocity = nodes.map(() => ({ x: 0, y: 0, z: 0 }));
+  const index = new Map(nodes.map((node, i) => [node.id, i]));
+  for (let iteration = 0; iteration < 100; iteration++) {
+    const forces = nodes.map((n) => ({
+      x: -n.x * 0.0015,
+      y: -n.y * 0.0015,
+      z: -n.z * 0.0015,
+    }));
     for (const edge of edges) {
-      const a = byId.get(edge.a)!,
-        b = byId.get(edge.b)!,
-        factor = (edge.kind === "genre" ? 0.014 : 0.009) * edge.strength;
-      for (const [node, other] of [
-        [a, b],
-        [b, a],
-      ]) {
-        const d = moves.get(node.id);
-        if (d) {
-          d.x += (other.x - node.x) * factor;
-          d.y += (other.y - node.y) * factor;
-          d.z += (other.z - node.z) * factor;
-        }
+      const ai = index.get(edge.a)!,
+        bi = index.get(edge.b)!,
+        a = nodes[ai],
+        b = nodes[bi];
+      const dx = b.x - a.x,
+        dy = b.y - a.y,
+        dz = b.z - a.z;
+      const distance = Math.max(1, Math.hypot(dx, dy, dz));
+      const rest = edge.kind === "genre" ? 46 : 34;
+      const spring = ((distance - rest) * 0.013 * edge.strength) / distance;
+      for (const axis of ["x", "y", "z"] as const) {
+        const f = (b[axis] - a[axis]) * spring;
+        forces[ai][axis] += f;
+        forces[bi][axis] -= f;
       }
     }
-    for (let i = 0; i < films.length; i++)
-      for (let j = i + 1; j < films.length; j++) {
-        const a = films[i],
-          b = films[j],
-          x = a.x - b.x,
-          y = a.y - b.y,
-          z = a.z - b.z,
-          dist = Math.max(20, x * x + y * y + z * z),
-          force = Math.min(0.4, 110 / dist),
-          aa = moves.get(a.id)!,
-          bb = moves.get(b.id)!;
-        aa.x += x * force;
-        aa.y += y * force;
-        aa.z += z * force;
-        bb.x -= x * force;
-        bb.y -= y * force;
-        bb.z -= z * force;
+    for (let i = 0; i < nodes.length; i++)
+      for (let j = i + 1; j < nodes.length; j++) {
+        const a = nodes[i],
+          b = nodes[j],
+          dx = a.x - b.x,
+          dy = a.y - b.y,
+          dz = a.z - b.z;
+        const d2 = Math.max(36, dx * dx + dy * dy + dz * dz);
+        const factor = 170 / (d2 * Math.sqrt(d2));
+        const fx = dx * factor,
+          fy = dy * factor,
+          fz = dz * factor;
+        forces[i].x += fx;
+        forces[j].x -= fx;
+        forces[i].y += fy;
+        forces[j].y -= fy;
+        forces[i].z += fz;
+        forces[j].z -= fz;
       }
-    for (const node of films) {
-      const d = moves.get(node.id)!;
-      node.x += d.x;
-      node.y += d.y;
-      node.z += d.z;
-      const radius = Math.hypot(node.x, node.y, node.z);
-      if (radius > 190) {
-        node.x *= 190 / radius;
-        node.y *= 190 / radius;
-        node.z *= 190 / radius;
+    nodes.forEach((n, i) => {
+      for (const axis of ["x", "y", "z"] as const) {
+        velocity[i][axis] = (velocity[i][axis] + forces[i][axis]) * 0.78;
+        n[axis] += velocity[i][axis];
       }
-    }
+    });
+  }
+  // Uniform fitting preserves the relative layout, rather than pushing points onto a surface.
+  if (nodes.length) {
+    const centre = { x: 0, y: 0, z: 0 };
+    for (const axis of ["x", "y", "z"] as const)
+      centre[axis] = nodes.reduce((sum, n) => sum + n[axis], 0) / nodes.length;
+    const radius = Math.max(
+      1,
+      ...nodes.map((n) =>
+        Math.hypot(n.x - centre.x, n.y - centre.y, n.z - centre.z),
+      ),
+    );
+    const scale = Math.min(1.7, 175 / radius);
+    for (const n of nodes)
+      for (const axis of ["x", "y", "z"] as const)
+        n[axis] = (n[axis] - centre[axis]) * scale;
   }
   return { nodes, edges, items, shown: shown.length, neighbours };
 }
+export type TasteRotation = { x: number; y: number; z: number; w: number };
+export const initialTasteRotation: TasteRotation = { x: 0, y: 0, z: 0, w: 1 };
+export function rotateTasteView(
+  q: TasteRotation,
+  dx: number,
+  dy: number,
+): TasteRotation {
+  const distance = Math.hypot(dx, dy);
+  if (!distance) return q;
+  // Premultiply a screen-space delta: the near side follows the pointer on both axes,
+  // even after a quarter turn or a full inversion. There is no Euler pitch pole.
+  const half = distance * 0.004,
+    sine = Math.sin(half) / distance;
+  const ax = dy * sine,
+    ay = -dx * sine,
+    aw = Math.cos(half);
+  const next = {
+    x: aw * q.x + ax * q.w + ay * q.z,
+    y: aw * q.y + ay * q.w - ax * q.z,
+    z: aw * q.z + ax * q.y - ay * q.x,
+    w: aw * q.w - ax * q.x - ay * q.y,
+  };
+  const norm = Math.hypot(next.x, next.y, next.z, next.w);
+  return {
+    x: next.x / norm,
+    y: next.y / norm,
+    z: next.z / norm,
+    w: next.w / norm,
+  };
+}
 export function projectTastePoint(
   point: Point3,
-  yaw: number,
-  pitch: number,
+  rotation: TasteRotation,
   zoom: number,
 ) {
-  const x = point.x * Math.cos(yaw) + point.z * Math.sin(yaw),
-    z = -point.x * Math.sin(yaw) + point.z * Math.cos(yaw),
-    y = point.y * Math.cos(pitch) - z * Math.sin(pitch),
-    depth = point.y * Math.sin(pitch) + z * Math.cos(pitch),
-    scale = (650 / (650 + depth)) * zoom;
-  return { x: x * scale, y: y * scale, depth, scale };
+  const q = rotation;
+  const tx = 2 * (q.y * point.z - q.z * point.y),
+    ty = 2 * (q.z * point.x - q.x * point.z),
+    tz = 2 * (q.x * point.y - q.y * point.x);
+  const x = point.x + q.w * tx + q.y * tz - q.z * ty;
+  const y = point.y + q.w * ty + q.z * tx - q.x * tz;
+  const depth = point.z + q.w * tz + q.x * ty - q.y * tx;
+  const scale = (620 / (620 + depth)) * zoom;
+  const near = Math.max(0, Math.min(1, (175 - depth) / 350));
+  // Far nodes remain present, but recede strongly. Selection can override this in the UI.
+  const opacity = 0.12 + 0.88 * Math.pow(near, 1.6);
+  return { x: x * scale, y: y * scale, depth, scale, opacity };
 }

@@ -4632,18 +4632,18 @@ body.taste-terminal-active > #root > .mobile-nav {
   max-width: 500px;
 }
 .atlas-terminal {
-  --bg: #050c10;
-  --panel: #0a171d;
-  --surface: #11242b;
-  --text: #e1f2ee;
-  --muted: #95b5b2;
-  --line: #294442;
-  --brand: #78f5cf;
-  --blue: #78f5cf;
-  --primary-container: #143c36;
-  --on-container: #dcfff4;
+  --bg: #030916;
+  --panel: #081329;
+  --surface: #102243;
+  --text: #e7f0ff;
+  --muted: #90a9d0;
+  --line: #1d3458;
+  --brand: #328cff;
+  --blue: #328cff;
+  --primary-container: #102b54;
+  --on-container: #e4efff;
   --error-text: #ff9aa4;
-  --on-brand: #052820;
+  --on-brand: #03162e;
   color-scheme: dark;
   position: fixed;
   inset: 0;
@@ -4656,20 +4656,17 @@ body.taste-terminal-active > #root > .mobile-nav {
   max-width: none;
   color: var(--text);
   background: var(--bg);
-  background-image:
-    radial-gradient(ellipse at 45% 35%, #0e222966, transparent 65%),
-    linear-gradient(#78f5cf04 1px, transparent 1px),
-    linear-gradient(90deg, #78f5cf04 1px, transparent 1px);
-  background-size:
-    auto,
-    56px 56px,
-    56px 56px;
+  background-image: radial-gradient(
+    ellipse at 55% 38%,
+    #102b5c55,
+    transparent 70%
+  );
 }
 .atlas-terminal::before {
   content: "";
   position: fixed;
   inset: 7px;
-  border: 1px solid #78f5cf12;
+  border: 0;
   pointer-events: none;
   z-index: -1;
 }
@@ -4725,7 +4722,7 @@ body.taste-terminal-active > #root > .mobile-nav {
   height: 5px;
   border-radius: 50%;
   background: var(--brand);
-  box-shadow: 0 0 9px #78f5cf77;
+  box-shadow: 0 0 9px #328cff77;
 }
 .atlas-metrics {
   display: flex;
@@ -4750,7 +4747,7 @@ body.taste-terminal-active > #root > .mobile-nav {
 }
 .atlas-metrics > span:last-child {
   margin-left: auto;
-  color: #8ba8a2;
+  color: #839ac0;
   font-size: 9px;
 }
 .atlas-terminal .taste-layout {
@@ -4775,17 +4772,20 @@ body.taste-terminal-active > #root > .mobile-nav {
   box-shadow: none;
 }
 .atlas-terminal .taste-scene-wrap {
-  border-radius: 3px;
-  background: #06111699;
+  border-radius: 18px;
+  background:
+    radial-gradient(ellipse at 45% 50%, #112c6238, transparent 60%),
+    radial-gradient(ellipse at 65% 60%, #35348e1b, transparent 48%), #040b1a;
+  border-color: #172a49;
   isolation: isolate;
 }
 .atlas-terminal .taste-scene-wrap::before,
 .atlas-terminal .taste-scene-wrap::after {
-  content: "";
+  content: none;
   position: absolute;
   width: 24px;
   height: 24px;
-  border: solid #78f5cf80;
+  border: solid #328cff80;
   pointer-events: none;
 }
 .atlas-terminal .taste-scene-wrap::before {
@@ -4803,10 +4803,7 @@ body.taste-terminal-active > #root > .mobile-nav {
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background-image:
-    linear-gradient(#78f5cf07 1px, transparent 1px),
-    linear-gradient(90deg, #78f5cf07 1px, transparent 1px);
-  background-size: 36px 36px;
+  background-image: none;
   mask-image: radial-gradient(ellipse, #000 25%, transparent 75%);
 }
 .atlas-scene-label {
@@ -4834,29 +4831,29 @@ body.taste-terminal-active > #root > .mobile-nav {
   border-radius: 3px;
 }
 .atlas-terminal .taste-orbit {
-  stroke: #78f5cf;
+  stroke: #328cff;
   opacity: 0.22;
   stroke-dasharray: 1 7;
 }
 .atlas-terminal .taste-edge {
-  stroke: #8cddce;
+  stroke: #55a6ff;
 }
 .atlas-terminal .taste-edge.is-selected {
-  filter: drop-shadow(0 0 3px #78f5cf66);
+  filter: drop-shadow(0 0 3px #328cff66);
 }
 .atlas-terminal .taste-point.positive circle:not([fill="transparent"]) {
-  filter: drop-shadow(0 0 3px #78f5cf55);
+  filter: none;
 }
 .atlas-terminal .taste-point.watchlist circle {
-  stroke: #f0cb83;
+  stroke: #b6a0ff;
 }
 .atlas-terminal .taste-point.skip circle,
 .atlas-terminal .taste-point.neutral circle {
-  fill: #728797;
+  fill: #637ba6;
 }
 .atlas-terminal .taste-point.anchor circle {
-  fill: #122c32;
-  stroke: #8ac6b9;
+  fill: #0d2046;
+  stroke: #5b9dff;
 }
 .atlas-terminal .taste-point text {
   font:
@@ -4867,18 +4864,18 @@ body.taste-terminal-active > #root > .mobile-nav {
   stroke-width: 3px;
 }
 .atlas-terminal .taste-point .taste-selection {
-  stroke: #e5fff7;
+  stroke: #e8f4ff;
 }
 .atlas-terminal .taste-legend {
   font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
 }
 .atlas-terminal .taste-legend i.watchlist {
-  outline-color: #f0cb83;
+  outline-color: #b6a0ff;
 }
 .atlas-terminal .taste-inspector {
-  background: #0a171dcf;
+  background: #081329cf;
   border: 1px solid var(--line);
-  border-radius: 3px;
+  border-radius: 14px;
   gap: 18px;
 }
 .atlas-terminal .taste-inspector::before {
@@ -4898,7 +4895,7 @@ body.taste-terminal-active > #root > .mobile-nav {
 }
 .atlas-terminal input,
 .atlas-terminal select {
-  background: #051015;
+  background: #050e21;
   color: var(--text);
   border-color: var(--line);
   border-radius: 4px;
@@ -4955,13 +4952,13 @@ body.taste-terminal-active > #root > .mobile-nav {
   display: grid;
   place-items: center;
   margin-bottom: 12px;
-  border: 1px solid #78f5cf30;
+  border: 1px solid #328cff30;
   border-radius: 50%;
 }
 .atlas-boot-target i {
   position: absolute;
   inset: -8px;
-  border: 1px dashed #78f5cf80;
+  border: 1px dashed #328cff80;
   border-radius: 50%;
   animation: atlas-spin 8s linear infinite;
 }
@@ -4972,13 +4969,13 @@ body.taste-terminal-active > #root > .mobile-nav {
     Consolas,
     monospace;
   color: var(--brand);
-  text-shadow: 0 0 20px #78f5cf70;
+  text-shadow: 0 0 20px #328cff70;
 }
 .atlas-progress {
   height: 12px;
   padding: 2px;
   border: 1px solid var(--line);
-  background: #0c1c24;
+  background: #0c1c3b;
 }
 .atlas-progress i {
   display: block;
@@ -4988,7 +4985,7 @@ body.taste-terminal-active > #root > .mobile-nav {
     var(--brand) 0 12px,
     transparent 12px 15px
   );
-  box-shadow: 0 0 16px #78f5cf25;
+  box-shadow: 0 0 16px #328cff25;
   transition: width 0.25s ease;
 }
 .atlas-boot-readout {
@@ -5015,7 +5012,7 @@ body.taste-terminal-active > #root > .mobile-nav {
     SFMono-Regular,
     Consolas,
     monospace;
-  color: #617975;
+  color: #657d9f;
 }
 .atlas-boot-log .is-loaded {
   color: var(--text);
@@ -5136,5 +5133,123 @@ body.taste-terminal-active > #root > .mobile-nav {
   }
   .atlas-boot-target i {
     animation: none;
+  }
+}
+
+/* Stars, depth and input focus belong to the scene rather than a browser frame. */
+.atlas-terminal .taste-scene,
+.atlas-terminal .taste-scene:focus,
+.atlas-terminal .taste-scene:focus-visible {
+  outline: none;
+}
+.atlas-terminal .taste-scene-wrap.has-keyboard-focus {
+  box-shadow: inset 0 0 0 1px #328cff70;
+}
+.atlas-keyboard-hint {
+  position: absolute;
+  bottom: 83px;
+  left: 50%;
+  transform: translateX(-50%);
+  font:
+    10px ui-monospace,
+    monospace;
+  color: #b3d4ff;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.atlas-terminal :is(button, input, select, summary):focus-visible {
+  outline: 1px solid #64aaff;
+  outline-offset: 3px;
+}
+.atlas-stardust circle {
+  fill: #a0c4ff;
+}
+.atlas-terminal .taste-point {
+  color: #4b9aff;
+}
+.atlas-terminal .taste-point.negative {
+  color: #ff87b2;
+}
+.atlas-terminal .taste-point.watchlist {
+  color: #b39aff;
+}
+.atlas-terminal .taste-point.skip,
+.atlas-terminal .taste-point.neutral {
+  color: #7e95c3;
+}
+.atlas-terminal .taste-point .taste-star-halo {
+  fill: currentColor;
+  opacity: 0.14;
+  stroke: none;
+  filter: none;
+  pointer-events: none;
+}
+.atlas-terminal .taste-point .taste-star-core {
+  fill: currentColor;
+  stroke: #d5e7ff;
+  stroke-width: 0.5;
+  filter: none;
+}
+.atlas-terminal .taste-point.anchor .taste-star-core {
+  fill: #0b1c39;
+  stroke: #74b6ff;
+  stroke-width: 1.3;
+}
+.atlas-terminal .taste-point.watchlist .taste-star-core {
+  fill: #b39aff;
+  stroke: #e8dfff;
+  stroke-width: 0.6;
+}
+.atlas-terminal .taste-point .taste-star-rays {
+  stroke: currentColor;
+  stroke-width: 0.55;
+  opacity: 0.7;
+  pointer-events: none;
+}
+.atlas-terminal .taste-point text {
+  font-size: 10px;
+  fill: #c3d9fc;
+  stroke: #030916;
+  stroke-width: 3px;
+}
+.atlas-terminal .taste-point.is-selected text {
+  fill: #f0f7ff;
+  font-size: 12px;
+}
+.atlas-terminal .taste-point .taste-selection {
+  stroke: #8ac0ff;
+  stroke-width: 1;
+  fill: none;
+  filter: none;
+}
+.atlas-terminal .taste-legend i.watchlist {
+  background: #b39aff;
+  outline: none;
+}
+.atlas-terminal .taste-controls .icon-button {
+  border-radius: 8px;
+  background: #0a1730c9;
+  border-color: #1b355d;
+}
+.atlas-terminal .taste-inspector::before {
+  content: "CONNEXIONS / SIGNAL";
+  letter-spacing: 1.5px;
+}
+.atlas-terminal .atlas-metrics {
+  border-bottom: 0;
+}
+.atlas-terminal .atlas-title-row h1 {
+  font-weight: 500;
+}
+@media (max-width: 600px) {
+  .atlas-terminal .taste-point text {
+    font-size: 12px;
+  }
+  .atlas-terminal .taste-point.is-selected text {
+    font-size: 13px;
+  }
+  .atlas-keyboard-hint {
+    font-size: 9px;
+    bottom: 112px;
   }
 }

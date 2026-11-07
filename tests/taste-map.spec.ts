@@ -1,5 +1,10 @@
 import { test, expect } from "./fixtures";
-import { buildTasteMap, projectTastePoint } from "../src/taste-map";
+import {
+  buildTasteMap,
+  projectTastePoint,
+  rotateTasteView,
+  initialTasteRotation,
+} from "../src/taste-map";
 import { empty, type Library } from "../src/store";
 import type { Title } from "../src/catalog";
 const title = (
@@ -61,7 +66,11 @@ test("carte : tous les liens correspondent aux genres ou aux similarités du mod
       ?.some((item) => Number(item.id.split("-")[1]) < 7),
   ).toBe(true);
   for (const node of a.nodes) {
-    const point = projectTastePoint(node, 0.5, 0.2, 1);
+    const point = projectTastePoint(
+      node,
+      rotateTasteView(initialTasteRotation, 30, 20),
+      1,
+    );
     expect([point.x, point.y, point.depth].every(Number.isFinite)).toBe(true);
   }
   const limited = buildTasteMap(seed, [], 6);
@@ -247,7 +256,7 @@ test("terminal SF : lancement volontaire, intro accélérable, son local et reto
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute(
     "content",
-    "#050c10",
+    "#030916",
   );
   await page
     .getByRole("button", { name: "Retour aux réglages", exact: true })
@@ -256,7 +265,7 @@ test("terminal SF : lancement volontaire, intro accélérable, son local et reto
   await expect(page.locator(".sidebar")).toBeVisible();
   await expect(page.locator('meta[name="theme-color"]')).not.toHaveAttribute(
     "content",
-    "#050c10",
+    "#030916",
   );
   await page
     .getByRole("button", { name: "Carte de mes goûts", exact: true })
@@ -383,4 +392,153 @@ test("terminal SF : audio indisponible sans bloquer la carte", async ({
   await expect(
     page.getByRole("complementary", { name: "Détails du point sélectionné" }),
   ).toContainText("Station 1");
+});
+
+test("rotation : le premier plan suit les gestes horizontaux et verticaux après toute orientation", () => {
+  for (const [dx, dy] of [
+    [0, 0],
+    [200, 0],
+    [0, 390],
+    [130, -170],
+  ]) {
+    const rotation = rotateTasteView(initialTasteRotation, dx, dy);
+    const inverse = {
+      x: -rotation.x,
+      y: -rotation.y,
+      z: -rotation.z,
+      w: rotation.w,
+    };
+    const back = projectTastePoint({ x: 0, y: 0, z: -120 }, inverse, 1);
+    const front = {
+      x: back.x / back.scale,
+      y: back.y / back.scale,
+      z: back.depth,
+    };
+    const at = projectTastePoint(front, rotation, 1);
+    for (const [x, y] of [
+      [12, 0],
+      [-12, 0],
+      [0, 12],
+      [0, -12],
+    ]) {
+      const moved = projectTastePoint(
+        front,
+        rotateTasteView(rotation, x, y),
+        1,
+      );
+      if (x) expect((moved.x - at.x) * x).toBeGreaterThan(0);
+      if (y) expect((moved.y - at.y) * y).toBeGreaterThan(0);
+    }
+  }
+  const near = projectTastePoint(
+    { x: 10, y: 0, z: -130 },
+    initialTasteRotation,
+    1,
+  );
+  const far = projectTastePoint(
+    { x: 10, y: 0, z: 130 },
+    initialTasteRotation,
+    1,
+  );
+  expect(near.opacity).toBeGreaterThan(far.opacity * 3);
+  expect(near.scale).toBeGreaterThan(far.scale);
+});
+
+test("réseau : plus de 170 goûts conservés, 300 points et un titre hors échantillon reste sélectionnable", () => {
+  const large: Library = {};
+  for (let i = 1; i <= 340; i++) {
+    const entry = seed[`movie-${(i % 18) + 1}`];
+    large[`movie-${i}`] = {
+      ...entry,
+      title: { ...entry.title, id: `movie-${i}`, name: `Titre ${i}` },
+    };
+  }
+  const start = performance.now();
+  const graph = buildTasteMap(large);
+  expect(graph.items).toHaveLength(340);
+  expect(graph.shown).toBe(300);
+  const missing = graph.items.find(
+    (item) => !graph.nodes.some((node) => node.id === item.id),
+  )!;
+  expect(
+    buildTasteMap(large, [], 300, missing.id).nodes.some(
+      (n) => n.id === missing.id,
+    ),
+  ).toBe(true);
+  const radii = graph.nodes.map((n) => Math.hypot(n.x, n.y, n.z));
+  expect(Math.max(...radii) - Math.min(...radii)).toBeGreaterThan(60);
+  expect(performance.now() - start).toBeLessThan(5000);
+});
+
+test("scène : glissement sans cadre blanc, clavier repérable, arrière-plan atténué et liens réels", async ({
+  page,
+}) => {
+  await page.addInitScript(
+    (library) =>
+      localStorage.setItem("luma-library-v1", JSON.stringify(library)),
+    seed,
+  );
+  await page.route("**/itunes.apple.com/**", (r) =>
+    r.fulfill({ json: { results: [] } }),
+  );
+  await page.route("**/api.tvmaze.com/**", (r) => r.fulfill({ json: [] }));
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.goto("/#settings/tastes");
+  await page
+    .getByRole("button", { name: "Démarrer la carte", exact: true })
+    .click();
+  const scene = page.locator(".taste-scene");
+  await scene.scrollIntoViewIfNeeded();
+  const box = (await scene.boundingBox())!;
+  const start = await page
+    .locator('[data-taste-id="movie-1"] .taste-star-core')
+    .getAttribute("cx");
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(
+    box.x + box.width / 2 + 70,
+    box.y + box.height / 2 + 35,
+    { steps: 8 },
+  );
+  await page.mouse.up();
+  await expect(
+    page.locator('[data-taste-id="movie-1"] .taste-star-core'),
+  ).not.toHaveAttribute("cx", start!);
+  expect(await scene.evaluate((e) => getComputedStyle(e).outlineStyle)).toBe(
+    "none",
+  );
+  await expect(page.locator(".taste-scene-wrap")).not.toHaveClass(
+    /has-keyboard-focus/,
+  );
+  await scene.focus();
+  await page.keyboard.press("ArrowRight");
+  await expect(page.locator(".taste-scene-wrap")).toHaveClass(
+    /has-keyboard-focus/,
+  );
+  await expect(page.locator(".atlas-keyboard-hint")).toBeVisible();
+  expect(await scene.evaluate((e) => getComputedStyle(e).outlineStyle)).toBe(
+    "none",
+  );
+  await expect(page.locator(".taste-orbit")).toHaveCount(0);
+  const nodes = await page
+    .locator(".taste-point")
+    .evaluateAll((nodes) =>
+      nodes.map((n) => ({
+        depth: Number(n.getAttribute("data-depth")),
+        opacity: Number(n.getAttribute("opacity")),
+      })),
+    );
+  const sorted = nodes.sort((a, b) => a.depth - b.depth);
+  expect(sorted[0].opacity).toBeGreaterThan(sorted.at(-1)!.opacity);
+  await page
+    .getByLabel("Choisir un point", { exact: true })
+    .selectOption("movie-1");
+  await expect(page.locator(".taste-point.is-selected text")).toContainText(
+    "Station 1",
+  );
+  expect(
+    await page
+      .locator(".atlas-terminal")
+      .evaluate((e) => getComputedStyle(e).getPropertyValue("--brand").trim()),
+  ).toBe("#328cff");
 });

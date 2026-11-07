@@ -274,3 +274,13 @@ Le démarrage ouvre un terminal SF plein écran, indépendant de la palette de l
 Le sound design utilise de courtes notes synthétisées par Web Audio, sans fichier téléchargé, microphone ni boucle sonore. Aucun son avant une action explicite. Le bouton **Son** mémorise son état sur l’appareil ; l’audio est fermé en quittant la carte ou en masquant l’onglet. Si Web Audio est indisponible, la carte reste fonctionnelle. Aucun retour haptique n’est ajouté dans cette version.
 
 Les captures des tests sont enregistrées dans les dossiers de résultats Playwright et non dans un chemin absolu de l’environnement de développement. Le workflow Pages conserve les rapports des tests en échec pour permettre le diagnostic. La migration privée de 2.5.0 (`supabase/account-state.sql`) reste la seule étape SQL nécessaire ; aucun nouveau script pour 2.5.1.
+
+### Carte bleue et réseau organique — 2.5.2
+
+La carte adopte une ambiance spatiale bleu électrique. Le réseau ne repose plus sur des repères fixes à la surface d’une sphère : les liens réels entre genres et titres forment des amas et ramifications en volume, par ressorts de longueur finie, répulsion et centrage doux. La mise à l’échelle conserve les distances relatives. Les étoiles du fond sont décoratives et distinctes des points personnels sélectionnables.
+
+La rotation utilise une orientation 3D composée autour des axes de l’écran. Le premier plan suit le doigt vers la droite/gauche et le haut/bas, même après avoir retourné le réseau ; il n’y a plus de mélange d’axes ni de butée de latitude. Le zoom à deux doigts reste disponible. La perspective, la taille et l’atténuation rendent l’arrière-plan moins présent. Une sélection souligne ses liens et les noms proches, avec limitation des étiquettes qui se chevauchent.
+
+Le cadre de focus natif du SVG est retiré. Le clavier reste utilisable : flèches et +/−, contour bleu discret et rappel des commandes uniquement lors de la navigation au clavier. Les boutons conservent leurs indicateurs de focus.
+
+Le moteur de recommandations continue d’utiliser toute la bibliothèque, sans plafond de 170 ou 300 favoris. Le dessin passe de 120 à **300 points personnels** ; les compteurs distinguent points affichés et titres disponibles. La recherche et le sélecteur ne tronquent plus à 250 titres. Sélectionner un titre hors de l’échantillon l’intègre au dessin, tout en conservant la limite de rendu. Aucun changement de données Supabase ni de favoris.

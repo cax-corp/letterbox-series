@@ -3,7 +3,13 @@ import { useTasteSound } from "./useTasteSound";
 import { normalTitle } from "./taste-features";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Bookmark, Heart, Plus, Search } from "./icons";
-import { buildTasteMap, projectTastePoint, type TasteItem } from "./taste-map";
+import {
+  buildTasteMap,
+  projectTastePoint,
+  rotateTasteView,
+  initialTasteRotation,
+  type TasteItem,
+} from "./taste-map";
 import { readSkipSignals } from "./implicit-feedback";
 import type { Library } from "./store";
 import type { Title } from "./catalog";
@@ -13,6 +19,12 @@ const bootSteps = [
   "Connexion des affinités cinématographiques",
   "Cartographie prête à explorer",
 ];
+// Decorative background dust is separate from personal nodes and is never selectable.
+const stardust = Array.from({ length: 95 }, (_, i) => ({
+  x: ((i * 137.508) % 470) - 235,
+  y: ((i * i * 23.17) % 400) - 200,
+  r: i % 7 === 0 ? 0.75 : 0.35,
+}));
 const labels: Record<TasteItem["kind"], string> = {
   positive: "Apprécié",
   negative: "Refusé ou mal noté",
@@ -49,7 +61,7 @@ export default function TasteMap({
         if (active)
           document
             .querySelector('meta[name="theme-color"]')
-            ?.setAttribute("content", "#050c10");
+            ?.setAttribute("content", "#030916");
       })
       .catch(() => {});
     return () => {
@@ -95,11 +107,16 @@ export default function TasteMap({
     [selected, setSelected] = useState(""),
     [query, setQuery] = useState(""),
     [filter, setFilter] = useState("all");
-  const [camera, setCamera] = useState({ yaw: 0.35, pitch: -0.2, zoom: 1 });
+  const [pinned, setPinned] = useState("");
+  const [keyboardScene, setKeyboardScene] = useState(false);
+  const [camera, setCamera] = useState({
+    rotation: initialTasteRotation,
+    zoom: 1,
+  });
   const current = useRef(camera),
     frame = useRef(0),
     pointers = useRef(new Map<number, { x: number; y: number }>()),
-    drag = useRef({ distance: 0, id: "" });
+    drag = useRef({ distance: 0, id: "", multi: false });
   const heading = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
     heading.current?.focus({ preventScroll: true });
@@ -113,8 +130,8 @@ export default function TasteMap({
     };
   }, [account]);
   const map = useMemo(
-    () => buildTasteMap(library, readSkipSignals(account)),
-    [library, account, revision],
+    () => buildTasteMap(library, readSkipSignals(account), 300, pinned),
+    [library, account, revision, pinned],
   );
   function move(patch: Partial<typeof camera>) {
     current.current = { ...current.current, ...patch };
@@ -123,6 +140,10 @@ export default function TasteMap({
         frame.current = 0;
         setCamera(current.current);
       });
+  }
+  function choose(id: string) {
+    if (id && !map.nodes.some((node) => node.id === id)) setPinned(id);
+    setSelected(id);
   }
   const chosen = map.items.find((item) => item.id === selected);
   const chosenGenre = map.nodes.find(
@@ -137,9 +158,45 @@ export default function TasteMap({
     visible = new Set(visibleItems.map((item) => item.id));
   const points = map.nodes.map((node) => ({
     ...node,
-    ...projectTastePoint(node, camera.yaw, camera.pitch, camera.zoom),
+    ...projectTastePoint(node, camera.rotation, camera.zoom),
   }));
   const byId = new Map(points.map((point) => [point.id, point]));
+  const connected = new Set([selected]);
+  if (selected)
+    for (const edge of map.edges) {
+      if (edge.a === selected) connected.add(edge.b);
+      if (edge.b === selected) connected.add(edge.a);
+    }
+  const labelIds = new Set<string>();
+  const occupied: { x: number; y: number }[] = [];
+  const labelCandidates = points
+    .filter(
+      (p) =>
+        !p.item ||
+        p.id === selected ||
+        (selected
+          ? connected.has(p.id)
+          : p.depth < -30 && p.item && Math.abs(p.weight) > 1),
+    )
+    .sort(
+      (a, b) =>
+        Number(b.id === selected) - Number(a.id === selected) ||
+        Number(connected.has(b.id)) - Number(connected.has(a.id)) ||
+        a.depth - b.depth,
+    );
+  for (const p of labelCandidates) {
+    if (
+      p.id !== selected &&
+      (p.depth > 35 ||
+        occupied.some(
+          (o) => Math.abs(p.x - o.x) < 70 && Math.abs(p.y - o.y) < 22,
+        ))
+    )
+      continue;
+    if (labelIds.size >= (selected ? 8 : 10) && p.id !== selected) continue;
+    labelIds.add(p.id);
+    occupied.push({ x: p.x, y: p.y });
+  }
   const soundButton = (
     <button
       className="atlas-sound"
@@ -276,12 +333,12 @@ export default function TasteMap({
             </div>
             <span className="atlas-live">
               <i />
-              LOCAL · CONNECTÉ
+              LOCAL · ACTIF
             </span>
           </div>
           <div className="atlas-metrics">
             <span>
-              <b>{map.items.length}</b> TITRES
+              <b>{map.shown}</b> POINTS / {map.items.length} TITRES
             </span>
             <span>
               <b>{map.nodes.filter((n) => n.genre !== undefined).length}</b>{" "}
@@ -325,7 +382,14 @@ export default function TasteMap({
                 ))}
               </div>
               <div className="taste-layout">
-                <div className="taste-scene-wrap">
+                <div
+                  className={`taste-scene-wrap ${keyboardScene ? "has-keyboard-focus" : ""}`}
+                >
+                  {keyboardScene && (
+                    <span className="atlas-keyboard-hint">
+                      Flèches : rotation · + / − : zoom
+                    </span>
+                  )}
                   <div className="atlas-scene-grid" aria-hidden="true" />
                   <span className="atlas-scene-label" aria-hidden="true">
                     AFFINITY FIELD / 3D
@@ -355,7 +419,9 @@ export default function TasteMap({
                     </button>
                     <button
                       className="text-button"
-                      onClick={() => move({ yaw: 0.35, pitch: -0.2, zoom: 1 })}
+                      onClick={() =>
+                        move({ rotation: initialTasteRotation, zoom: 1 })
+                      }
                     >
                       Recentrer
                     </button>
@@ -367,18 +433,39 @@ export default function TasteMap({
                     aria-label="Carte interactive en trois dimensions de vos goûts"
                     tabIndex={0}
                     onKeyDown={(e) => {
-                      const delta = e.shiftKey ? 0.2 : 0.08;
+                      setKeyboardScene(true);
+                      const delta = e.shiftKey ? 25 : 10;
                       if (e.key === "ArrowLeft")
-                        move({ yaw: current.current.yaw - delta });
+                        move({
+                          rotation: rotateTasteView(
+                            current.current.rotation,
+                            -delta,
+                            0,
+                          ),
+                        });
                       else if (e.key === "ArrowRight")
-                        move({ yaw: current.current.yaw + delta });
+                        move({
+                          rotation: rotateTasteView(
+                            current.current.rotation,
+                            delta,
+                            0,
+                          ),
+                        });
                       else if (e.key === "ArrowUp")
                         move({
-                          pitch: Math.max(-1.2, current.current.pitch - delta),
+                          rotation: rotateTasteView(
+                            current.current.rotation,
+                            0,
+                            -delta,
+                          ),
                         });
                       else if (e.key === "ArrowDown")
                         move({
-                          pitch: Math.min(1.2, current.current.pitch + delta),
+                          rotation: rotateTasteView(
+                            current.current.rotation,
+                            0,
+                            delta,
+                          ),
                         });
                       else if (e.key === "+" || e.key === "=")
                         move({
@@ -391,13 +478,23 @@ export default function TasteMap({
                       else return;
                       e.preventDefault();
                     }}
+                    onFocus={(e) =>
+                      setKeyboardScene(
+                        e.currentTarget.matches(":focus-visible"),
+                      )
+                    }
+                    onBlur={() => setKeyboardScene(false)}
                     onPointerDown={(e) => {
+                      if (e.pointerType === "mouse" && e.button !== 0) return;
+                      setKeyboardScene(false);
+                      e.currentTarget.focus({ preventScroll: true });
                       pointers.current.set(e.pointerId, {
                         x: e.clientX,
                         y: e.clientY,
                       });
                       drag.current = {
                         distance: 0,
+                        multi: pointers.current.size > 1,
                         id:
                           (e.target as Element)
                             .closest("[data-taste-id]")
@@ -433,22 +530,30 @@ export default function TasteMap({
                               ),
                             ),
                           });
-                      } else
+                      } else {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const sensitivity =
+                          360 / Math.min(rect.width, rect.height);
                         move({
-                          yaw: current.current.yaw + dx * 0.008,
-                          pitch: Math.max(
-                            -1.2,
-                            Math.min(1.2, current.current.pitch + dy * 0.008),
+                          rotation: rotateTasteView(
+                            current.current.rotation,
+                            dx * sensitivity,
+                            dy * sensitivity,
                           ),
                         });
+                      }
                       pointers.current.set(e.pointerId, {
                         x: e.clientX,
                         y: e.clientY,
                       });
                     }}
                     onPointerUp={(e) => {
-                      if (drag.current.distance < 6 && drag.current.id) {
-                        setSelected(drag.current.id);
+                      if (
+                        !drag.current.multi &&
+                        drag.current.distance < 6 &&
+                        drag.current.id
+                      ) {
+                        choose(drag.current.id);
                         sound.play("select", true);
                       }
                       pointers.current.delete(e.pointerId);
@@ -457,6 +562,9 @@ export default function TasteMap({
                       pointers.current.delete(e.pointerId);
                       drag.current.id = "";
                     }}
+                    onLostPointerCapture={(e) =>
+                      pointers.current.delete(e.pointerId)
+                    }
                   >
                     <defs>
                       <radialGradient id="atlas-core">
@@ -472,20 +580,22 @@ export default function TasteMap({
                         />
                       </radialGradient>
                     </defs>
-                    <circle r="205" fill="url(#atlas-core)" />
-                    <ellipse
-                      rx="205"
-                      ry="55"
-                      className="taste-orbit"
-                      transform="rotate(-20)"
-                    />
-                    <ellipse
-                      rx="105"
-                      ry="195"
-                      className="taste-orbit"
-                      transform="rotate(25)"
-                    />
-                    <circle r="170" className="taste-orbit" />
+                    <ellipse rx="230" ry="170" fill="url(#atlas-core)" />
+                    <g
+                      className="atlas-stardust"
+                      aria-hidden="true"
+                      pointerEvents="none"
+                    >
+                      {stardust.map((star, i) => (
+                        <circle
+                          key={i}
+                          cx={star.x}
+                          cy={star.y}
+                          r={star.r}
+                          opacity={i % 3 === 0 ? 0.45 : 0.2}
+                        />
+                      ))}
+                    </g>
                     {map.edges.map((edge, i) => {
                       const a = byId.get(edge.a)!,
                         b = byId.get(edge.b)!;
@@ -504,7 +614,13 @@ export default function TasteMap({
                           y2={b.y}
                           className={`taste-edge ${active ? "is-selected" : ""} ${edge.kind}`}
                           strokeOpacity={
-                            active ? 0.8 : edge.kind === "genre" ? 0.2 : 0.1
+                            active
+                              ? 0.68 * Math.max(a.opacity, b.opacity) + 0.2
+                              : (selected
+                                  ? 0.08
+                                  : edge.kind === "genre"
+                                    ? 0.28
+                                    : 0.36) * Math.min(a.opacity, b.opacity)
                           }
                         />
                       );
@@ -515,20 +631,26 @@ export default function TasteMap({
                         if (point.item && !visible.has(point.id)) return null;
                         const active = selected === point.id,
                           r = point.item
-                            ? (4.5 +
-                                Math.min(4, Math.abs(point.weight) * 0.5)) *
+                            ? (1.8 +
+                                Math.min(1.7, Math.abs(point.weight) * 0.23)) *
                               point.scale
-                            : (8 + Math.min(4, Math.abs(point.weight))) *
+                            : (3.5 +
+                                Math.min(1, Math.abs(point.weight) * 0.15)) *
                               point.scale;
                         return (
                           <g
                             key={point.id}
                             data-taste-id={point.id}
                             className={`taste-point ${point.item?.kind || "anchor"} ${active ? "is-selected" : ""}`}
-                            opacity={Math.max(
-                              0.42,
-                              1 - (point.depth + 190) / 850,
-                            )}
+                            data-depth={point.depth.toFixed(2)}
+                            opacity={
+                              active
+                                ? 1
+                                : point.opacity *
+                                  (selected && !connected.has(point.id)
+                                    ? 0.55
+                                    : 1)
+                            }
                           >
                             <title>
                               {point.label}
@@ -553,14 +675,35 @@ export default function TasteMap({
                                 className="taste-selection"
                               />
                             )}
-                            <circle cx={point.x} cy={point.y} r={r} />
-                            {point.genre !== undefined && (
+                            <circle
+                              cx={point.x}
+                              cy={point.y}
+                              r={r * 3.2}
+                              className="taste-star-halo"
+                            />
+                            <circle
+                              cx={point.x}
+                              cy={point.y}
+                              r={r}
+                              className="taste-star-core"
+                            />
+                            {point.item &&
+                              point.depth < 0 &&
+                              Math.abs(point.weight) > 2 && (
+                                <path
+                                  className="taste-star-rays"
+                                  d={`M${point.x - r * 2.4},${point.y}h${r * 4.8} M${point.x},${point.y - r * 2.4}v${r * 4.8}`}
+                                />
+                              )}
+                            {labelIds.has(point.id) && (
                               <text
                                 x={point.x}
                                 y={point.y - r - 8}
                                 textAnchor="middle"
                               >
-                                {point.label}
+                                {point.label.length > 26
+                                  ? `${point.label.slice(0, 25)}…`
+                                  : point.label}
                               </text>
                             )}
                           </g>
@@ -569,7 +712,7 @@ export default function TasteMap({
                   </svg>
                   <p className="muted fine taste-instructions">
                     Glissez pour tourner · Pincez ou utilisez + / − pour zoomer
-                    · Cliquez sur un point.
+                    · Cliquez sur une étoile.
                   </p>
                   <div className="taste-legend">
                     {["positive", "watchlist", "negative", "skip"].map(
@@ -608,7 +751,7 @@ export default function TasteMap({
                           ? selected
                           : ""
                       }
-                      onChange={(e) => setSelected(e.target.value)}
+                      onChange={(e) => choose(e.target.value)}
                     >
                       <option value="">
                         {visibleItems.length} titre
@@ -623,7 +766,7 @@ export default function TasteMap({
                             </option>
                           ))}
                       </optgroup>
-                      {visibleItems.slice(0, 250).map((item) => (
+                      {visibleItems.map((item) => (
                         <option key={item.id} value={item.id}>
                           {item.title.name}
                         </option>
@@ -668,7 +811,7 @@ export default function TasteMap({
                             <button
                               className="text-button"
                               key={neighbour.id}
-                              onClick={() => setSelected(neighbour.id)}
+                              onClick={() => choose(neighbour.id)}
                             >
                               {
                                 map.items.find(
@@ -719,7 +862,7 @@ export default function TasteMap({
                             <button
                               key={item.id}
                               className="text-button"
-                              onClick={() => setSelected(item.id)}
+                              onClick={() => choose(item.id)}
                             >
                               {item.title.name}
                               <ArrowRight size={15} />
@@ -746,7 +889,9 @@ export default function TasteMap({
                   synopsis, comme dans le classement local. Un lien entre deux
                   titres indique une similarité, pas une recommandation
                   garantie. La taille des points reflète la force du signal ; la
-                  couleur indique son sens.
+                  couleur indique son sens. Les points à l’arrière sont atténués
+                  ; les titres sélectionnés et leurs connexions sont mis en
+                  évidence. Les petites poussières du fond sont décoratives.
                 </p>
                 <p className="muted">
                   La disposition est une projection en 3D pour explorer les
@@ -756,9 +901,9 @@ export default function TasteMap({
                 </p>
                 {map.items.length > map.shown && (
                   <p className="muted">
-                    {map.shown} titres représentatifs sur {map.items.length}{" "}
-                    sont affichés pour garder la carte fluide. La recherche
-                    permet de consulter les autres titres.
+                    {map.shown} points représentatifs sur {map.items.length}{" "}
+                    titres sont affichés pour garder la carte fluide. La
+                    recherche permet de consulter les autres titres.
                   </p>
                 )}
               </details>
