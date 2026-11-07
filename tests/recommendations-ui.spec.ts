@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./fixtures";
 test.use({ hasTouch: true, isMobile: true });
 const key = "1234567890abcdef1234567890abcdef";
 const raw = (id: number) => ({
@@ -154,7 +154,7 @@ test("fil compact : carte dans la zone utile, pagination automatique et DOM virt
   expect(await page.locator(".recommendation-card").count()).toBeLessThan(10);
   await page.screenshot({ path: "tests/recommendations-infinite.png" });
 });
-test("double clic : favori persistant, pas de saut du fil ; je n’aime pas : rejet persistant", async ({
+test("double clic : À voir sans créer de favori, pas de saut du fil ; refus persistant", async ({
   page,
 }) => {
   const calls = await setup(page);
@@ -162,16 +162,21 @@ test("double clic : favori persistant, pas de saut du fil ; je n’aime pas : re
   await enter(page);
   const card = page.getByRole("article", { name: "Film 1", exact: true });
   await card.getByRole("heading", { name: "Film 1", exact: true }).dblclick();
-  await expect
-    .poll(() => calls.some((url) => url.includes("/movie/1/recommendations")))
-    .toBe(true);
   await expect(
-    card.getByRole("button", { name: "Retirer J’aime pour Film 1" }),
+    card.getByRole("button", { name: "Retirer Film 1 de ma liste" }),
   ).toHaveAttribute("aria-pressed", "true");
+  await expect(
+    card.getByRole("button", { name: "J’aime Film 1", exact: true }),
+  ).toHaveAttribute("aria-pressed", "false");
   await expect(card).toBeVisible();
-  await expect(page.locator(".like-burst")).toBeVisible();
+  await expect(page.locator(".like-burst")).toContainText("À voir");
+  expect(calls.some((url) => url.includes("/movie/1/recommendations"))).toBe(
+    false,
+  );
   const before = await page.getByRole("feed").evaluate((el) => el.scrollTop);
-  await card.getByRole("button", { name: "Ajouter Film 1 à ma liste" }).click();
+  await card
+    .getByRole("button", { name: "Retirer Film 1 de ma liste" })
+    .click();
   expect(await page.getByRole("feed").evaluate((el) => el.scrollTop)).toBe(
     before,
   );
@@ -262,13 +267,13 @@ test("sur le web, les réglages ne prétendent pas programmer des notifications 
     page
       .getByRole("region", { name: "Réglages", exact: true })
       .getByText(
-        "Les notifications programmées sont disponibles dans l’APK Android.",
+        "Cet horaire sera repris dans l’application Android après connexion au même compte.",
         { exact: false },
       ),
   ).toBeVisible();
 });
 
-test("double-tap tactile réel : aimer sans ouvrir de fiche", async ({
+test("double-tap tactile réel : À voir sans ouvrir de fiche ni marquer un favori", async ({
   page,
 }) => {
   await setup(page);
@@ -278,7 +283,7 @@ test("double-tap tactile réel : aimer sans ouvrir de fiche", async ({
   await card.tap({ position: { x: 100, y: 100 } });
   await card.tap({ position: { x: 100, y: 100 } });
   await expect(
-    card.getByRole("button", { name: "Retirer J’aime pour Film 1" }),
+    card.getByRole("button", { name: "Retirer Film 1 de ma liste" }),
   ).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByRole("dialog")).toHaveCount(0);
 });
@@ -1218,7 +1223,13 @@ test("les anciennes sources d’un goût abandonné ne gardent pas artificiellem
       await getRecommendationChunk(
         buildTasteProfile({}),
         [],
-        { bootstrap: null, "discover:all": null, "discover:878": 2 },
+        {
+          bootstrap: null,
+          "discover:all": null,
+          "discover:878": 2,
+          "explore:0": null,
+          "explore:1": null,
+        },
         new AbortController().signal,
       )
     ).hasMore;

@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 const fakeKey = "1234567890abcdef1234567890abcdef";
 const movie = {
   id: 1,

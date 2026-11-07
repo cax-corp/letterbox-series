@@ -1,3 +1,4 @@
+import { balancedSeeds, tasteFamily } from "./taste-features";
 import { rankLocally } from "./local-ranking";
 import type { SkipSignal } from "./implicit-feedback";
 import {
@@ -124,7 +125,13 @@ export function tasteWeight(entry: Entry): number {
   return (
     (entry.watchlist ? 0.5 : 0) +
     (entry.favorite ? 4 : 0) +
-    (entry.rating >= 4 ? (entry.rating - 3) * 2 + 1 : 0) +
+    (entry.rating >= 4
+      ? (entry.rating - 3) * 2 + 1
+      : entry.rating === 3.5
+        ? 0.75
+        : entry.rating === 2.5
+          ? -0.75
+          : 0) +
     (entry.watched && !entry.rating && !entry.favorite ? 0.25 : 0)
   );
 }
@@ -137,6 +144,12 @@ export function buildTasteProfile(
     likedGenres = new Map<number, number>(),
     weights = new Map<string, number>(),
     pairs = new Map<string, number>();
+  const familyCounts = new Map<string, number>();
+  for (const entry of entries)
+    if (tasteWeight(entry) > 1) {
+      const family = tasteFamily(entry.title, movieGenres(entry.title));
+      familyCounts.set(family, (familyCounts.get(family) || 0) + 1);
+    }
   for (const entry of entries) {
     const ids = movieGenres(entry.title),
       base = tasteWeight(entry),
@@ -148,33 +161,44 @@ export function buildTasteProfile(
       weight =
         base > 1
           ? base *
-            (0.8 +
-              0.2 * Math.exp(-Math.floor(Number.isFinite(age) ? age : 0) / 90))
+            (0.65 +
+              0.35 * Math.exp(-Math.floor(Number.isFinite(age) ? age : 0) / 60))
           : base;
+    const groupWeight =
+      weight > 1
+        ? weight /
+          Math.sqrt(familyCounts.get(tasteFamily(entry.title, ids)) || 1)
+        : weight;
     weights.set(entry.title.id, weight);
     for (let a = 0; a < ids.length; a++)
       for (let b = a + 1; b < ids.length; b++) {
         const key = [ids[a], ids[b]].sort((a, b) => a - b).join(":");
         pairs.set(
           key,
-          (pairs.get(key) || 0) + weight / Math.max(1, ids.length - 1),
+          (pairs.get(key) || 0) + groupWeight / Math.max(1, ids.length - 1),
         );
       }
     for (const id of ids) {
-      genres.set(id, (genres.get(id) || 0) + weight / ids.length);
+      genres.set(id, (genres.get(id) || 0) + groupWeight / ids.length);
       if (weight > 1)
-        likedGenres.set(id, (likedGenres.get(id) || 0) + weight / ids.length);
+        likedGenres.set(
+          id,
+          (likedGenres.get(id) || 0) + groupWeight / ids.length,
+        );
     }
   }
-  const seeds = entries
-    .filter((e) => e.title.kind === "movie" && tasteWeight(e) > 1)
-    .sort(
-      (a, b) =>
-        Date.parse(b.preferenceUpdated || b.updated) -
-          Date.parse(a.preferenceUpdated || a.updated) ||
-        tasteWeight(b) - tasteWeight(a) ||
-        a.title.id.localeCompare(b.title.id),
-    );
+  const seeds = balancedSeeds(
+    entries
+      .filter((e) => e.title.kind === "movie" && tasteWeight(e) > 1)
+      .sort(
+        (a, b) =>
+          Date.parse(b.preferenceUpdated || b.updated) -
+            Date.parse(a.preferenceUpdated || a.updated) ||
+          tasteWeight(b) - tasteWeight(a) ||
+          a.title.id.localeCompare(b.title.id),
+      ),
+    movieGenres,
+  );
   // Compress repeated genre votes; every positive example still contributes to the model.
   for (const [id, weight] of genres)
     genres.set(id, Math.sign(weight) * Math.sqrt(Math.abs(weight)));
@@ -292,6 +316,7 @@ export function rankRecommendations(
       entry.watched ||
       entry.rating > 0 ||
       entry.favorite ||
+      entry.watchlist ||
       entry.recommendationFeedback
     )
       blocked.add(entry);
@@ -348,6 +373,19 @@ export async function getRecommendationChunk(
   if (tmdbEnabled()) {
     const turn = Number(cursor._turn || 0);
     const broad = profile.preferredGenres;
+    const explorationKeys = ["explore:0", "explore:1"];
+    activeKeys.push(...explorationKeys);
+    const exploration = explorationKeys.filter((key) => cursor[key] !== null);
+    if (exploration.length) {
+      const key = exploration[turn % exploration.length];
+      tasks.push({
+        key,
+        load: () =>
+          discoverMoviesForTastePage([], cursor[key] || 1, signal, {
+            sortBy: key.endsWith("1") ? "vote_average.desc" : "popularity.desc",
+          }),
+      });
+    }
     const broadKey = `discover:${[...broad].sort((a, b) => a - b).join("|") || "all"}`;
     activeKeys.push(broadKey, ...profile.seeds.map((seed) => seed.title.id));
     if (cursor[broadKey] !== null)

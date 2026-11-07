@@ -1,3 +1,4 @@
+import { chooseHomeHero } from "./home-history";
 import type { Title } from "./catalog";
 import type { Entry } from "./store";
 import {
@@ -20,6 +21,7 @@ export function rankHomeTitles(
       entry.watched ||
       entry.rating > 0 ||
       entry.favorite ||
+      entry.watchlist ||
       entry.recommendationFeedback,
   );
   const unique = [
@@ -66,13 +68,35 @@ export function personalizeHome(
   library: Record<string, Entry>,
   films: Title[],
   shows: Title[],
+  account?: string,
 ) {
   const movies = rankHomeTitles(library, films),
     series = rankHomeTitles(library, shows);
-  const hero = rankHomeTitles(library, [
-    ...movies.slice(0, 6),
-    ...series.slice(0, 6),
-  ])[0];
+  const ranked = rankHomeTitles(library, [
+    ...movies.slice(0, 16),
+    ...series.slice(0, 10),
+  ]);
+  const fresh = ranked.filter((title) => {
+    const entry = library[title.id];
+    return (
+      !entry?.watched &&
+      !entry?.favorite &&
+      !entry?.rating &&
+      !entry?.watchlist &&
+      !entry?.recommendationFeedback
+    );
+  });
+  const released = fresh.filter(
+    (title) =>
+      Number(title.year || 0) <= new Date().getFullYear() &&
+      (title.voteCount === undefined || title.voteCount >= 20),
+  );
+  const hero = account
+    ? chooseHomeHero(
+        released.length ? released : fresh.length ? fresh : ranked,
+        account,
+      )
+    : ranked[0];
   return {
     movies,
     series,

@@ -26,6 +26,7 @@ export type Title = {
   genreIds?: number[];
   score?: number;
   voteCount?: number;
+  collectionId?: number;
   duration?: string;
   url?: string;
   trailer?: string;
@@ -185,6 +186,9 @@ function fromTmdb(x: any, kind: Title["kind"]): Title {
       ? x.genres.map((g: any) => g.name)
       : (x.genre_ids || []).map((id: number) => genres[id]).filter(Boolean),
     voteCount: x.vote_count,
+    ...(Number.isSafeInteger(x.belongs_to_collection?.id)
+      ? { collectionId: x.belongs_to_collection.id }
+      : {}),
     score: x.vote_count > 0 ? Math.round(x.vote_average * 10) / 10 : undefined,
     duration: x.runtime
       ? `${x.runtime} min`

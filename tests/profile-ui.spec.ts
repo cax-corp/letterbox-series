@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./fixtures";
 import { defaultProfile, makeProfile, profileKey } from "../src/profile";
 import { empty, type Library } from "../src/store";
 const id = "22222222-2222-4222-8222-222222222222",

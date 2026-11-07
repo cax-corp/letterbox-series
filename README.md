@@ -18,7 +18,7 @@ Le thème se choisit dans Réglages : Sombre, Clair ou Système. Le bouton solei
 - iTunes Search et TVmaze conservés pour les anciennes fiches et le catalogue limité sans configuration.
 - Genres, notes attribuées à leur source (TMDB ou TVmaze), extraits iTunes, liens de bandes-annonces YouTube et fiches IMDb lorsque TMDB les fournit.
 - Liste à voir, favoris, notes sur 5, critiques privées et date de visionnage.
-- Page **Pour vous** dans l’application mobile (message d’indisponibilité et téléchargement Android sur le web) : fil de recommandations virtualisé, défilement continu, double-tap J’aime, rejet persistant et ajout à la liste.
+- Page **Pour vous** dans l’application mobile (message d’indisponibilité et téléchargement Android sur le web) : fil de recommandations virtualisé, défilement continu, double-tap À voir, rejet persistant et ajout à la liste.
 - Notifications Android à heure/jours choisis ; ouverture animée des fiches.
 - Listes nommées personnalisées : saisir les noms séparés par des virgules dans la fiche.
 - Suivi des épisodes par saison, avec progression.
@@ -51,7 +51,7 @@ Le halo et les boutons reprennent la couleur majoritaire du recadrage de l’ima
 
 Le rendu est virtualisé avec TanStack Virtual : seules les cartes proches de l’écran sont montées, les images sont chargées à la demande. Les curseurs des sources TMDB avancent indépendamment ; une source en panne garde son numéro de page. La mise à jour des goûts ne remet pas le fil en haut : elle sert aux prochaines pages.
 
-- **Double-tap / double-clic sur la carte** : J’aime, avec un cœur animé. Un bouton cœur fournit la même action au clavier ou en un clic. Le film est ajouté aux favoris, et la carte reste à sa place.
+- **Double-tap / double-clic sur la carte** : ajout à À voir, avec un marque-page animé. Le bouton marque-page fournit la même action au clavier ou en un clic. Le cœur est un coup de cœur explicite, distinct d’une envie de visionnage. La carte reste à sa place.
 - **Je n’aime pas** (pouce baissé) : la réaction est conservée et le film disparaît du fil ; ses genres ont une influence négative. Les réactions sont enregistrées dans la collection et synchronisées par le même JSON Supabase, sans nouveau schéma.
 - Une réaction explicite récente prend le dessus sur une ancienne note contradictoire pour le classement, en conservant la note historique. Modifier la note dans la fiche retire cette réaction prioritaire ; les favoris suivent toujours leur bouton habituel.
 - Un glissement de scroll n’est pas un double-tap, et les boutons de la carte ne déclenchent pas le geste.
@@ -252,3 +252,15 @@ Pour un projet Supabase déjà configuré, exécuter une fois [supabase/avatar-p
 L’APK présente un accueil en trois volets à la première ouverture sans session : catalogue et plateformes, recommandations personnalisées, collection et sauvegardes. Le carrousel se parcourt par boutons, clavier ou geste horizontal. Les boutons Créer un compte et Se connecter ouvrent des formulaires intégrés à cette page. Le pays reste obligatoire à l’inscription ; la confirmation par e-mail est expliquée avant la connexion. Explorer sans compte donne accès au catalogue et mémorise la fin du parcours sur cet appareil (`vela-welcome-v1`). Le parcours n’est pas répété après une mise à jour ou une déconnexion une fois terminé.
 
 La session Supabase est restaurée avant d’afficher cet accueil, pour qu’un compte déjà connecté entre directement dans l’application. Les liens publics ouvrent directement leur contenu, et le site conserve son accès direct au catalogue. L’accueil suit les neuf palettes, les modes clair/sombre, les zones système Android et la préférence de mouvement réduit. Il ne demande aucune autorisation de notification. Aucun nouveau script SQL n’est requis pour ce parcours.
+
+## Vela 2.5 — Réglages et goûts synchronisés
+
+Dans le SQL Editor du projet existant, exécuter une fois [supabase/account-state.sql](supabase/account-state.sql). Ce script réexécutable ajoute la table privée `vela_private_state` et une fonction de fusion authentifiée, sans toucher à la bibliothèque, aux profils ou aux liens publics existants. Les politiques RLS séparent chaque compte ; aucun accès anonyme n’est accordé. Les réglages sont horodatés séparément pour éviter qu’une ancienne sauvegarde de palette écrase un nouvel horaire.
+
+La palette, le mode sombre/clair/système, la fréquence des sauvegardes et les notifications (activation, heure, jours) sont sauvegardés sur le compte. Les modifications des réglages sont regroupées après une courte pause ; la connexion, le retour en ligne et la reprise après arrière-plan récupèrent les valeurs distantes. Le pays, les services et le profil restent synchronisés par leurs mécanismes existants. Les autorisations Android restent propres au téléphone : la restauration d’un horaire ne déclenche aucune demande d’autorisation automatique.
+
+Les notes, coups de cœur, refus et listes restent sauvegardés via `public.library`. Les passages rapides sont désormais inclus dans la sauvegarde des goûts, à la fréquence quotidienne, hebdomadaire ou manuelle choisie. Ils restent faibles, décroissent et expirent après trente jours ; seules les différences sont envoyées, au plus 120 signaux, sans images. Aucun envoi réseau n’est déclenché à chaque scroll. La copie locale reste nécessaire au fonctionnement hors connexion ; les pools du catalogue et historiques d’affichage restent des caches locaux, sans être confondus avec des notes ou des refus.
+
+Les réglages n’exposent plus les tests de notifications, diagnostics ou conseils Xiaomi/HyperOS, ni l’option de fiabilité renforcée. La synchronisation conserve seulement une fréquence, un état et un bouton manuel. La page **Réglages → Carte de mes goûts** construit à la demande une représentation 3D interactive des titres et genres : rotation, zoom, filtres, recherche et inspection des signaux. Les liens entre titres utilisent les mêmes genres et vecteurs de synopsis que le modèle. Les distances sont illustratives, pas des probabilités. Au plus 120 titres représentatifs sont dessinés pour conserver une interface fluide ; les autres restent consultables par recherche.
+
+Le classement équilibre les familles de goûts, les références et les sagas tout en conservant chaque favori existant. Un double-tap ajoute à À voir, signal faible qui n’est pas une nouvelle référence de film apprécié. Découvrir réduit progressivement la priorité d’une carte réellement affichée puis ignorée lors des visites suivantes, sans lui attribuer de mauvaise note. Le modèle, le classement et la carte fonctionnent sur l’appareil ; aucun serveur de calcul ni API supplémentaire n’est nécessaire.

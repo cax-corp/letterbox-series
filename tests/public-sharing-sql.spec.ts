@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 import { PGlite } from "@electric-sql/pglite";
 import { readFileSync } from "node:fs";
 import { profileDraft, reviewDraft } from "../src/public-sharing";

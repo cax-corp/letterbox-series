@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./fixtures";
 import { DAY, backupKey } from "../src/backup";
 import { empty, type Entry, type Library } from "../src/store";
 const id = "11111111-1111-4111-8111-111111111111",
@@ -172,9 +172,7 @@ test("réglages : manuel sans requêtes automatiques, sauvegarde immédiate et f
   await region
     .getByRole("button", { name: "Sauvegarder maintenant", exact: true })
     .click();
-  await expect(
-    region.getByText("Copie Supabase à jour", { exact: true }),
-  ).toBeVisible();
+  await expect(region.getByText(/^Copie Supabase à jour/)).toBeVisible();
   expect(x.reads()).toBe(2);
   expect(x.writes).toHaveLength(1);
   await region.getByLabel("Fréquence de sauvegarde").selectOption("weekly");
@@ -187,9 +185,7 @@ test("réglages : manuel sans requêtes automatiques, sauvegarde immédiate et f
   await page.clock.fastForward(120000);
   await expect.poll(x.reads).toBe(3);
   expect(x.writes).toHaveLength(1);
-  await expect(
-    region.getByText("Copie Supabase à jour", { exact: true }),
-  ).toBeVisible();
+  await expect(region.getByText(/^Copie Supabase à jour/)).toBeVisible();
   await region.screenshot({ path: "tests/cloud-backup-settings.png" });
 });
 test("une réponse distante arrivée après déconnexion ne remplace pas la collection locale anonyme", async ({

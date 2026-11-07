@@ -8,13 +8,21 @@ import {
   type BackupFrequency,
   type BackupState,
 } from "./backup";
-import { getConfig, read, type Library } from "./store";
+import {
+  getConfig,
+  read,
+  write,
+  sync,
+  mergeCollections,
+  type Library,
+} from "./store";
 import { readCurrentProfile } from "./profile-sync";
 import { profileKey, profilePending } from "./profile";
 import { explainSyncError, type SyncIssue } from "./sync-errors";
 export function useCloudBackup(
   account: string | undefined,
   onLibrary: (account: string, data: Library) => void,
+  enabled = true,
 ) {
   const handler = useRef(onLibrary);
   handler.current = onLibrary;
@@ -28,7 +36,7 @@ export function useCloudBackup(
   const [profileRevision, setProfileRevision] = useState(0);
   const [localIssue, setLocalIssue] = useState<SyncIssue | null>(null);
   async function run(force = false) {
-    if (!account || !cloudAvailable) return false;
+    if (!account || !cloudAvailable || (!enabled && !force)) return false;
     if (navigator.onLine === false) {
       if (force) setLocalIssue(explainSyncError(new Error("offline")));
       return false;
@@ -62,13 +70,34 @@ export function useCloudBackup(
     setState(account ? backupService.state(account) : { ...defaultBackup });
     setBusy(false);
     setLocalIssue(null);
-    if (!account || !cloudAvailable) return;
+    if (!account || !cloudAvailable || !enabled) return;
     const key = backupKey(getConfig().url || "", account);
     const refresh = () => {
       if (active.current === account) setState(backupService.state(account));
     };
+    let restored = false;
     const check = () => {
       setOnline(navigator.onLine);
+      if (
+        !restored &&
+        navigator.onLine !== false &&
+        backupService.state(account).frequency === "manual" &&
+        !Object.keys(read(account)).length
+      ) {
+        restored = true;
+        // A fresh device must download its collection even when automatic uploads are disabled.
+        void sync(account, {})
+          .then((result) => {
+            if (active.current !== account) return;
+            const data = mergeCollections(read(account), result.library);
+            write(data, account);
+            handler.current(account, data);
+          })
+          .catch((error) => {
+            if (active.current === account)
+              setLocalIssue(explainSyncError(error));
+          });
+      }
       void run();
     };
     const changed = (event: Event) => {
@@ -77,6 +106,10 @@ export function useCloudBackup(
     const profileChanged = (event: Event) => {
       if ((event as CustomEvent).detail === account)
         setProfileRevision((n) => n + 1);
+    };
+    const tasteChanged = (event: Event) => {
+      if ((event as CustomEvent).detail === account)
+        backupService.changed(account);
     };
     const storage = (event: StorageEvent) => {
       if (event.key === profileKey(getConfig().url || "", account))
@@ -94,6 +127,7 @@ export function useCloudBackup(
     window.addEventListener("vela-backup-state", changed);
     window.addEventListener("storage", storage);
     window.addEventListener("vela-profile-state", profileChanged);
+    window.addEventListener("vela-taste-change", tasteChanged);
     check();
     return () => {
       clearInterval(timer);
@@ -103,8 +137,9 @@ export function useCloudBackup(
       window.removeEventListener("vela-backup-state", changed);
       window.removeEventListener("storage", storage);
       window.removeEventListener("vela-profile-state", profileChanged);
+      window.removeEventListener("vela-taste-change", tasteChanged);
     };
-  }, [account]);
+  }, [account, enabled]);
   function setFrequency(frequency: BackupFrequency) {
     if (!account) return;
     try {

@@ -1,4 +1,4 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect, type Page } from "./fixtures";
 async function catalogue(page: Page) {
   await page.route("**/itunes.apple.com/**", (r) =>
     r.fulfill({
@@ -87,7 +87,7 @@ test("web : Pour vous présente son indisponibilité et un vrai téléchargement
       .getByRole("link", { name: "Télécharger pour Android", exact: true })
       .click(),
   ]);
-  expect(download.suggestedFilename()).toBe("Vela-2.4.0.apk");
+  expect(download.suggestedFilename()).toBe("Vela-2.5.0.apk");
   expect(await download.failure()).toBeNull();
   const { readFile } = await import("node:fs/promises");
   const apk = await readFile((await download.path())!);
@@ -132,7 +132,7 @@ test("web adaptatif : profil et réglages lisibles en PC, tablette et téléphon
     ).toBeVisible();
     await expect(
       page.getByText(
-        /Les notifications programmées sont disponibles dans l’APK Android/,
+        /Cet horaire sera repris dans l’application Android après connexion au même compte/,
       ),
     ).toBeAttached();
     await expect(

@@ -1,0 +1,508 @@
+import { normalTitle } from "./taste-features";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ArrowLeft, ArrowRight, Bookmark, Heart, Plus, Search } from "./icons";
+import { buildTasteMap, projectTastePoint, type TasteItem } from "./taste-map";
+import { readSkipSignals } from "./implicit-feedback";
+import type { Library } from "./store";
+import type { Title } from "./catalog";
+const labels: Record<TasteItem["kind"], string> = {
+  positive: "Apprécié",
+  negative: "Refusé ou mal noté",
+  watchlist: "À voir",
+  skip: "Passé rapidement",
+  neutral: "Vu sans préférence forte",
+};
+export default function TasteMap({
+  library,
+  account,
+  close,
+  open,
+}: {
+  library: Library;
+  account: string;
+  close: () => void;
+  open: (title: Title) => void;
+}) {
+  const [revision, setRevision] = useState(0),
+    [selected, setSelected] = useState(""),
+    [query, setQuery] = useState(""),
+    [filter, setFilter] = useState("all");
+  const [camera, setCamera] = useState({ yaw: 0.35, pitch: -0.2, zoom: 1 });
+  const current = useRef(camera),
+    frame = useRef(0),
+    pointers = useRef(new Map<number, { x: number; y: number }>()),
+    drag = useRef({ distance: 0, id: "" });
+  const heading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    heading.current?.focus({ preventScroll: true });
+    const changed = (event: Event) => {
+      if ((event as CustomEvent).detail === account) setRevision((n) => n + 1);
+    };
+    window.addEventListener("vela-taste-state", changed);
+    return () => {
+      cancelAnimationFrame(frame.current);
+      window.removeEventListener("vela-taste-state", changed);
+    };
+  }, [account]);
+  const map = useMemo(
+    () => buildTasteMap(library, readSkipSignals(account)),
+    [library, account, revision],
+  );
+  function move(patch: Partial<typeof camera>) {
+    current.current = { ...current.current, ...patch };
+    if (!frame.current)
+      frame.current = requestAnimationFrame(() => {
+        frame.current = 0;
+        setCamera(current.current);
+      });
+  }
+  const chosen = map.items.find((item) => item.id === selected);
+  const chosenGenre = map.nodes.find(
+    (node) => node.id === selected && node.genre !== undefined,
+  );
+  const matches = (item: TasteItem) =>
+    (filter === "all" || item.kind === filter) &&
+    normalTitle(`${item.title.name} ${item.title.original || ""}`).includes(
+      normalTitle(query),
+    );
+  const visibleItems = map.items.filter(matches),
+    visible = new Set(visibleItems.map((item) => item.id));
+  const points = map.nodes.map((node) => ({
+    ...node,
+    ...projectTastePoint(node, camera.yaw, camera.pitch, camera.zoom),
+  }));
+  const byId = new Map(points.map((point) => [point.id, point]));
+  return (
+    <section
+      className="taste-page page-section"
+      aria-label="Carte de mes goûts"
+    >
+      <button className="text-button settings-back" onClick={close}>
+        <ArrowLeft size={20} />
+        Retour aux réglages
+      </button>
+      <h1 ref={heading} tabIndex={-1}>
+        Carte de mes goûts
+      </h1>
+      <p className="muted">
+        Les genres forment les repères. Les liens entre titres indiquent des
+        genres et des synopsis proches.
+      </p>
+      {!map.items.length ? (
+        <div className="taste-empty surface">
+          <Heart size={32} />
+          <h2>Votre carte commence avec vos goûts.</h2>
+          <p className="muted">
+            Notez des titres, ajoutez des coups de cœur ou remplissez votre
+            liste « À voir » pour la découvrir.
+          </p>
+        </div>
+      ) : (
+        <>
+          <div
+            className="taste-filters"
+            role="group"
+            aria-label="Afficher les goûts"
+          >
+            {[
+              ["all", "Tout"],
+              ["positive", "Appréciés"],
+              ["watchlist", "À voir"],
+              ["negative", "Refusés"],
+              ["skip", "Passés"],
+            ].map(([key, label]) => (
+              <button
+                key={key}
+                aria-pressed={filter === key}
+                onClick={() => setFilter(key)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <div className="taste-layout">
+            <div className="taste-scene-wrap">
+              <div className="taste-controls">
+                <button
+                  className="icon-button"
+                  aria-label="Zoomer"
+                  onClick={() =>
+                    move({ zoom: Math.min(1.8, current.current.zoom + 0.15) })
+                  }
+                >
+                  <Plus size={20} />
+                </button>
+                <button
+                  className="icon-button"
+                  aria-label="Dézoomer"
+                  onClick={() =>
+                    move({ zoom: Math.max(0.6, current.current.zoom - 0.15) })
+                  }
+                >
+                  −
+                </button>
+                <button
+                  className="text-button"
+                  onClick={() => move({ yaw: 0.35, pitch: -0.2, zoom: 1 })}
+                >
+                  Recentrer
+                </button>
+              </div>
+              <svg
+                className="taste-scene"
+                viewBox="-250 -220 500 440"
+                role="img"
+                aria-label="Carte interactive en trois dimensions de vos goûts"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  const delta = e.shiftKey ? 0.2 : 0.08;
+                  if (e.key === "ArrowLeft")
+                    move({ yaw: current.current.yaw - delta });
+                  else if (e.key === "ArrowRight")
+                    move({ yaw: current.current.yaw + delta });
+                  else if (e.key === "ArrowUp")
+                    move({
+                      pitch: Math.max(-1.2, current.current.pitch - delta),
+                    });
+                  else if (e.key === "ArrowDown")
+                    move({
+                      pitch: Math.min(1.2, current.current.pitch + delta),
+                    });
+                  else if (e.key === "+" || e.key === "=")
+                    move({ zoom: Math.min(1.8, current.current.zoom + 0.1) });
+                  else if (e.key === "-")
+                    move({ zoom: Math.max(0.6, current.current.zoom - 0.1) });
+                  else return;
+                  e.preventDefault();
+                }}
+                onPointerDown={(e) => {
+                  pointers.current.set(e.pointerId, {
+                    x: e.clientX,
+                    y: e.clientY,
+                  });
+                  drag.current = {
+                    distance: 0,
+                    id:
+                      (e.target as Element)
+                        .closest("[data-taste-id]")
+                        ?.getAttribute("data-taste-id") || "",
+                  };
+                  e.currentTarget.setPointerCapture(e.pointerId);
+                }}
+                onPointerMove={(e) => {
+                  const old = pointers.current.get(e.pointerId);
+                  if (!old) return;
+                  const dx = e.clientX - old.x,
+                    dy = e.clientY - old.y;
+                  drag.current.distance += Math.hypot(dx, dy);
+                  if (pointers.current.size === 2) {
+                    const other = [...pointers.current].find(
+                      ([id]) => id !== e.pointerId,
+                    )![1];
+                    const before = Math.hypot(old.x - other.x, old.y - other.y),
+                      after = Math.hypot(
+                        e.clientX - other.x,
+                        e.clientY - other.y,
+                      );
+                    if (before > 0)
+                      move({
+                        zoom: Math.max(
+                          0.6,
+                          Math.min(
+                            1.8,
+                            (current.current.zoom * after) / before,
+                          ),
+                        ),
+                      });
+                  } else
+                    move({
+                      yaw: current.current.yaw + dx * 0.008,
+                      pitch: Math.max(
+                        -1.2,
+                        Math.min(1.2, current.current.pitch + dy * 0.008),
+                      ),
+                    });
+                  pointers.current.set(e.pointerId, {
+                    x: e.clientX,
+                    y: e.clientY,
+                  });
+                }}
+                onPointerUp={(e) => {
+                  if (drag.current.distance < 6 && drag.current.id)
+                    setSelected(drag.current.id);
+                  pointers.current.delete(e.pointerId);
+                }}
+                onPointerCancel={(e) => {
+                  pointers.current.delete(e.pointerId);
+                  drag.current.id = "";
+                }}
+              >
+                <circle r="170" className="taste-orbit" />
+                {map.edges.map((edge, i) => {
+                  const a = byId.get(edge.a)!,
+                    b = byId.get(edge.b)!;
+                  if (
+                    (a.item && !visible.has(a.id)) ||
+                    (b.item && !visible.has(b.id))
+                  )
+                    return null;
+                  const active = selected === a.id || selected === b.id;
+                  return (
+                    <line
+                      key={i}
+                      x1={a.x}
+                      y1={a.y}
+                      x2={b.x}
+                      y2={b.y}
+                      className={`taste-edge ${active ? "is-selected" : ""} ${edge.kind}`}
+                      strokeOpacity={
+                        active ? 0.8 : edge.kind === "genre" ? 0.2 : 0.1
+                      }
+                    />
+                  );
+                })}
+                {points
+                  .sort((a, b) => b.depth - a.depth)
+                  .map((point) => {
+                    if (point.item && !visible.has(point.id)) return null;
+                    const active = selected === point.id,
+                      r = point.item
+                        ? (4.5 + Math.min(4, Math.abs(point.weight) * 0.5)) *
+                          point.scale
+                        : (8 + Math.min(4, Math.abs(point.weight))) *
+                          point.scale;
+                    return (
+                      <g
+                        key={point.id}
+                        data-taste-id={point.id}
+                        className={`taste-point ${point.item?.kind || "anchor"} ${active ? "is-selected" : ""}`}
+                        opacity={Math.max(0.42, 1 - (point.depth + 190) / 850)}
+                      >
+                        <title>
+                          {point.label}
+                          {point.item ? ` · ${labels[point.item.kind]}` : ""}
+                        </title>
+                        {point.item && (
+                          <circle
+                            cx={point.x}
+                            cy={point.y}
+                            r={Math.max(13, r)}
+                            fill="transparent"
+                            stroke="none"
+                          />
+                        )}
+                        {active && (
+                          <circle
+                            cx={point.x}
+                            cy={point.y}
+                            r={r + 6}
+                            className="taste-selection"
+                          />
+                        )}
+                        <circle cx={point.x} cy={point.y} r={r} />
+                        {point.genre !== undefined && (
+                          <text
+                            x={point.x}
+                            y={point.y - r - 8}
+                            textAnchor="middle"
+                          >
+                            {point.label}
+                          </text>
+                        )}
+                      </g>
+                    );
+                  })}
+              </svg>
+              <p className="muted fine taste-instructions">
+                Glissez pour tourner · Pincez ou utilisez + / − pour zoomer ·
+                Cliquez sur un point.
+              </p>
+              <div className="taste-legend">
+                {["positive", "watchlist", "negative", "skip"].map((kind) => (
+                  <span key={kind}>
+                    <i className={kind} />
+                    {labels[kind as TasteItem["kind"]]}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <aside
+              className="taste-inspector surface"
+              aria-label="Détails du point sélectionné"
+            >
+              <label className="field">
+                Rechercher un titre
+                <div className="taste-search">
+                  <Search size={18} />
+                  <input
+                    aria-label="Rechercher un titre"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Un film, une série…"
+                  />
+                </div>
+              </label>
+              <label className="field">
+                Choisir un point
+                <select
+                  aria-label="Choisir un point"
+                  value={
+                    chosenGenre ||
+                    visibleItems.some((item) => item.id === selected)
+                      ? selected
+                      : ""
+                  }
+                  onChange={(e) => setSelected(e.target.value)}
+                >
+                  <option value="">
+                    {visibleItems.length} titre
+                    {visibleItems.length > 1 ? "s" : ""}
+                  </option>
+                  <optgroup label="Genres">
+                    {map.nodes
+                      .filter((node) => node.genre !== undefined)
+                      .map((node) => (
+                        <option key={node.id} value={node.id}>
+                          {node.label}
+                        </option>
+                      ))}
+                  </optgroup>
+                  {visibleItems.slice(0, 250).map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.title.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {chosen ? (
+                <>
+                  <span className={`taste-status ${chosen.kind}`}>
+                    {labels[chosen.kind]}
+                  </span>
+                  <h2>{chosen.title.name}</h2>
+                  <p className="muted">
+                    {chosen.title.year} ·{" "}
+                    {chosen.title.genres.join(" / ") || "Genre non renseigné"}
+                  </p>
+                  {chosen.rating > 0 && <p>Votre note : {chosen.rating}/5</p>}
+                  {chosen.favorite && (
+                    <p className="taste-favorite">
+                      <Heart size={16} />
+                      Coup de cœur
+                    </p>
+                  )}
+                  <p className="muted">
+                    {chosen.kind === "skip"
+                      ? "Un signal faible et temporaire. Passer rapidement un titre pèse beaucoup moins qu’un refus explicite."
+                      : chosen.kind === "watchlist"
+                        ? "Une envie de découverte. Ce titre ne compte pas comme un film déjà aimé."
+                        : chosen.kind === "negative"
+                          ? "Ce signal réduit la priorité des recommandations semblables."
+                          : chosen.kind === "positive"
+                            ? "Ce titre aide à trouver d’autres films proches. Plusieurs favoris d’une même famille sont équilibrés pour garder de la variété."
+                            : "Un visionnage sans note donne peu d’indications sur vos préférences."}
+                  </p>
+                  {map.neighbours.get(chosen.id)?.length ? (
+                    <div className="taste-neighbours">
+                      <h3>Liens proches</h3>
+                      {map.neighbours.get(chosen.id)!.map((neighbour) => (
+                        <button
+                          className="text-button"
+                          key={neighbour.id}
+                          onClick={() => setSelected(neighbour.id)}
+                        >
+                          {
+                            map.items.find((item) => item.id === neighbour.id)
+                              ?.title.name
+                          }
+                          <ArrowRight size={15} />
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                  <button
+                    className="button tonal"
+                    onClick={() => open(chosen.title)}
+                  >
+                    Ouvrir la fiche
+                    <ArrowRight size={18} />
+                  </button>
+                </>
+              ) : chosenGenre ? (
+                <>
+                  <span
+                    className={`taste-status ${chosenGenre.weight < 0 ? "negative" : ""}`}
+                  >
+                    Genre ·{" "}
+                    {chosenGenre.weight > 0.2
+                      ? "Affinité positive"
+                      : chosenGenre.weight < -0.2
+                        ? "Affinité négative"
+                        : "Signaux légers ou partagés"}
+                  </span>
+                  <h2>{chosenGenre.label}</h2>
+                  <p className="muted">
+                    Ce repère relie vos titres de ce genre. Son affinité résume
+                    vos notes, coups de cœur et envies, en équilibrant les
+                    familles de films.
+                  </p>
+                  <div className="taste-neighbours">
+                    <h3>Titres liés</h3>
+                    {map.items
+                      .filter((item) =>
+                        item.genres.length
+                          ? item.genres.includes(chosenGenre.genre!)
+                          : chosenGenre.genre === 0,
+                      )
+                      .slice(0, 8)
+                      .map((item) => (
+                        <button
+                          key={item.id}
+                          className="text-button"
+                          onClick={() => setSelected(item.id)}
+                        >
+                          {item.title.name}
+                          <ArrowRight size={15} />
+                        </button>
+                      ))}
+                  </div>
+                </>
+              ) : (
+                <div className="taste-select-hint">
+                  <Bookmark size={28} />
+                  <p className="muted">
+                    Choisissez un point ou un titre pour voir son rôle dans vos
+                    recommandations.
+                  </p>
+                </div>
+              )}
+            </aside>
+          </div>
+          <details className="taste-explanation">
+            <summary>Comment lire cette carte ?</summary>
+            <p className="muted">
+              Les repères représentent les genres de vos titres. Les points sont
+              rapprochés par leurs genres et les mots de leurs synopsis, comme
+              dans le classement local. Un lien entre deux titres indique une
+              similarité, pas une recommandation garantie. La taille des points
+              reflète la force du signal ; la couleur indique son sens.
+            </p>
+            <p className="muted">
+              La disposition est une projection en 3D pour explorer les goûts :
+              les distances n’expriment ni un pourcentage de compatibilité ni
+              l’ensemble des paramètres du moteur. Vos anciens favoris restent
+              conservés.
+            </p>
+            {map.items.length > map.shown && (
+              <p className="muted">
+                {map.shown} titres représentatifs sur {map.items.length} sont
+                affichés pour garder la carte fluide. La recherche permet de
+                consulter les autres titres.
+              </p>
+            )}
+          </details>
+        </>
+      )}
+    </section>
+  );
+}

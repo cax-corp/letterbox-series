@@ -1,3 +1,4 @@
+import { franchiseKey, tasteFamily } from "./taste-features";
 import type { Title } from "./catalog";
 import type { TasteProfile, Candidate, Suggestion } from "./recommendations";
 const normalize = (s: string) =>
@@ -10,7 +11,30 @@ const stop = new Set(
     " ",
   ),
 );
-const concepts: [string, string, string[]][] = [
+export const concepts: [string, string, string[]][] = [
+  [
+    "superheroes",
+    "les récits de super-héros",
+    [
+      "superhero",
+      "superheroes",
+      "superheros",
+      "marvel",
+      "avengers",
+      "superpouvoirs",
+      "superpowers",
+    ],
+  ],
+  [
+    "espionage",
+    "les intrigues d’espionnage",
+    ["espion", "espionnage", "espionage", "spy", "agent", "agents"],
+  ],
+  [
+    "anime",
+    "les univers d’animation japonaise",
+    ["anime", "manga", "naruto", "jujutsu", "shonen"],
+  ],
   [
     "space",
     "les récits d’exploration spatiale",
@@ -177,8 +201,8 @@ const words = (t: Title) =>
     .match(/[a-z]{3,}/g)
     ?.map(stem)
     .filter((word) => !stop.has(word)) || [];
-type Vector = Map<string, number>;
-function cosine(a: Vector, b: Vector) {
+export type Vector = Map<string, number>;
+export function cosine(a: Vector, b: Vector) {
   let sum = 0;
   for (const [key, value] of a) sum += value * (b.get(key) || 0);
   return sum;
@@ -187,18 +211,10 @@ function unit(vector: Vector) {
   const norm = Math.hypot(...vector.values()) || 1;
   return new Map([...vector].map(([k, v]) => [k, v / norm]));
 }
-export function rankLocally(
-  profile: TasteProfile,
-  pool: Candidate[],
-  genres: (t: Title) => number[],
-  genreNames: Record<number, string>,
-  previous: Title[] = [],
-  limit = Infinity,
-): Suggestion[] {
-  const docs = [
-    ...profile.entries.map((e) => e.title),
-    ...pool.map((c) => c.title),
-  ];
+export function contentVectors(
+  docs: Title[],
+  genres: (title: Title) => number[],
+) {
   const tokenCache = new Map<Title, string[]>();
   const vectorCache = new Map<Title, Vector>();
   const tokensFor = (title: Title) => {
@@ -239,31 +255,28 @@ export function rankLocally(
     vectorCache.set(t, result);
     return result;
   };
+  return vector;
+}
+export function rankLocally(
+  profile: TasteProfile,
+  pool: Candidate[],
+  genres: (t: Title) => number[],
+  genreNames: Record<number, string>,
+  previous: Title[] = [],
+  limit = Infinity,
+): Suggestion[] {
+  const vector = contentVectors(
+    [...profile.entries.map((e) => e.title), ...pool.map((c) => c.title)],
+    genres,
+  );
   const examples = profile.entries.map((e) => ({
     entry: e,
+    family: tasteFamily(e.title, genres(e.title)),
     v: vector(e.title),
     weight: profile.weights.get(e.title.id) || 0,
   }));
   const positive = examples.filter((e) => e.weight > 1),
     negative = examples.filter((e) => e.weight < 0);
-  // Similar favourites form one taste family, so three space films do not claim three diversity slots.
-  const clusters: typeof positive = [],
-    bucketOf = new Map<string, string>();
-  for (const example of positive) {
-    const ids = new Set(genres(example.entry.title));
-    const cluster = clusters.find((other) => {
-      const otherIds = new Set(genres(other.entry.title));
-      const intersection = [...ids].filter((id) => otherIds.has(id)).length;
-      const jaccard =
-        intersection / Math.max(1, new Set([...ids, ...otherIds]).size);
-      return Math.max(cosine(example.v, other.v), 0.75 * jaccard) >= 0.58;
-    });
-    if (!cluster) clusters.push(example);
-    bucketOf.set(
-      example.entry.title.id,
-      cluster?.entry.title.id || example.entry.title.id,
-    );
-  }
   const implicit = (profile.implicit || []).map((s) => ({
     v: vector(s.title),
     strength: Math.max(0, Math.min(0.14, s.strength)),
@@ -274,24 +287,19 @@ export function rankLocally(
       v = vector(title),
       ids = genres(title);
     let best: ((typeof positive)[number] & { similarity: number }) | undefined;
-    const top = [0, 0, 0];
+    const byFamily = new Map<string, number>();
     for (const example of positive) {
       const similarity =
         cosine(v, example.v) * (0.75 + 0.25 * Math.min(1, example.weight / 9));
       if (!best || similarity > best.similarity)
         best = { ...example, similarity };
-      if (similarity > top[0]) {
-        top[2] = top[1];
-        top[1] = top[0];
-        top[0] = similarity;
-      } else if (similarity > top[1]) {
-        top[2] = top[1];
-        top[1] = similarity;
-      } else if (similarity > top[2]) top[2] = similarity;
+      const family = example.family;
+      byFamily.set(family, Math.max(byFamily.get(family) || 0, similarity));
     }
+    const top = [...byFamily.values()].sort((a, b) => b - a).slice(0, 3);
     const content = best?.similarity || 0;
     const average =
-      (top[0] + top[1] + top[2]) / Math.max(1, Math.min(3, positive.length));
+      top.reduce((sum, value) => sum + value, 0) / Math.max(1, top.length);
     const avoidance = Math.max(
       0,
       ...negative.map(
@@ -302,18 +310,25 @@ export function rankLocally(
       ids.reduce((s, id) => s + (profile.genres.get(id) || 0) / maxGenre, 0) /
       Math.max(1, ids.length);
     const links = seeds.filter((s) => (profile.weights.get(s.id) || 0) > 1);
+    const relatedFamilies = new Map<string, number>();
+    for (const link of links) {
+      const entry = positive.find((e) => e.entry.title.id === link.id);
+      const family = entry ? entry.family : link.id;
+      relatedFamilies.set(
+        family,
+        Math.max(
+          relatedFamilies.get(family) || 0,
+          Math.min(9, profile.weights.get(link.id) || 0) /
+            9 /
+            (1 + link.rank / 12),
+        ),
+      );
+    }
     const related =
       Math.min(
         1,
         Math.log1p(
-          links.reduce(
-            (s, link) =>
-              s +
-              Math.min(9, profile.weights.get(link.id) || 0) /
-                9 /
-                (1 + link.rank / 12),
-            0,
-          ),
+          [...relatedFamilies.values()].reduce((sum, value) => sum + value, 0),
         ),
       ) * 0.8;
     let pair = 0;
@@ -394,7 +409,8 @@ export function rankLocally(
       reason,
       score,
       v,
-      bucket: bucketOf.get(best?.entry.title.id || "") || "discovery",
+      bucket: tasteFamily(title, ids),
+      franchise: franchiseKey(title),
     };
   });
   const remaining = result.sort(
@@ -405,17 +421,38 @@ export function rankLocally(
   const selected: typeof result = [];
   const trail = previous.slice(-5).map((title) => {
     const v = vector(title);
-    const closest = positive
-      .map((e) => ({ id: e.entry.title.id, similarity: cosine(v, e.v) }))
-      .sort((a, b) => b.similarity - a.similarity)[0]?.id;
-    return { v, bucket: bucketOf.get(closest || "") || "discovery" };
+    return {
+      v,
+      bucket: tasteFamily(title, genres(title)),
+      franchise: franchiseKey(title),
+    };
   });
   while (remaining.length && selected.length < limit) {
     let best = 0,
       bestScore = -Infinity;
-    const recent = [...trail, ...selected].slice(-4);
+    const recent = [...trail, ...selected].slice(-8);
+    const viable = remaining
+      .slice(0, 240)
+      .filter((item) => item.score >= remaining[0].score - 2.5);
+    const varied = viable.filter(
+      (item) =>
+        recent.filter((old) => old.bucket === item.bucket).length < 2 &&
+        !recent.some((old) => old.franchise === item.franchise),
+    );
+    const newSaga = viable.filter(
+      (item) => !recent.some((old) => old.franchise === item.franchise),
+    );
+    const allowed = varied.length
+      ? new Set(varied)
+      : newSaga.length
+        ? new Set(newSaga)
+        : null;
     for (let i = 0; i < Math.min(remaining.length, 240); i++) {
       const item = remaining[i];
+      const repeatedSaga = recent.some(
+        (old) => old.franchise === item.franchise,
+      );
+      if (allowed && !allowed.has(item)) continue;
       const similarity = Math.max(
         0,
         ...recent.map((old) => cosine(item.v, old.v)),
@@ -423,7 +460,11 @@ export function rankLocally(
       const repetition = recent.filter(
         (old) => old.bucket === item.bucket,
       ).length;
-      const adjusted = item.score - 0.85 * similarity - 0.65 * repetition;
+      const adjusted =
+        item.score -
+        1.15 * similarity -
+        0.85 * repetition -
+        (repeatedSaga ? 1.7 : 0);
       if (adjusted > bestScore) {
         bestScore = adjusted;
         best = i;

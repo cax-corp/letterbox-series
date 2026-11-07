@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 const movie = {
   trackId: 1,
   trackName: "Interstellar",
@@ -518,7 +518,7 @@ test("les paramètres sont une page avec URL, défilement et retour navigateur/A
   await page.screenshot({ path: "tests/settings-page.png" });
 });
 
-test("réglages Android : accès aux horaires précis, test dans une minute et horaire quotidien conservé", async ({
+test("réglages Android : horaire quotidien, sans tests ni options Xiaomi, alarme précise conservée", async ({
   page,
 }) => {
   await page.addInitScript(() => {
@@ -617,80 +617,53 @@ test("réglages Android : accès aux horaires précis, test dans une minute et h
   await page.goto("/");
   await page.getByRole("button", { name: "Réglages", exact: true }).click();
   const settings = page.getByRole("region", { name: "Réglages", exact: true });
-  await expect(settings.getByText(/Android limite actuellement/)).toBeVisible();
   await expect(
     settings.getByText("Sur Xiaomi / HyperOS", { exact: true }),
-  ).toBeVisible();
-  await settings
-    .getByRole("button", { name: /Autoriser le démarrage automatique Xiaomi/ })
-    .click();
-  await settings.getByRole("checkbox", { name: /Fiabilité renforcée/ }).check();
+  ).toHaveCount(0);
+  await expect(
+    settings.getByRole("button", { name: "Tester maintenant", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    settings.getByRole("button", { name: "Tester dans 1 minute", exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    settings.getByRole("checkbox", { name: /Fiabilité renforcée/ }),
+  ).toHaveCount(0);
   await settings
     .getByRole("button", { name: /Autoriser les horaires précis/ })
     .click();
   await page.evaluate(() =>
     document.dispatchEvent(new Event("visibilitychange")),
   );
-  await expect(
-    settings.getByRole("button", { name: /Autoriser les horaires précis/ }),
-  ).toHaveCount(0);
-  await expect(
-    settings.getByRole("checkbox", { name: /Fiabilité renforcée/ }),
-  ).toBeChecked();
+  await settings
+    .getByRole("checkbox", { name: "Recevoir une recommandation", exact: true })
+    .check();
   await settings.getByLabel("Heure de la recommandation").fill("23:59");
   await settings
-    .getByRole("button", { name: "Activer les recommandations", exact: true })
+    .getByRole("button", { name: "Enregistrer l’horaire", exact: true })
     .click();
   await expect(
-    settings.getByText("Les recommandations sont programmées."),
+    settings.getByText("Horaire enregistré.", { exact: true }),
   ).toBeVisible();
-  await settings
-    .getByRole("button", { name: "Tester dans 1 minute", exact: true })
-    .click();
-  await expect(settings.getByText(/Test programmé. Fermez Vela/)).toBeVisible();
-  await settings
-    .getByText("Diagnostic du dernier rappel", { exact: true })
-    .click();
-  await expect(
-    settings.getByText(/Programmation quotidienne : Réveil Android/),
-  ).toBeVisible();
-  await settings
-    .getByRole("button", { name: "Tester maintenant", exact: true })
-    .click();
-  await expect(settings.getByText(/Test transmis à Android/)).toBeVisible();
-  await settings
-    .getByRole("button", { name: "Copier le diagnostic", exact: true })
-    .click();
-  await expect(settings.getByText(/Diagnostic copié/)).toBeVisible();
-  const report = JSON.parse(
-    await page.evaluate(() => (window as any).copiedDiagnostic),
-  );
-  expect(report.schedule.reliableAlarm).toBe(true);
-  expect(report.lastSource).toBe("immediate");
-  expect(report).not.toHaveProperty("config");
-  expect(JSON.stringify(report)).not.toContain("candidates");
   const calls = await page.evaluate(
     () => (window as any).nativeNotificationCalls,
   );
-  const saved = calls.find((call: any) => call.method === "configure").options
-    .config;
+  const saved = calls.find(
+    (call: any) => call.method === "configure" && call.options.config.enabled,
+  ).options.config;
   expect(saved.hour).toBe(23);
   expect(saved.minute).toBe(59);
-  expect(saved.reliableAlarm).toBe(true);
+  expect(saved.reliableAlarm).toBe(false);
   expect(
-    calls.some((call: any) => call.method === "openAutoStartSettings"),
-  ).toBe(true);
-  expect(
-    calls.find((call: any) => call.method === "testNotification").options
-      .context.reliableAlarm,
-  ).toBe(true);
-  expect(saved).not.toHaveProperty("token");
+    calls.some(
+      (call: any) =>
+        call.method === "testNotification" ||
+        call.method === "openAutoStartSettings",
+    ),
+  ).toBe(false);
   expect(
     calls.some((call: any) => call.method === "openExactAlarmSettings"),
   ).toBe(true);
-  expect(calls.some((call: any) => call.method === "testNotification")).toBe(
-    true,
-  );
   await page.screenshot({ path: "tests/settings-notifications-android.png" });
 });
 

@@ -74,6 +74,14 @@ export default function Recommendations({
   const sourceMore = useRef(true);
   const request = useRef(0);
   const [skipRevision, setSkipRevision] = useState(0);
+  useEffect(() => {
+    const changed = (event: Event) => {
+      if ((event as CustomEvent).detail === account)
+        setSkipRevision((n) => n + 1);
+    };
+    window.addEventListener("vela-taste-state", changed);
+    return () => window.removeEventListener("vela-taste-state", changed);
+  }, [account]);
   const appliedRankKey = useRef("");
   const profile = useMemo(
     () => buildTasteProfile(library, readSkipSignals(account)),
@@ -535,14 +543,13 @@ function RecommendationCard({
   const liked =
     entry?.recommendationFeedback === "like" ||
     Boolean(entry?.favorite && entry.recommendationFeedback !== "dislike");
-  function like() {
+  function addToWatchlist() {
     if (Date.now() - lastLike.current < 400) return;
     lastLike.current = Date.now();
     setPulse((n) => n + 1);
     clearTimeout(timer.current);
     timer.current = setTimeout(() => setPulse(0), 700);
-    if (!liked)
-      update(title, { favorite: true, recommendationFeedback: "like" });
+    if (!entry?.watchlist) update(title, { watchlist: true });
   }
   function control(target: EventTarget | null) {
     return (
@@ -558,7 +565,7 @@ function RecommendationCard({
       onDoubleClick={(e) => {
         if (!control(e.target)) {
           e.preventDefault();
-          like();
+          addToWatchlist();
         }
       }}
       onPointerDown={(e) => {
@@ -597,7 +604,7 @@ function RecommendationCard({
           Math.hypot(previous.x - e.clientX, previous.y - e.clientY) < 28
         ) {
           lastTap.current = null;
-          like();
+          addToWatchlist();
         } else lastTap.current = { at: Date.now(), x: e.clientX, y: e.clientY };
       }}
     >
@@ -620,7 +627,8 @@ function RecommendationCard({
       <span className="recommendation-reason">{reason}</span>
       {pulse > 0 && (
         <span className="like-burst" key={pulse} aria-hidden="true">
-          <Heart size={90} fill="currentColor" />
+          <Bookmark size={90} fill="currentColor" />
+          <span>À voir</span>
         </span>
       )}
       <div className="recommendation-content">
@@ -655,7 +663,11 @@ function RecommendationCard({
                   favorite: false,
                   recommendationFeedback: undefined,
                 });
-              else like();
+              else
+                update(title, {
+                  favorite: true,
+                  recommendationFeedback: "like",
+                });
             }}
           >
             <Heart size={22} fill={liked ? "currentColor" : "none"} />
@@ -666,6 +678,7 @@ function RecommendationCard({
             onClick={() =>
               update(title, {
                 favorite: false,
+                watchlist: false,
                 recommendationFeedback: "dislike",
               })
             }

@@ -7,7 +7,7 @@ const DAY = 86400000,
   MAX_SIGNALS = 120;
 const key = (account: string) => `vela-implicit-skips-v1:${account}`;
 export type SkipSignal = { title: Title; strength: number };
-type StoredSkip = { title: Title; at: number; dwell: number };
+export type StoredSkip = { title: Title; at: number; dwell: number };
 function stored(account: string, now: number): StoredSkip[] {
   try {
     const value: unknown = JSON.parse(
@@ -38,6 +38,68 @@ function stored(account: string, now: number): StoredSkip[] {
       .slice(0, MAX_SIGNALS);
   } catch {
     return [];
+  }
+}
+export function exportSkipArchive(
+  account: string,
+  now = Date.now(),
+): StoredSkip[] {
+  return stored(account, now).map((item) => ({
+    at: item.at,
+    dwell: item.dwell,
+    title: {
+      id: item.title.id,
+      kind: item.title.kind,
+      name: item.title.name.slice(0, 200),
+      year: item.title.year.slice(0, 10),
+      image: "",
+      summary: item.title.summary.slice(0, 600),
+      genres: item.title.genres
+        .slice(0, 20)
+        .map((genre) => genre.slice(0, 100)),
+      ...(item.title.genreIds
+        ? { genreIds: item.title.genreIds.slice(0, 20) }
+        : {}),
+      ...(item.title.original
+        ? { original: item.title.original.slice(0, 200) }
+        : {}),
+      ...(item.title.source ? { source: item.title.source } : {}),
+    },
+  }));
+}
+export function mergeSkipArchive(
+  account: string,
+  incoming: unknown[],
+  now = Date.now(),
+) {
+  const previous = stored(account, now);
+  const pool = new Map(previous.map((item) => [item.title.id, item]));
+  for (const value of incoming) {
+    const item = value as StoredSkip;
+    if (
+      !item?.title ||
+      typeof item.title.id !== "string" ||
+      !Number.isFinite(item.at)
+    )
+      continue;
+    const old = pool.get(item.title.id);
+    if (!old || item.at > old.at) pool.set(item.title.id, item);
+  }
+  const raw = [...pool.values()].sort((a, b) => b.at - a.at).slice(0, 120);
+  // Validate through the same reader used for local signals before retaining anything remote.
+  try {
+    localStorage.setItem(key(account), JSON.stringify(raw));
+    const valid = stored(account, now);
+    localStorage.setItem(key(account), JSON.stringify(valid));
+    if (
+      JSON.stringify(previous) !== JSON.stringify(valid) &&
+      typeof window !== "undefined"
+    )
+      window.dispatchEvent(
+        new CustomEvent("vela-taste-state", { detail: account }),
+      );
+  } catch {
+    /* The current model remains available if storage is full. */
   }
 }
 export function readSkipSignals(
@@ -96,6 +158,14 @@ export function rememberQuickSkip(
         ].slice(0, MAX_SIGNALS),
       ),
     );
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("vela-taste-state", { detail: account }),
+      );
+      window.dispatchEvent(
+        new CustomEvent("vela-taste-change", { detail: account }),
+      );
+    }
     return true;
   } catch {
     return false;

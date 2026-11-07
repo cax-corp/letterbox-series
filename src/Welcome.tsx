@@ -21,7 +21,7 @@ const slides = [
   {
     label: "Pour vous",
     title: "Des recommandations selon vos goûts.",
-    text: "Vos likes, vos notes et les titres que vous passez affinent votre sélection, directement sur votre téléphone.",
+    text: "Vos notes, coups de cœur et titres passés affinent votre sélection. Double-tapez pour ajouter à « À voir ».",
   },
   {
     label: "Votre collection",
@@ -65,7 +65,7 @@ function Preview({ step }: { step: number }) {
             </div>
           </div>
           <div className="welcome-like">
-            <Heart size={24} fill="currentColor" />
+            <Bookmark size={24} fill="currentColor" />
           </div>
         </div>
       ) : (

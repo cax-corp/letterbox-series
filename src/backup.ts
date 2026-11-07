@@ -1,3 +1,4 @@
+import { syncAccountState } from "./account-state";
 import { syncViewingPreferences } from "./viewing-preferences";
 import { syncUserProfile } from "./profile-sync";
 import {
@@ -195,6 +196,7 @@ export const backupService = createBackupService({
   afterSync: async (account) => {
     await syncUserProfile(account);
     await syncViewingPreferences(account);
+    await syncAccountState(account, true);
   },
   emit: (key) => {
     if (typeof window !== "undefined")

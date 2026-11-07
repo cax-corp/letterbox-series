@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 import { dominantTone } from "../src/useArtworkTone";
 
 test("une majorité de jaunes proches gagne sur une minorité bleue uniforme", () => {

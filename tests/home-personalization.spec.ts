@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 import { personalizeHome, rankHomeTitles } from "../src/home-personalization";
 import type { Title } from "../src/catalog";
 import type { Entry } from "../src/store";

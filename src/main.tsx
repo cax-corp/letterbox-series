@@ -1,3 +1,9 @@
+import TasteMap from "./TasteMap";
+import { chooseHomeHero } from "./home-history";
+import { rememberHomeExposure } from "./home-history";
+import { useAccountSettings } from "./useAccountSettings";
+import { useNotificationPreference } from "./useNotificationPreference";
+import type { PreferenceValues } from "./account-state";
 import Welcome from "./Welcome";
 import AuthForm from "./AuthForm";
 import { readWelcomeCompleted, markWelcomeCompleted } from "./onboarding";
@@ -123,7 +129,8 @@ type Page =
   | "recommendations"
   | "profile"
   | "settings"
-  | "edit-profile";
+  | "edit-profile"
+  | "taste-map";
 const pageNames: Page[] = [
   "public",
   "discover",
@@ -133,6 +140,7 @@ const pageNames: Page[] = [
   "profile",
   "settings",
   "edit-profile",
+  "taste-map",
 ];
 function App() {
   const [welcomeCompleted, setWelcomeCompleted] =
@@ -142,8 +150,10 @@ function App() {
   const [publicRoute, setPublicRoute] = useState(() => parsePublicRoute());
   const [shareDraft, setShareDraft] = useState<ShareDraft | null>(null);
   const titleSharing = useRef(false);
-  const [colourTheme, setColourTheme] = useState(readColourTheme);
+  const [colourTheme, setColourThemeValue] = useState(readColourTheme);
   const [feedSession, setFeedSession] = useState(0);
+  const [homeVisit, setHomeVisit] = useState(0);
+  const catalogueAt = useRef(0);
   useEffect(() => {
     let wasHidden = document.hidden;
     const resume = () => {
@@ -159,11 +169,13 @@ function App() {
   const [page, setPage] = useState<Page>(() =>
       parsePublicRoute()
         ? "public"
-        : location.hash === "#settings"
-          ? "settings"
-          : location.hash === "#profile/edit"
-            ? "edit-profile"
-            : "discover",
+        : location.hash === "#settings/tastes"
+          ? "taste-map"
+          : location.hash === "#settings"
+            ? "settings"
+            : location.hash === "#profile/edit"
+              ? "edit-profile"
+              : "discover",
     ),
     [kind, setKind] = useState<"all" | "movie" | "series">("all"),
     [filmList, setFilms] = useState<Title[]>([]),
@@ -183,7 +195,7 @@ function App() {
     [user, setUser] = useState<AuthUser | null>(null),
     [auth, setAuth] = useState(false),
     [listFilter, setListFilter] = useState("watchlist"),
-    [theme, setTheme] = useState<ThemePreference>(() => {
+    [theme, setThemeValue] = useState<ThemePreference>(() => {
       const saved = localStorage.getItem("luma-theme");
       return saved === "light" || saved === "system" ? saved : "dark";
     }),
@@ -199,6 +211,26 @@ function App() {
   useEffect(() => {
     if (user && !welcomeCompleted) finishWelcome();
   }, [user?.id, welcomeCompleted]);
+  const accountSettings = useAccountSettings(
+    user,
+    (prefs) => {
+      if (prefs.palette) setColourThemeValue(prefs.palette);
+      if (prefs.theme) setThemeValue(prefs.theme);
+    },
+    {
+      palette: colourTheme,
+      theme,
+      backupFrequency: backupService.state(user?.id || "local").frequency,
+    },
+  );
+  function setTheme(value: ThemePreference) {
+    setThemeValue(value);
+    accountSettings.change("theme", value);
+  }
+  function setColourTheme(value: string) {
+    setColourThemeValue(value);
+    accountSettings.change("palette", value);
+  }
   const personal = useProfile(user);
   const viewing = useViewingPreferences(user);
   useEffect(() => {
@@ -244,6 +276,13 @@ function App() {
     user?.id || "local",
     openSettings,
   );
+  useNotificationPreference(
+    accountSettings.values.notifications,
+    user?.id || "local",
+    accountSettings.ready,
+    recommendationLibrary,
+    filmList,
+  );
   const moreAbort = useRef<AbortController | null>(null);
   const searchIdentity = useRef("");
   searchIdentity.current = `${page}|${kind}|${query}`;
@@ -251,11 +290,15 @@ function App() {
   local.current = library;
   const activeAccount = useRef(user?.id);
   activeAccount.current = user?.id;
-  const backup = useCloudBackup(user?.id, (account, data) => {
-    if (activeAccount.current !== account) return;
-    local.current = data;
-    setLibrary(data);
-  });
+  const backup = useCloudBackup(
+    user?.id,
+    (account, data) => {
+      if (activeAccount.current !== account) return;
+      local.current = data;
+      setLibrary(data);
+    },
+    accountSettings.ready,
+  );
   const syncState = backup.status,
     syncIssue = backup.issue;
 
@@ -307,6 +350,7 @@ function App() {
           ),
         ].join(" ") + " Vos listes restent accessibles.",
       );
+    catalogueAt.current = Date.now();
     setLoading(false);
   }
   useEffect(() => {
@@ -355,7 +399,7 @@ function App() {
   useEffect(() => {
     const changed = (event: StorageEvent) => {
       if (event.key === colourThemeKey)
-        setColourTheme(getColourTheme(event.newValue).id);
+        setColourThemeValue(getColourTheme(event.newValue).id);
     };
     window.addEventListener("storage", changed);
     return () => window.removeEventListener("storage", changed);
@@ -492,6 +536,7 @@ function App() {
   }
 
   function navigate(p: Page) {
+    if (p === "discover" && p !== page) setHomeVisit((n) => n + 1);
     if (publicRoute) {
       history.pushState(
         { lumaPage: p },
@@ -500,7 +545,12 @@ function App() {
       );
       setPublicRoute(null);
     }
-    if ((page === "settings" || page === "edit-profile") && p !== page)
+    if (
+      (page === "settings" ||
+        page === "edit-profile" ||
+        page === "taste-map") &&
+      p !== page
+    )
       history.replaceState(
         { lumaPage: p },
         "",
@@ -554,6 +604,23 @@ function App() {
     setPage("settings");
     window.scrollTo({ top: 0, behavior: "instant" });
   }
+  function openTasteMap() {
+    history.replaceState({ lumaPage: "settings" }, "", "#settings");
+    history.pushState(
+      { lumaPage: "taste-map", velaTasteEntry: true },
+      "",
+      "#settings/tastes",
+    );
+    setPage("taste-map");
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }
+  function closeTasteMap() {
+    if (history.state?.velaTasteEntry) history.back();
+    else {
+      history.replaceState({ lumaPage: "settings" }, "", "#settings");
+      setPage("settings");
+    }
+  }
   function closeSettings() {
     if (history.state?.lumaSettingsEntry) history.back();
     else {
@@ -578,11 +645,13 @@ function App() {
       setPage(
         pageNames.includes(target) && target !== "public"
           ? target
-          : location.hash === "#settings"
-            ? "settings"
-            : location.hash === "#profile/edit"
-              ? "edit-profile"
-              : "discover",
+          : location.hash === "#settings/tastes"
+            ? "taste-map"
+            : location.hash === "#settings"
+              ? "settings"
+              : location.hash === "#profile/edit"
+                ? "edit-profile"
+                : "discover",
       );
     };
     window.addEventListener("popstate", pop);
@@ -607,6 +676,10 @@ function App() {
         setAuth(false);
         return true;
       }
+      if (page === "taste-map") {
+        closeTasteMap();
+        return true;
+      }
       if (page === "edit-profile") {
         closeProfileEditor();
         return true;
@@ -624,7 +697,8 @@ function App() {
           welcomeBack.current();
           return;
         }
-        if (page === "settings") closeSettings();
+        if (page === "taste-map") closeTasteMap();
+        else if (page === "settings") closeSettings();
         else if (page === "edit-profile") closeProfileEditor();
       }
     };
@@ -648,15 +722,51 @@ function App() {
       return {
         movies: filmList,
         series: showList,
-        hero: filmList[0] || showList[0],
+        hero: chooseHomeHero([...filmList, ...showList], user?.id || "local"),
         personalized: false,
       };
     const cached = readRecommendationSession(
       user?.id || "local",
     ).candidates.map((candidate) => candidate.title);
-    return personalizeHome(library, [...filmList, ...cached], showList);
-  }, [library, filmList, showList, page, user?.id]);
+    return personalizeHome(
+      library,
+      [...filmList, ...cached],
+      showList,
+      user?.id || "local",
+    );
+  }, [library, filmList, showList, page, user?.id, feedSession, homeVisit]);
   const hero = home.hero;
+  useEffect(() => {
+    if (
+      needsWelcome ||
+      page !== "discover" ||
+      !hero ||
+      selected ||
+      document.hidden
+    )
+      return;
+    const timer = setTimeout(() => {
+      if (!document.hidden) rememberHomeExposure(hero, user?.id || "local");
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [
+    page,
+    hero?.id,
+    selected,
+    feedSession,
+    homeVisit,
+    user?.id,
+    needsWelcome,
+  ]);
+  useEffect(() => {
+    if (
+      !needsWelcome &&
+      page === "discover" &&
+      catalogueAt.current &&
+      Date.now() - catalogueAt.current > 30 * 60000
+    )
+      void load();
+  }, [page, feedSession, homeVisit, needsWelcome]);
   const card = (title: Title, i: number) => (
     <button
       key={title.id}
@@ -843,6 +953,21 @@ function App() {
             )}
           />
         )}
+        {page === "taste-map" &&
+          (cloud && !user ? (
+            <SignInRequired
+              title="Carte de mes goûts"
+              message="Connectez-vous pour explorer votre carte personnelle."
+              signIn={() => setAuth(true)}
+            />
+          ) : (
+            <TasteMap
+              library={library}
+              account={user?.id || "local"}
+              close={closeTasteMap}
+              open={setSelected}
+            />
+          ))}
         {page === "settings" && (
           <SettingsPage
             theme={theme}
@@ -850,11 +975,13 @@ function App() {
             colourTheme={colourTheme}
             setColourTheme={setColourTheme}
             viewing={viewing}
-            repairNeeded={Boolean(syncIssue)}
+            repairNeeded={syncIssue?.kind === "schema"}
             library={library}
             fallback={filmList}
             account={user?.id || "local"}
             backup={backup}
+            accountSettings={accountSettings}
+            openTasteMap={openTasteMap}
             close={closeSettings}
             signIn={() => setAuth(true)}
           />
@@ -1775,7 +1902,11 @@ function SettingsPage({
   fallback,
   account,
   backup,
+  accountSettings,
+  openTasteMap,
 }: {
+  openTasteMap: () => void;
+  accountSettings: ReturnType<typeof useAccountSettings>;
   viewing: ReturnType<typeof useViewingPreferences>;
   backup: BackupController;
   library: Record<string, Entry>;
@@ -1839,6 +1970,21 @@ function SettingsPage({
         </div>
         <ColourThemePicker value={colourTheme} onChange={setColourTheme} />
         <hr />
+        <section className="taste-entry" aria-label="Vos goûts">
+          <div>
+            <h2>Vos goûts</h2>
+            <p className="muted">
+              Explorez les liens entre vos titres et vos préférences.
+            </p>
+          </div>
+          <button
+            className="button tonal"
+            onClick={account === "local" && cloud ? signIn : openTasteMap}
+          >
+            Carte de mes goûts <ArrowRight size={18} />
+          </button>
+        </section>
+        <hr />
         <ViewingSettings
           value={viewing.value}
           save={viewing.save}
@@ -1852,12 +1998,33 @@ function SettingsPage({
           connected={account !== "local"}
           configured={Boolean(cloud)}
           signIn={signIn}
+          setFrequency={(value) => {
+            accountSettings.change("backupFrequency", value);
+            backup.setFrequency(value);
+          }}
         />
+        {accountSettings.pending && account !== "local" && (
+          <p className="muted fine" role="status">
+            Réglages en attente de synchronisation.
+          </p>
+        )}
+        {accountSettings.error && (
+          <div className="error" role="status">
+            <p>{accountSettings.error}</p>
+            <button className="text-button" onClick={accountSettings.retry}>
+              Réessayer la synchronisation des réglages
+            </button>
+          </div>
+        )}
         <hr />
         <NotificationSettings
           library={library}
           fallback={fallback}
           account={account}
+          preference={accountSettings.values.notifications}
+          savePreference={(value) =>
+            accountSettings.change("notifications", value)
+          }
         />
         <hr />
         <h2>Compte et catalogue</h2>
