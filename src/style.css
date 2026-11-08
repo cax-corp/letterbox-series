@@ -5371,6 +5371,11 @@ body.taste-terminal-active > #root > .mobile-nav {
 .atlas-stellar .taste-edge {
   stroke: #b4cbdf;
 }
+.atlas-stellar .taste-edge.ambient {
+  fill: none;
+  stroke-width: 0.45;
+  pointer-events: none;
+}
 .atlas-stellar .taste-edge.is-selected {
   stroke: #ecc27b;
   filter: none;

@@ -312,3 +312,10 @@ Le décor Canvas est redessiné uniquement à l’entrée, à la reprise, au red
 Le rendu ne monte plus dans le SVG les nœuds et liens hors du champ visible (avec une petite marge pour les bords). La sélection d’un genre privilégie ses liens les plus forts présents à l’écran : au plus 12 connexions de sélection et 40 liens au total sur téléphone, contre 28 et 120 sur PC. Les budgets d’étoiles et de halos sont aussi plafonnés ; pendant un mouvement, les connexions et effets sont encore réduits. Les liens restent ceux du modèle, et les titres masqués par le rendu sont toujours accessibles par recherche. Un filtre recentre la vue pour éviter de chercher ses résultats hors écran.
 
 Le classement des liens et les index de voisinage sont calculés une seule fois par graphe. La mini-carte et les options de recherche sont mises en cache. Le fond nébuleux utilise une couche fixe déplacée par le compositeur, et le Canvas décoratif conserve son tampon au lieu de le réallouer à chaque geste. Son rafraîchissement est plafonné à 24 images/s sur téléphone (30 sur PC) et s’arrête au repos ou quand l’application n’est pas visible. Les recommandations et données Supabase ne changent pas.
+
+
+### Densité du réseau — 2.7.2
+
+La vue au repos retrouve davantage de branches, d’étoiles lumineuses et de libellés. Les genres non sélectionnés ont un budget de connexions distinct de celui d’un titre : ils ne sont plus limités à deux ou trois liens, ce qui isolait beaucoup de films. Une première passe relie les titres visibles avant d’ajouter des branches supplémentaires. Les connexions proviennent toujours du graphe réel.
+
+Les liens de fond sont regroupés dans un seul tracé SVG sans filtre graphique, plus visible, plutôt que dans une multitude d’éléments individuels. Au repos : jusqu’à 140 étoiles, 100 liens et 28 halos sur téléphone ; 300 étoiles, 320 liens et 64 halos sur PC. Les plafonds de sélection restent 12/28 et la vue en mouvement garde ses budgets allégés (60/160 étoiles et 16/48 liens). Le retrait des éléments hors champ, les étoiles mémorisées et le déplacement groupé sont conservés.

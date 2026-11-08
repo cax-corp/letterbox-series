@@ -55,14 +55,14 @@ test("rendu : un gros genre affiche ses plus fortes connexions visibles, avec de
   const index = indexStellarGraph(nodes, edges);
   const view = { width: 800, height: 800, compact: true };
   const scene = visibleStellarScene(index, camera, view, allowed, "genre:28");
-  expect(scene.points.length).toBeLessThanOrEqual(100);
+  expect(scene.points.length).toBeLessThanOrEqual(140);
   expect(scene.links).toHaveLength(12);
   expect(scene.links.every((l) => l.active)).toBe(true);
   expect(scene.links.map((l) => l.edge.a)).toEqual(
     Array.from({ length: 12 }, (_, i) => `movie-${300 - i}`),
   );
   expect(scene.points.some((p) => p.id === "remote")).toBe(false);
-  expect(scene.halos.size).toBeLessThanOrEqual(16);
+  expect(scene.halos.size).toBeLessThanOrEqual(28);
   const moving = visibleStellarScene(
     index,
     camera,
@@ -81,7 +81,7 @@ test("rendu : un gros genre affiche ses plus fortes connexions visibles, avec de
     "genre:28",
   );
   expect(desktop.links).toHaveLength(28);
-  expect(desktop.points.length).toBeLessThanOrEqual(220);
+  expect(desktop.points.length).toBeLessThanOrEqual(300);
   expect(index.nodes).toHaveLength(302);
   expect(index.ranked).toHaveLength(301);
   expect(nodes[300].x).toBe(-90); // render sorting never mutates the original graph.
@@ -125,8 +125,10 @@ test("téléphone : 300 titres, genre dense, sortie du champ, recherche et Canva
     .getByLabel("Choisir un point", { exact: true })
     .selectOption("genre:28");
   await expect(page.locator(".stellar-map")).not.toHaveClass(/is-navigating/);
-  expect(await page.locator(".taste-point").count()).toBeLessThanOrEqual(100);
-  expect(await page.locator(".taste-edge").count()).toBeLessThanOrEqual(40);
+  expect(await page.locator(".taste-point").count()).toBeLessThanOrEqual(140);
+  expect(
+    Number(await page.locator(".taste-scene").getAttribute("data-link-count")),
+  ).toBeLessThanOrEqual(100);
   expect(
     await page.locator(".taste-edge.is-selected").count(),
   ).toBeLessThanOrEqual(12);
@@ -134,7 +136,7 @@ test("téléphone : 300 titres, genre dense, sortie du champ, recherche et Canva
     0,
   );
   expect(await page.locator(".taste-star-halo").count()).toBeLessThanOrEqual(
-    16,
+    28,
   );
   await expect(
     page.getByLabel("Choisir un point", { exact: true }).locator("option"),
@@ -152,7 +154,10 @@ test("téléphone : 300 titres, genre dense, sortie du champ, recherche et Canva
   await page.locator("svg.taste-scene").focus();
   for (let i = 0; i < 45; i++) await page.keyboard.press("Shift+ArrowRight");
   await expect(page.locator(".taste-point")).toHaveCount(0);
-  await expect(page.locator(".taste-edge")).toHaveCount(0);
+  await expect(page.locator(".taste-scene")).toHaveAttribute(
+    "data-link-count",
+    "0",
+  );
   expect(await page.evaluate(() => (window as any).canvasResizes)).toBe(0);
   await page.keyboard.press("Home");
   await expect
@@ -168,4 +173,29 @@ test("téléphone : 300 titres, genre dense, sortie du champ, recherche et Canva
     .getByRole("button", { name: "Ouvrir la fiche", exact: true })
     .click();
   await expect(page.getByRole("dialog")).toContainText("Mission 300");
+});
+
+test("densité au repos : les genres conservent plusieurs branches et davantage de titres sont reliés", () => {
+  const index = indexStellarGraph(nodes, edges);
+  const view = { width: 1000, height: 800, compact: true };
+  const resting = visibleStellarScene(index, camera, view, allowed, "");
+  const moving = visibleStellarScene(index, camera, view, allowed, "", true);
+  expect(resting.links.length).toBeGreaterThanOrEqual(18);
+  expect(resting.links.length).toBeGreaterThan(moving.links.length * 2);
+  expect(resting.points.length).toBeGreaterThan(moving.points.length);
+  const richer = indexStellarGraph(nodes, [
+    ...edges,
+    ...nodes
+      .slice(1, 300)
+      .map((node, i) => ({
+        a: node.id,
+        b: nodes[i + 2].id,
+        strength: 0.8,
+        kind: "similarity" as const,
+      })),
+  ]);
+  const full = visibleStellarScene(richer, camera, view, allowed, "genre:28");
+  expect(full.links.length).toBeGreaterThan(70);
+  expect(full.links.length).toBeLessThanOrEqual(100);
+  expect(full.links.filter((l) => l.active)).toHaveLength(12);
 });

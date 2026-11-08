@@ -113,6 +113,10 @@ export default function StellarMap({
       ),
     [index, camera, size, compact, visible, selected, moving],
   );
+  const ambientPath = links
+    .filter((link) => !link.active)
+    .map(({ a, b }) => `M${a.sceneX},${a.sceneY}L${b.sceneX},${b.sceneY}`)
+    .join(" ");
   const chosen = map.items.find((item) => item.id === selected),
     genre = map.nodes.find((n) => n.id === selected && n.genre !== undefined);
   const labelIds = new Set<string>(),
@@ -134,7 +138,11 @@ export default function StellarMap({
         ))
     )
       continue;
-    if (labelIds.size > (size.width < 650 ? 5 : 12) && p.id !== selected)
+    if (
+      labelIds.size >
+        (size.width < 650 ? (moving ? 5 : 10) : moving ? 12 : 22) &&
+      p.id !== selected
+    )
       continue;
     labelIds.add(p.id);
     occupied.push(p);
@@ -333,6 +341,7 @@ export default function StellarMap({
         <svg
           ref={scene}
           className="taste-scene"
+          data-link-count={links.length}
           viewBox={`${-half} -300 ${width} 600`}
           role="img"
           aria-label={tr("Carte interactive en trois dimensions de vos goûts")}
@@ -473,20 +482,27 @@ export default function StellarMap({
             </linearGradient>
           </defs>
           <g transform={`translate(${camera.pan.x} ${camera.pan.y})`}>
-            {links.map(({ edge, a, b, active }) => {
-              return (
-                <line
-                  key={edge.order}
-                  x1={a.sceneX}
-                  y1={a.sceneY}
-                  x2={b.sceneX}
-                  y2={b.sceneY}
-                  className={`taste-edge ${active ? "is-selected" : ""} ${edge.kind}`}
-                  strokeOpacity={active ? 0.78 : query ? 0.16 : 0.055}
-                  strokeWidth={active ? 0.65 : 0.3}
-                />
-              );
-            })}
+            <path
+              className="taste-edge ambient"
+              d={ambientPath}
+              strokeOpacity={moving ? 0.07 : query ? 0.22 : 0.18}
+            />
+            {links
+              .filter((link) => link.active)
+              .map(({ edge, a, b, active }) => {
+                return (
+                  <line
+                    key={edge.order}
+                    x1={a.sceneX}
+                    y1={a.sceneY}
+                    x2={b.sceneX}
+                    y2={b.sceneY}
+                    className={`taste-edge ${active ? "is-selected" : ""} ${edge.kind}`}
+                    strokeOpacity={active ? 0.78 : query ? 0.16 : 0.055}
+                    strokeWidth={active ? 0.65 : 0.3}
+                  />
+                );
+              })}
             {points.map((p) => {
               const active = selected === p.id,
                 r =

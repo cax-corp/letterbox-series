@@ -39,18 +39,20 @@ export function indexStellarGraph(nodes: TasteNode[], edges: TasteEdge[]) {
 export function stellarBudget(compact: boolean, moving = false) {
   return compact
     ? {
-        stars: moving ? 60 : 100,
-        edges: moving ? 16 : 40,
+        stars: moving ? 60 : 140,
+        edges: moving ? 16 : 100,
         selectedEdges: moving ? 6 : 12,
-        halos: moving ? 5 : 16,
+        halos: moving ? 5 : 28,
         degree: 2,
+        hubDegree: moving ? 4 : 18,
       }
     : {
-        stars: moving ? 160 : 220,
-        edges: moving ? 48 : 120,
+        stars: moving ? 160 : 300,
+        edges: moving ? 48 : 320,
         selectedEdges: moving ? 12 : 28,
-        halos: moving ? 12 : 36,
+        halos: moving ? 12 : 64,
         degree: 3,
+        hubDegree: moving ? 8 : 48,
       };
 }
 
@@ -122,7 +124,11 @@ export function visibleStellarScene(
       [a, b].some(
         (n) =>
           (degrees.get(n.id) || 0) >=
-          (n.id === selected ? budget.selectedEdges : budget.degree),
+          (n.id === selected
+            ? budget.selectedEdges
+            : n.genre !== undefined
+              ? budget.hubDegree
+              : budget.degree),
       )
     )
       return;
@@ -130,8 +136,18 @@ export function visibleStellarScene(
     added.add(edge.order);
     for (const n of [a, b]) degrees.set(n.id, (degrees.get(n.id) || 0) + 1);
     if (active) selectedCount++;
+    return true;
   };
   for (const edge of index.adjacent.get(selected) || []) add(edge, true);
+  // Give each visible title a strong real connection before spending the remaining
+  // budget on extra branches. Busy hubs must not isolate all the other clusters.
+  for (const point of points) {
+    if (!point.item || degrees.has(point.id)) continue;
+    for (const edge of index.adjacent.get(point.id) || []) {
+      if (add(edge, edge.a === selected || edge.b === selected)) break;
+    }
+    if (links.length >= budget.edges) break;
+  }
   for (const edge of index.ranked) {
     if (links.length >= budget.edges) break;
     add(edge, edge.a === selected || edge.b === selected);
