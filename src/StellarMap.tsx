@@ -804,6 +804,7 @@ export default function StellarMap({
             <X size={17} />
           </button>
           <h2>{tr("Comment lire cette carte ?")}</h2>
+          <p>{tr("Musique :")} Spacewalk — Punch Deck</p>
           <p>
             {tr(
               "Chaque étoile sélectionnable correspond à un titre de votre bibliothèque. Les repères regroupent les genres ; les routes affichées relient des contenus proches par leurs genres et leurs synopsis.",

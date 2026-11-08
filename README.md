@@ -319,3 +319,10 @@ Le classement des liens et les index de voisinage sont calculés une seule fois 
 La vue au repos retrouve davantage de branches, d’étoiles lumineuses et de libellés. Les genres non sélectionnés ont un budget de connexions distinct de celui d’un titre : ils ne sont plus limités à deux ou trois liens, ce qui isolait beaucoup de films. Une première passe relie les titres visibles avant d’ajouter des branches supplémentaires. Les connexions proviennent toujours du graphe réel.
 
 Les liens de fond sont regroupés dans un seul tracé SVG sans filtre graphique, plus visible, plutôt que dans une multitude d’éléments individuels. Au repos : jusqu’à 140 étoiles, 100 liens et 28 halos sur téléphone ; 300 étoiles, 320 liens et 64 halos sur PC. Les plafonds de sélection restent 12/28 et la vue en mouvement garde ses budgets allégés (60/160 étoiles et 16/48 liens). Le retrait des éléments hors champ, les étoiles mémorisées et le déplacement groupé sont conservés.
+
+
+### Musique de la carte — 2.7.3
+
+**Spacewalk — Punch Deck**, fourni en WAV, accompagne la carte spatiale en boucle. Le morceau complet (3 min 03 s) est embarqué sous forme de MP3 stéréo 128 kbit/s, environ 2,9 Mo au lieu des 32,3 Mo du master. Il utilise le lecteur média du navigateur, sans décodage complet en mémoire JavaScript, et fonctionne avec les assets locaux de l’APK.
+
+Le lecteur est créé uniquement après « Démarrer la carte », sans chargement dans les réglages ou l’écran de présentation. Le bouton de son commande les effets SF et la musique, en conservant le choix de silence existant. Changer de visibilité ou recevoir les événements pause/reprise de la WebView suspend et reprend la piste ; quitter la carte arrête la lecture et libère la source. Si une lecture demande un nouveau geste, « Activer le son » permet de la relancer. Le titre et l’artiste sont crédités dans « Lire la carte ».

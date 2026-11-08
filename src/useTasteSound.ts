@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 type Cue = "launch" | "step" | "ready" | "select";
 const preferenceKey = "vela-taste-sound-v1";
-// Short, synthesized cues only. No audio assets, microphone, ambient loop or network.
+// Short synthesized cues; the separate useTasteMusic hook owns the local soundtrack.
 export function useTasteSound() {
   const [enabled, setEnabled] = useState(() => {
     try {

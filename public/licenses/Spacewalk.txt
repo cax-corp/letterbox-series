@@ -1,0 +1,6 @@
+Spacewalk — Punch Deck
+
+Source : « Punch Deck - Spacewalk MASTER.wav », fichier audio fourni pour son intégration à Vela.
+La version embarquée est un encodage MP3 stéréo à 128 kbit/s du morceau complet (3 min 03 s).
+Le titre et l’artiste sont crédités dans l’aide de la carte des goûts.
+Aucune plateforme de streaming ni connexion à un service musical externe n’est utilisée.

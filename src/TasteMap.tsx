@@ -1,6 +1,7 @@
 import { t as tr } from "./i18n";
 import { updateSystemAppearance } from "./appearance";
 import { useTasteSound } from "./useTasteSound";
+import { useTasteMusic } from "./useTasteMusic";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight } from "./icons";
 import { buildTasteMap } from "./taste-map";
@@ -28,6 +29,9 @@ export default function TasteMap({
   const [phase, setPhase] = useState<"idle" | "boot" | "ready">("idle");
   const [step, setStep] = useState(0);
   const sound = useTasteSound();
+  const music = useTasteMusic();
+  const audioUnavailable = sound.unavailable && music.unavailable;
+  const audioOn = sound.enabled && !audioUnavailable && !music.blocked;
   const soundRef = useRef(sound);
   soundRef.current = sound;
   const readyHeading = useRef<HTMLHeadingElement>(null);
@@ -78,6 +82,7 @@ export default function TasteMap({
     if (phase === "ready") readyHeading.current?.focus({ preventScroll: true });
   }, [phase]);
   function launch() {
+    music.enter(sound.enabled);
     sound.play("launch", true);
     setPhase(
       window.matchMedia("(prefers-reduced-motion: reduce)").matches
@@ -104,21 +109,27 @@ export default function TasteMap({
     <button
       className="atlas-sound"
       aria-label={tr("Son de la carte")}
-      aria-pressed={sound.enabled && !sound.unavailable}
-      disabled={sound.unavailable}
+      aria-pressed={audioOn}
+      disabled={audioUnavailable}
       onClick={() => {
+        if (music.blocked) {
+          music.setEnabled(true);
+          sound.play("select", true);
+          return;
+        }
+        music.setEnabled(!sound.enabled);
         sound.toggle();
         if (!sound.enabled) sound.play("select", true);
       }}
     >
-      <span aria-hidden="true">
-        {sound.enabled && !sound.unavailable ? "◖))" : "◖×"}
-      </span>
-      {sound.unavailable
+      <span aria-hidden="true">{audioOn ? "◖))" : "◖×"}</span>
+      {audioUnavailable
         ? tr("Son indisponible")
-        : sound.enabled
-          ? tr("Son activé")
-          : tr("Son désactivé")}
+        : music.blocked
+          ? tr("Activer le son")
+          : sound.enabled
+            ? tr("Son activé")
+            : tr("Son désactivé")}
     </button>
   );
   return (

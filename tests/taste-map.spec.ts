@@ -367,6 +367,14 @@ test("terminal SF : audio indisponible sans bloquer la carte", async ({
 }) => {
   await page.addInitScript((library) => {
     localStorage.setItem("luma-library-v1", JSON.stringify(library));
+    Object.defineProperty(window, "Audio", {
+      configurable: true,
+      value: class {
+        constructor() {
+          throw new Error("Audio unavailable");
+        }
+      },
+    });
     Object.defineProperty(window, "AudioContext", {
       value: undefined,
       configurable: true,
