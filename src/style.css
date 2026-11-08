@@ -5326,6 +5326,14 @@ body.taste-terminal-active > #root > .mobile-nav {
   overflow: hidden;
   color: #e6f0ff;
 }
+.stellar-nebula {
+  position: absolute;
+  inset: -20%;
+  background-size: 100% 100%;
+  pointer-events: none;
+  opacity: 0.9;
+  will-change: transform;
+}
 .stellar-backdrop {
   position: absolute;
   inset: 0;
@@ -5365,7 +5373,7 @@ body.taste-terminal-active > #root > .mobile-nav {
 }
 .atlas-stellar .taste-edge.is-selected {
   stroke: #ecc27b;
-  filter: drop-shadow(0 0 2px #ffce8150);
+  filter: none;
   stroke-dasharray: 4 3;
 }
 .atlas-stellar .taste-point {
@@ -5976,5 +5984,13 @@ body.taste-terminal-active > #root > .mobile-nav {
   .atlas-stellar .stellar-inspector {
     max-height: 65%;
     bottom: 80px;
+  }
+}
+
+/* Avoid sampling the moving star field through a large glass panel on mobile. */
+@media (max-width: 760px), (pointer: coarse) {
+  .atlas-stellar .is-navigating .stellar-inspector {
+    backdrop-filter: none;
+    background: #050d1df2;
   }
 }

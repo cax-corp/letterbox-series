@@ -121,14 +121,16 @@ test("carte 3D : sélection, rotation, zoom, filtres et retour aux réglages sur
     page.getByRole("complementary", { name: "Détails du point sélectionné" }),
   ).toContainText("Station 1");
   const point = page.locator('[data-taste-id="movie-1"] circle').last();
-  const before = await point.getAttribute("cx");
+  const before = (await point.boundingBox())!.x;
   const scene = page.getByRole("img", {
     name: "Carte interactive en trois dimensions de vos goûts",
     exact: true,
   });
   await scene.focus();
   await page.keyboard.press("ArrowRight");
-  await expect(point).not.toHaveAttribute("cx", before!);
+  await expect
+    .poll(async () => (await point.boundingBox())!.x)
+    .not.toBe(before);
   await page.getByRole("button", { name: "Zoomer", exact: true }).click();
   await expect(page.locator(".taste-selection")).toHaveCount(1);
   await page.getByRole("button", { name: "Refusés", exact: true }).click();
@@ -495,7 +497,7 @@ test("scène : glissement sans cadre blanc, clavier repérable, arrière-plan at
   const box = (await scene.boundingBox())!;
   const start = await page
     .locator('[data-taste-id="movie-1"] .taste-star-core')
-    .getAttribute("cx");
+    .boundingBox();
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.down();
   await page.mouse.move(
@@ -504,9 +506,14 @@ test("scène : glissement sans cadre blanc, clavier repérable, arrière-plan at
     { steps: 8 },
   );
   await page.mouse.up();
-  await expect(
-    page.locator('[data-taste-id="movie-1"] .taste-star-core'),
-  ).not.toHaveAttribute("cx", start!);
+  await expect
+    .poll(
+      async () =>
+        (await page
+          .locator('[data-taste-id="movie-1"] .taste-star-core')
+          .boundingBox())!.x,
+    )
+    .not.toBe(start!.x);
   expect(await scene.evaluate((e) => getComputedStyle(e).outlineStyle)).toBe(
     "none",
   );
@@ -566,11 +573,11 @@ test("carte stellaire : déplacement sans rotation, navigation orbitale, molette
   const core = star.locator(".taste-star-core");
   await expect(core).toBeAttached();
   const depth = await star.getAttribute("data-depth");
-  const x = Number(await core.getAttribute("cx"));
+  const x = (await core.boundingBox())!.x;
   await scene.focus();
   await page.keyboard.press("ArrowRight");
   await expect
-    .poll(async () => Number(await core.getAttribute("cx")))
+    .poll(async () => (await core.boundingBox())!.x)
     .toBeGreaterThan(x);
   await expect(star).toHaveAttribute("data-depth", depth!);
   await page.getByRole("button", { name: "Rotation", exact: true }).click();

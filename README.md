@@ -305,3 +305,10 @@ La carte des goûts occupe tout l’écran sur Android et sur le web. Une nébul
 Le mode **Déplacement** explore la carte au doigt, à la souris ou au clavier ; **Rotation** change l’angle de vue. Le pincement, la molette et les boutons contrôlent le zoom. La recherche permet de rejoindre chaque titre, même hors des 300 points représentatifs. Une mini-carte permet de revenir à la vue d’ensemble. La sélection centre le titre et ses connexions ; sur téléphone, sa fiche se déplie à la demande pour préserver l’espace de navigation.
 
 Le décor Canvas est redessiné uniquement à l’entrée, à la reprise, au redimensionnement et pendant les mouvements. Il n’y a pas d’animation permanente en arrière-plan. Si Canvas est indisponible, le graphe SVG reste utilisable. Les mouvements réduits, le son désactivable, les traductions français/anglais US et le retour au thème de l’utilisateur sont conservés. Aucune migration Supabase supplémentaire n’est nécessaire.
+
+
+### Fluidité de la carte — 2.7.1
+
+Le rendu ne monte plus dans le SVG les nœuds et liens hors du champ visible (avec une petite marge pour les bords). La sélection d’un genre privilégie ses liens les plus forts présents à l’écran : au plus 12 connexions de sélection et 40 liens au total sur téléphone, contre 28 et 120 sur PC. Les budgets d’étoiles et de halos sont aussi plafonnés ; pendant un mouvement, les connexions et effets sont encore réduits. Les liens restent ceux du modèle, et les titres masqués par le rendu sont toujours accessibles par recherche. Un filtre recentre la vue pour éviter de chercher ses résultats hors écran.
+
+Le classement des liens et les index de voisinage sont calculés une seule fois par graphe. La mini-carte et les options de recherche sont mises en cache. Le fond nébuleux utilise une couche fixe déplacée par le compositeur, et le Canvas décoratif conserve son tampon au lieu de le réallouer à chaque geste. Son rafraîchissement est plafonné à 24 images/s sur téléphone (30 sur PC) et s’arrête au repos ou quand l’application n’est pas visible. Les recommandations et données Supabase ne changent pas.

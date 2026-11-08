@@ -11,6 +11,8 @@ import {
 } from "./taste-map";
 import type { Title } from "./catalog";
 import StellarBackdrop from "./StellarBackdrop";
+import StellarStar from "./StellarStar";
+import { indexStellarGraph, visibleStellarScene } from "./stellar-visibility";
 type Graph = ReturnType<typeof buildTasteMap>;
 type Camera = {
   rotation: typeof initialTasteRotation;
@@ -61,7 +63,11 @@ export default function StellarMap({
     [mode, setMode] = useState<"pan" | "orbit">("pan"),
     [expanded, setExpanded] = useState(false),
     [help, setHelp] = useState(false),
-    [keyboard, setKeyboard] = useState(false);
+    [keyboard, setKeyboard] = useState(false),
+    [moving, setMoving] = useState(false);
+  const navigation = useRef(false),
+    idle = useRef(0);
+  const coarse = useMemo(() => matchMedia("(pointer: coarse)").matches, []);
   const [camera, setCamera] = useState<Camera>(initial),
     current = useRef(camera),
     frame = useRef(0),
@@ -75,30 +81,40 @@ export default function StellarMap({
   const width = (600 * size.width) / size.height,
     half = width / 2;
   const nodes = useMemo(() => map.nodes.map(world), [map]);
-  const points = nodes.map((node) => {
-    const p = projectTastePoint(node, camera.rotation, camera.zoom);
-    return { ...node, ...p, x: p.x + camera.pan.x, y: p.y + camera.pan.y };
-  });
-  const byId = new Map(points.map((p) => [p.id, p]));
-  const visible = new Set(
-    map.items
-      .filter(
-        (item) =>
-          (filter === "all" || item.kind === filter) &&
-          normalTitle(
-            `${item.title.name} ${item.title.original || ""}`,
-          ).includes(normalTitle(query)),
-      )
-      .map((item) => item.id),
+  const compact = coarse || size.width <= 760;
+  const index = useMemo(
+    () => indexStellarGraph(nodes, map.edges),
+    [nodes, map.edges],
+  );
+  const visible = useMemo(
+    () =>
+      new Set(
+        map.items
+          .filter(
+            (item) =>
+              (filter === "all" || item.kind === filter) &&
+              normalTitle(
+                `${item.title.name} ${item.title.original || ""}`,
+              ).includes(normalTitle(query)),
+          )
+          .map((item) => item.id),
+      ),
+    [map.items, filter, query],
+  );
+  const { points, links, linked, halos } = useMemo(
+    () =>
+      visibleStellarScene(
+        index,
+        camera,
+        { ...size, compact },
+        visible,
+        selected,
+        moving,
+      ),
+    [index, camera, size, compact, visible, selected, moving],
   );
   const chosen = map.items.find((item) => item.id === selected),
     genre = map.nodes.find((n) => n.id === selected && n.genre !== undefined);
-  const linked = new Set([selected]);
-  if (selected)
-    for (const edge of map.edges) {
-      if (edge.a === selected) linked.add(edge.b);
-      if (edge.b === selected) linked.add(edge.a);
-    }
   const labelIds = new Set<string>(),
     occupied: { x: number; y: number }[] = [];
   for (const p of [...points].sort(
@@ -124,6 +140,15 @@ export default function StellarMap({
     occupied.push(p);
   }
   function move(next: Partial<Camera>) {
+    if (!navigation.current) {
+      navigation.current = true;
+      setMoving(true);
+    }
+    clearTimeout(idle.current);
+    idle.current = window.setTimeout(() => {
+      navigation.current = false;
+      setMoving(false);
+    }, 130);
     current.current = { ...current.current, ...next };
     if (!frame.current)
       frame.current = requestAnimationFrame(() => {
@@ -202,6 +227,7 @@ export default function StellarMap({
   useEffect(
     () => () => {
       cancelAnimationFrame(frame.current);
+      clearTimeout(idle.current);
       stop();
     },
     [],
@@ -222,13 +248,49 @@ export default function StellarMap({
     el.addEventListener("wheel", wheel, { passive: false });
     return () => el.removeEventListener("wheel", wheel);
   }, []);
-  const mini = nodes.map((n) => ({
-    ...n,
-    ...projectTastePoint(n, camera.rotation, 1),
-  }));
+  const mini = useMemo(() => {
+    if (compact && selected) return [];
+    const limit = compact ? 70 : 140;
+    const sample =
+      nodes.length <= limit
+        ? nodes
+        : Array.from(
+            { length: limit },
+            (_, i) => nodes[Math.floor((i * (nodes.length - 1)) / (limit - 1))],
+          );
+    return sample.map((n) => ({
+      ...n,
+      ...projectTastePoint(n, camera.rotation, 1),
+    }));
+  }, [nodes, camera.rotation, compact, selected]);
   const extent = Math.max(
     230,
     ...mini.map((n) => Math.max(Math.abs(n.x), Math.abs(n.y))),
+  );
+  const miniStars = useMemo(
+    () =>
+      mini.map((n) => (
+        <circle
+          key={n.id}
+          cx={(n.x / extent) * 170}
+          cy={(n.y / extent) * 106}
+          r={n.id === selected ? 5 : n.item ? 1.4 : 2.3}
+          fill={n.id === selected ? "#ffe1a1" : n.item ? "#a4cfff" : "#e4f3ff"}
+          opacity={n.item?.kind === "negative" ? 0.4 : 0.75}
+        />
+      )),
+    [mini, selected, extent],
+  );
+  const titleOptions = useMemo(
+    () =>
+      map.items
+        .filter((item) => visible.has(item.id))
+        .map((item) => (
+          <option key={item.id} value={item.id}>
+            {item.title.name}
+          </option>
+        )),
+    [map.items, visible],
   );
   const reset = () => {
     stop();
@@ -259,7 +321,7 @@ export default function StellarMap({
     });
   };
   return (
-    <div ref={root} className="stellar-map">
+    <div ref={root} className={`stellar-map ${moving ? "is-navigating" : ""}`}>
       <StellarBackdrop
         rotation={camera.rotation}
         zoom={camera.zoom}
@@ -410,32 +472,22 @@ export default function StellarMap({
               <stop offset="1" stopColor="#a4d3ff" stopOpacity="0" />
             </linearGradient>
           </defs>
-          {map.edges.map((edge, i) => {
-            const a = byId.get(edge.a)!,
-              b = byId.get(edge.b)!;
-            if (
-              (a.item && !visible.has(a.id)) ||
-              (b.item && !visible.has(b.id))
-            )
-              return null;
-            const active = selected === a.id || selected === b.id;
-            return (
-              <line
-                key={i}
-                x1={a.x}
-                y1={a.y}
-                x2={b.x}
-                y2={b.y}
-                className={`taste-edge ${active ? "is-selected" : ""} ${edge.kind}`}
-                strokeOpacity={active ? 0.78 : query ? 0.16 : 0.055}
-                strokeWidth={active ? 0.65 : 0.3}
-              />
-            );
-          })}
-          {points
-            .sort((a, b) => b.depth - a.depth)
-            .map((p) => {
-              if (p.item && !visible.has(p.id)) return null;
+          <g transform={`translate(${camera.pan.x} ${camera.pan.y})`}>
+            {links.map(({ edge, a, b, active }) => {
+              return (
+                <line
+                  key={edge.order}
+                  x1={a.sceneX}
+                  y1={a.sceneY}
+                  x2={b.sceneX}
+                  y2={b.sceneY}
+                  className={`taste-edge ${active ? "is-selected" : ""} ${edge.kind}`}
+                  strokeOpacity={active ? 0.78 : query ? 0.16 : 0.055}
+                  strokeWidth={active ? 0.65 : 0.3}
+                />
+              );
+            })}
+            {points.map((p) => {
               const active = selected === p.id,
                 r =
                   (p.item
@@ -446,60 +498,30 @@ export default function StellarMap({
                   : Math.max(0.17, p.opacity) *
                     (selected && !linked.has(p.id) ? 0.65 : 1);
               return (
-                <g
+                <StellarStar
                   key={p.id}
-                  data-taste-id={p.id}
-                  data-depth={p.depth.toFixed(2)}
+                  id={p.id}
+                  x={p.sceneX}
+                  y={p.sceneY}
+                  radius={r}
+                  depth={p.depth}
                   opacity={opacity}
-                  className={`taste-point ${p.item?.kind || "anchor"} ${active ? "is-selected" : ""}`}
-                >
-                  <title>
-                    {label(p)}
-                    {p.item ? ` · ${tr(labels[p.item.kind])}` : ""}
-                  </title>
-                  <circle
-                    cx={p.x}
-                    cy={p.y}
-                    r={Math.max(10, r * 3)}
-                    fill="transparent"
-                    stroke="none"
-                  />
-                  <circle
-                    cx={p.x}
-                    cy={p.y}
-                    r={r * 11}
-                    className="taste-star-halo"
-                    style={{
-                      fill: `url(#stellar-glow-${p.item?.kind || "anchor"})`,
-                    }}
-                  />
-                  {(active || (p.depth < 0 && Math.abs(p.weight) > 3)) && (
-                    <rect
-                      x={p.x - r * 21}
-                      y={p.y - 0.28}
-                      width={r * 42}
-                      height=".56"
-                      fill="url(#stellar-flare)"
-                      className="stellar-flare"
-                    />
-                  )}
-                  <circle cx={p.x} cy={p.y} r={r} className="taste-star-core" />
-                  {active && (
-                    <path
-                      className="taste-selection"
-                      d={`M${p.x},${p.y - 9}l9,9 -9,9 -9,-9Z`}
-                    />
-                  )}
-                  {labelIds.has(p.id) && (
-                    <text x={p.x + 9} y={p.y - 7}>
-                      {label(p).length > 32
-                        ? label(p).slice(0, 31) + "…"
-                        : label(p)}
-                    </text>
-                  )}
-                </g>
+                  active={active}
+                  halo={halos.has(p.id)}
+                  flare={
+                    active ||
+                    (!moving &&
+                      halos.has(p.id) &&
+                      p.depth < 0 &&
+                      Math.abs(p.weight) > 3)
+                  }
+                  kind={p.item?.kind || "anchor"}
+                  name={`${label(p)}${p.item ? ` · ${tr(labels[p.item.kind])}` : ""}`}
+                  caption={labelIds.has(p.id) ? label(p) : ""}
+                />
               );
             })}
+          </g>
         </svg>
       </div>
       <div className="stellar-navigation">
@@ -541,13 +563,7 @@ export default function StellarMap({
                   </option>
                 ))}
             </optgroup>
-            {map.items
-              .filter((item) => visible.has(item.id))
-              .map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.title.name}
-                </option>
-              ))}
+            {titleOptions}
           </select>
         </label>
         <div
@@ -565,7 +581,10 @@ export default function StellarMap({
             <button
               key={id}
               aria-pressed={filter === id}
-              onClick={() => setFilter(id)}
+              onClick={() => {
+                setFilter(id);
+                reset();
+              }}
             >
               {tr(name)}
             </button>
@@ -585,18 +604,7 @@ export default function StellarMap({
             stroke="#91bfea"
             strokeOpacity=".18"
           />
-          {mini.map((n) => (
-            <circle
-              key={n.id}
-              cx={(n.x / extent) * 170}
-              cy={(n.y / extent) * 106}
-              r={n.id === selected ? 5 : n.item ? 1.4 : 2.3}
-              fill={
-                n.id === selected ? "#ffe1a1" : n.item ? "#a4cfff" : "#e4f3ff"
-              }
-              opacity={n.item?.kind === "negative" ? 0.4 : 0.75}
-            />
-          ))}
+          {miniStars}
           <path
             d={`M${(-camera.pan.x / camera.zoom / extent) * 170 - 8},${(-camera.pan.y / camera.zoom / extent) * 106}h16 M${(-camera.pan.x / camera.zoom / extent) * 170},${(-camera.pan.y / camera.zoom / extent) * 106 - 8}v16`}
             stroke="#f4d095"

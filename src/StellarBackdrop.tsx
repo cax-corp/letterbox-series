@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { memo, useEffect, useRef } from "react";
 import { projectTastePoint, type TasteRotation } from "./taste-map";
 // Original procedural scenery. Decorative dust never appears in the personal graph or counts.
 let nebula: HTMLCanvasElement | undefined;
@@ -69,7 +69,7 @@ const dust = Array.from({ length: 1150 }, () => ({
   color: Math.floor(random() * 4),
 }));
 const colors = ["#d2e7ff", "#9bc9ff", "#dcc7ed", "#ffe5b6"];
-export default function StellarBackdrop({
+export default memo(function StellarBackdrop({
   rotation,
   zoom,
   pan,
@@ -78,64 +78,108 @@ export default function StellarBackdrop({
   zoom: number;
   pan: { x: number; y: number };
 }) {
-  const ref = useRef<HTMLCanvasElement>(null);
+  const ref = useRef<HTMLCanvasElement>(null),
+    nebulaRef = useRef<HTMLDivElement>(null);
+  const camera = useRef({ rotation, zoom, pan });
+  camera.current = { rotation, zoom, pan };
+  const requestPaint = useRef<() => void>(() => {});
   useEffect(() => {
-    const canvas = ref.current;
-    if (!canvas) return;
-    const paint = () => {
-      if (document.hidden) return;
-      const rect = canvas.getBoundingClientRect(),
-        ratio = Math.min(devicePixelRatio || 1, 1.5);
-      if (!rect.width || !rect.height) return;
-      canvas.width = Math.round(rect.width * ratio);
-      canvas.height = Math.round(rect.height * ratio);
-      const ctx = canvas.getContext("2d", { alpha: false });
-      if (!ctx) return;
-      ctx.scale(ratio, ratio);
-      const unit = rect.height / 600;
-      ctx.fillStyle = "#020611";
-      ctx.fillRect(0, 0, rect.width, rect.height);
-      const parallaxX = Math.max(-100, Math.min(100, pan.x * 0.1)),
-        parallaxY = Math.max(-70, Math.min(70, pan.y * 0.1));
-      ctx.globalAlpha = 0.9;
-      ctx.drawImage(
-        cloud(),
-        -rect.width * 0.2 + parallaxX,
-        -rect.height * 0.2 + parallaxY,
-        rect.width * 1.4,
-        rect.height * 1.4,
-      );
-      ctx.globalAlpha = 1;
-      for (const star of dust) {
-        const p = projectTastePoint(star, rotation, 0.75 + zoom * 0.18);
+    const canvas = ref.current,
+      layer = nebulaRef.current;
+    if (!canvas || !layer) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    // Cache the nebula in its own compositor layer: no full-screen cloud redraw per gesture.
+    layer.style.backgroundImage = `url(${cloud().toDataURL()})`;
+    let frame = 0,
+      last = -Infinity,
+      width = 0,
+      height = 0,
+      ratio = 1;
+    let oldRotation: TasteRotation | undefined,
+      oldZoom = 0;
+    let projected: {
+      star: (typeof dust)[number];
+      p: ReturnType<typeof projectTastePoint>;
+    }[] = [];
+    const compact = () =>
+      width <= 760 || matchMedia("(pointer: coarse)").matches;
+    const paint = (now: number) => {
+      frame = 0;
+      if (document.hidden || !width || !height) return;
+      // The background is decorative: cap it to 24 / 30 fps, independently of interactive stars.
+      if (now - last < (compact() ? 1000 / 24 : 1000 / 30)) {
+        frame = requestAnimationFrame(paint);
+        return;
+      }
+      last = now;
+      const { rotation, zoom, pan } = camera.current;
+      layer.style.transform = `translate(${Math.max(-100, Math.min(100, pan.x * 0.1))}px, ${Math.max(-70, Math.min(70, pan.y * 0.1))}px)`;
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      ctx.clearRect(0, 0, width, height);
+      if (oldRotation !== rotation || oldZoom !== zoom || !projected.length) {
+        oldRotation = rotation;
+        oldZoom = zoom;
+        projected = dust
+          .slice(0, compact() ? 380 : 750)
+          .map((star) => ({
+            star,
+            p: projectTastePoint(star, rotation, 0.75 + zoom * 0.18),
+          }));
+      }
+      const unit = height / 600;
+      for (const { star, p } of projected) {
         if (p.depth < -500 || p.scale <= 0 || !Number.isFinite(p.x + p.y))
           continue;
-        const x = rect.width / 2 + (p.x + pan.x * 0.15) * unit,
-          y = rect.height / 2 + (p.y + pan.y * 0.15) * unit;
-        if (x < 0 || x > rect.width || y < 0 || y > rect.height) continue;
+        const x = width / 2 + (p.x + pan.x * 0.15) * unit,
+          y = height / 2 + (p.y + pan.y * 0.15) * unit;
+        if (x < 0 || x > width || y < 0 || y > height) continue;
         const r = star.r * Math.min(1.5, p.scale) * Math.max(0.8, unit * 0.75);
         ctx.globalAlpha = 0.2 + star.r * 0.47;
         ctx.fillStyle = colors[star.color];
         ctx.beginPath();
         ctx.arc(x, y, Math.max(0.3, r), 0, Math.PI * 2);
         ctx.fill();
-        if (star.r > 1.03) {
-          ctx.globalAlpha = 0.07;
-          ctx.beginPath();
-          ctx.arc(x, y, r * 4, 0, Math.PI * 2);
-          ctx.fill();
-        }
       }
       ctx.globalAlpha = 1;
     };
-    const observer = new ResizeObserver(paint);
-    observer.observe(canvas);
-    document.addEventListener("visibilitychange", paint);
-    paint();
-    return () => {
-      observer.disconnect();
-      document.removeEventListener("visibilitychange", paint);
+    const schedule = () => {
+      if (!frame && !document.hidden) frame = requestAnimationFrame(paint);
     };
-  }, [rotation, zoom, pan.x, pan.y]);
-  return <canvas ref={ref} className="stellar-backdrop" aria-hidden="true" />;
-}
+    const resize = () => {
+      const rect = canvas.getBoundingClientRect();
+      if (rect.width === width && rect.height === height) return;
+      width = rect.width;
+      height = rect.height;
+      ratio = Math.min(devicePixelRatio || 1, compact() ? 1 : 1.25);
+      canvas.width = Math.round(width * ratio);
+      canvas.height = Math.round(height * ratio);
+      oldRotation = undefined;
+      schedule();
+    };
+    const visibility = () => {
+      if (document.hidden) {
+        cancelAnimationFrame(frame);
+        frame = 0;
+      } else schedule();
+    };
+    requestPaint.current = schedule;
+    const observer = new ResizeObserver(resize);
+    observer.observe(canvas);
+    document.addEventListener("visibilitychange", visibility);
+    resize();
+    return () => {
+      requestPaint.current = () => {};
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+      document.removeEventListener("visibilitychange", visibility);
+    };
+  }, []);
+  useEffect(() => requestPaint.current(), [rotation, zoom, pan.x, pan.y]);
+  return (
+    <>
+      <div ref={nebulaRef} className="stellar-nebula" aria-hidden="true" />
+      <canvas ref={ref} className="stellar-backdrop" aria-hidden="true" />
+    </>
+  );
+});
