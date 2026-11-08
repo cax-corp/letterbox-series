@@ -6,12 +6,14 @@ export default function Modal({
   close,
   label,
   wide = false,
+  overlayClassName,
   style,
 }: {
   children: React.ReactNode;
   close: () => void;
   label: string;
   wide?: boolean;
+  overlayClassName?: string;
   style?: React.CSSProperties;
 }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -27,7 +29,9 @@ export default function Modal({
   }, []);
   return (
     <div
-      className={wide ? "modal-overlay details-overlay" : "modal-overlay"}
+      className={
+        "modal-overlay " + (overlayClassName || (wide ? "details-overlay" : ""))
+      }
       style={style}
       onClick={(e) => {
         if (e.target === e.currentTarget) close();

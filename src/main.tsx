@@ -22,6 +22,8 @@ import { readWelcomeCompleted, markWelcomeCompleted } from "./onboarding";
 import TitleReview, { PersonalTracking } from "./TitleReview";
 import Modal from "./Modal";
 import ShareLinkDialog from "./ShareLinkDialog";
+import StoryShareDialog from "./StoryShareDialog";
+import type { StoryDraft } from "./story-image";
 import PublicPage, { parsePublicRoute } from "./PublicPage";
 import PublicSharingSettings from "./PublicSharingSettings";
 import ViewingSettings from "./ViewingSettings";
@@ -166,6 +168,7 @@ function App() {
   const [setupDismissed, setSetupDismissed] = useState("");
   const [publicRoute, setPublicRoute] = useState(() => parsePublicRoute());
   const [shareDraft, setShareDraft] = useState<ShareDraft | null>(null);
+  const [storyDraft, setStoryDraft] = useState<StoryDraft | null>(null);
   const titleSharing = useRef(false);
   const [colourTheme, setColourThemeValue] = useState(readColourTheme);
   const [feedSession, setFeedSession] = useState(0);
@@ -253,6 +256,7 @@ function App() {
   const viewing = useViewingPreferences(user);
   useEffect(() => {
     setShareDraft(null);
+    setStoryDraft(null);
   }, [user?.id]);
   const awaitingSetup = Boolean(
     user &&
@@ -755,6 +759,10 @@ function App() {
       }
       if (awaitingSetup) return setupBack.current() || true;
       if (needsWelcome) return welcomeBack.current();
+      if (storyDraft) {
+        setStoryDraft(null);
+        return true;
+      }
       if (shareDraft) {
         setShareDraft(null);
         return true;
@@ -783,7 +791,13 @@ function App() {
     };
     (window as any).lumaHandleBack = back;
     const escape = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !selected && !auth) {
+      if (
+        event.key === "Escape" &&
+        !selected &&
+        !auth &&
+        !storyDraft &&
+        !shareDraft
+      ) {
         if (confirmationOpen) {
           closeConfirmation();
           return;
@@ -811,6 +825,7 @@ function App() {
     selected,
     auth,
     shareDraft,
+    storyDraft,
     needsWelcome,
     awaitingSetup,
     confirmationOpen,
@@ -1119,6 +1134,7 @@ function App() {
                 close={() => navigate("discover")}
                 toast={toast}
                 onShare={requestShare}
+                onStory={setStoryDraft}
                 inline
                 readOnly={Boolean(cloud && !user)}
                 signIn={() => setAuth(true)}
@@ -1574,6 +1590,7 @@ function App() {
                 toast={toast}
                 pending={Boolean(user && personal.pending)}
                 share={requestShare}
+                story={setStoryDraft}
               />
               {personal.error && <p className="muted fine">{personal.error}</p>}
               <div className="profile-panel surface">
@@ -1767,6 +1784,7 @@ function App() {
           readOnly={Boolean(cloud && !user)}
           signIn={() => setAuth(true)}
           onShare={requestShare}
+          onStory={setStoryDraft}
           viewing={viewing.value}
           settings={openSettings}
           profile={personal.profile}
@@ -1780,6 +1798,13 @@ function App() {
         <ShareLinkDialog
           draft={shareDraft}
           close={() => setShareDraft(null)}
+          toast={toast}
+        />
+      )}
+      {storyDraft && (
+        <StoryShareDialog
+          draft={storyDraft}
+          close={() => setStoryDraft(null)}
           toast={toast}
         />
       )}
@@ -1875,6 +1900,7 @@ function Details({
   toast,
   profile,
   onShare,
+  onStory,
   inline = false,
   readOnly = false,
   signIn,
@@ -1882,6 +1908,7 @@ function Details({
   settings,
 }: {
   onShare: (draft: ShareDraft) => void;
+  onStory: (draft: StoryDraft) => void;
   inline?: boolean;
   readOnly?: boolean;
   signIn?: () => void;
@@ -2045,6 +2072,7 @@ function Details({
             entry={entry}
             update={update}
             share={() => share(true)}
+            story={() => onStory({ entry: { ...entry, title }, profile })}
             saved={() => toast(tr("Avis enregistré."))}
           />
         )}

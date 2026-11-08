@@ -47,7 +47,7 @@ export function dominantTone(pixels: Uint8ClampedArray): string | null {
     : null;
 }
 
-async function artworkBlob(url: string): Promise<Blob> {
+export async function artworkBlob(url: string): Promise<Blob> {
   if (Capacitor.isNativePlatform()) {
     // The Android HTTP transport reads CDN bytes without the WebView's canvas/CORS cache constraints.
     const response = await CapacitorHttp.get({

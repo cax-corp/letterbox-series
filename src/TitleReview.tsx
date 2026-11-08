@@ -6,11 +6,13 @@ export default function TitleReview({
   entry,
   update,
   share,
+  story,
   saved,
 }: {
   entry: Entry;
   update: (patch: Partial<Entry>) => void;
   share: () => void;
+  story: () => void;
   saved: () => void;
 }) {
   const [editing, setEditing] = useState(false),
@@ -81,6 +83,9 @@ export default function TitleReview({
                 <ShareIcon size={17} /> {tr(" Partager mon avis")}
               </button>
             )}
+            <button className="text-button review-story" onClick={story}>
+              <ShareIcon size={17} /> {tr("Partager en story")}
+            </button>
           </div>
         </>
       ) : (

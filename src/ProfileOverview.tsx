@@ -4,6 +4,7 @@ import Avatar from "./Avatar";
 import type { Profile } from "./profile";
 import { profileStats } from "./profile-stats";
 import { profileShare, reviewShare, type ShareDraft } from "./sharing";
+import type { StoryDraft } from "./story-image";
 import type { Library } from "./store";
 import type { Title } from "./catalog";
 import { ShareIcon, Star, Film, Plus } from "./icons";
@@ -16,6 +17,7 @@ export default function ProfileOverview({
   toast,
   pending,
   share,
+  story,
 }: {
   profile: Profile;
   library: Library;
@@ -25,6 +27,7 @@ export default function ProfileOverview({
   toast: (s: string) => void;
   pending: boolean;
   share: (draft: ShareDraft) => void;
+  story: (draft: StoryDraft) => void;
 }) {
   const stats = useMemo(() => profileStats(library), [library, getLanguage()]),
     [reviewLimit, setReviewLimit] = useState(3);
@@ -224,15 +227,23 @@ export default function ProfileOverview({
                 )}
               </div>
               <p>{entry.review}</p>
-              <button
-                className="text-button"
-                onClick={() =>
-                  share(reviewShare(profile, entry, tr("Un regard sur Vela")))
-                }
-              >
-                <ShareIcon size={17} />
-                {tr("Partager cet avis")}
-              </button>
+              <div className="review-actions">
+                <button
+                  className="text-button"
+                  onClick={() =>
+                    share(reviewShare(profile, entry, tr("Un regard sur Vela")))
+                  }
+                >
+                  <ShareIcon size={17} />
+                  {tr("Partager cet avis")}
+                </button>
+                <button
+                  className="text-button"
+                  onClick={() => story({ entry, profile })}
+                >
+                  <ShareIcon size={17} /> {tr("Partager en story")}
+                </button>
+              </div>
             </article>
           ))
         )}

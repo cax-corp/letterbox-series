@@ -1,0 +1,112 @@
+.story-overlay {
+  background: rgb(0 10 18 / 0.78);
+  backdrop-filter: blur(14px);
+}
+.story-overlay > .modal {
+  background: var(--panel);
+  box-shadow: 0 16px 80px #0006;
+}
+.modal:has(.story-panel) {
+  width: min(840px, 95vw);
+}
+.story-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 28px;
+  padding: 40px 28px 28px;
+}
+.story-avatar-source {
+  position: absolute;
+  left: -10000px;
+  top: 0;
+  pointer-events: none;
+}
+.story-preview {
+  aspect-ratio: 9 / 16;
+  align-self: center;
+  max-height: 74dvh;
+  overflow: hidden;
+  border-radius: 18px;
+  background: #09101a;
+  display: grid;
+  place-items: center;
+}
+.story-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.story-preview p {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: #c1d0dc;
+  text-align: center;
+  padding: 20px;
+}
+.story-controls {
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.story-controls h2,
+.story-controls p {
+  margin: 0;
+}
+.story-controls .button {
+  justify-content: center;
+}
+.story-controls .text-button {
+  justify-content: center;
+  text-align: center;
+}
+.story-formats {
+  display: flex;
+  gap: 5px;
+  padding: 4px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  margin: 8px 0;
+}
+.story-formats button {
+  flex: 1;
+  padding: 10px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.story-formats button[aria-pressed="true"] {
+  background: var(--primary-container);
+  color: var(--text);
+}
+.story-warning {
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  font-size: 0.85rem;
+}
+.profile-review .review-actions {
+  flex-wrap: wrap;
+}
+@media (max-width: 600px) {
+  .story-panel {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+    padding: 52px 18px 24px;
+  }
+  .story-preview {
+    width: min(100%, 230px);
+    max-height: 45dvh;
+    justify-self: center;
+  }
+  .story-controls {
+    gap: 10px;
+  }
+  .story-controls h2 {
+    font-size: 1.35rem;
+  }
+}

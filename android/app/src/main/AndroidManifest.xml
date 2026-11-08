@@ -64,6 +64,8 @@
         </provider>
     </application>
 
+    <queries><package android:name="com.instagram.android" /></queries>
+
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
