@@ -4,6 +4,7 @@ import type { SvgIconProps } from "@mui/material/SvgIcon";
 import ArrowBackRounded from "@mui/icons-material/ArrowBackRounded";
 import ArrowForwardRounded from "@mui/icons-material/ArrowForwardRounded";
 import BookmarkBorderRounded from "@mui/icons-material/BookmarkBorderRounded";
+import EmailOutlined from "@mui/icons-material/EmailOutlined";
 import CheckRounded from "@mui/icons-material/CheckRounded";
 import ChevronRightRounded from "@mui/icons-material/ChevronRightRounded";
 import MovieOutlined from "@mui/icons-material/MovieOutlined";
@@ -23,6 +24,7 @@ import StarRounded from "@mui/icons-material/StarRounded";
 import LightModeOutlined from "@mui/icons-material/LightModeOutlined";
 import DarkModeOutlined from "@mui/icons-material/DarkModeOutlined";
 import PersonOutlineRounded from "@mui/icons-material/PersonOutlineRounded";
+import ThumbUpOutlined from "@mui/icons-material/ThumbUpOutlined";
 import ThumbDownOutlined from "@mui/icons-material/ThumbDownOutlined";
 import NotificationsNoneRounded from "@mui/icons-material/NotificationsNoneRounded";
 import CloseRounded from "@mui/icons-material/CloseRounded";
@@ -47,6 +49,7 @@ export const ArrowLeft = icon(ArrowBackRounded),
   ArrowRight = icon(ArrowForwardRounded),
   Bookmark = icon(BookmarkBorderRounded),
   Check = icon(CheckRounded),
+  Mail = icon(EmailOutlined),
   ChevronRight = icon(ChevronRightRounded),
   Clapperboard = icon(MovieOutlined),
   Compass = icon(ExploreOutlined),
@@ -66,4 +69,5 @@ export const ArrowLeft = icon(ArrowBackRounded),
   User = icon(PersonOutlineRounded),
   X = icon(CloseRounded),
   Dislike = icon(ThumbDownOutlined),
+  Like = icon(ThumbUpOutlined),
   Bell = icon(NotificationsNoneRounded);

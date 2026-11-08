@@ -5999,3 +5999,472 @@ body.taste-terminal-active > #root > .mobile-nav {
     background: #050d1df2;
   }
 }
+
+/* Account entry and guided setup use the same palette as the rest of Vela. */
+.account-screen,
+.welcome-page,
+.welcome-loading {
+  margin: 0;
+  width: 100%;
+}
+.welcome-page {
+  background:
+    radial-gradient(
+      ellipse at 10% 5%,
+      color-mix(in srgb, var(--brand) 13%, transparent),
+      transparent 52%
+    ),
+    var(--bg);
+}
+.welcome-shell {
+  max-width: 1160px;
+}
+.welcome-entry {
+  background: var(--panel);
+  padding: clamp(26px, 4vw, 54px);
+  border: 1px solid var(--line);
+  border-radius: 30px;
+}
+.welcome-entry h1 {
+  font-size: clamp(34px, 4vw, 54px);
+  letter-spacing: -2px;
+  line-height: 1.08;
+}
+.welcome-entry-actions .button {
+  min-height: 52px;
+  justify-content: center;
+}
+.welcome-slide {
+  border: 0;
+}
+.welcome-auth {
+  max-width: 510px;
+  padding: 25px clamp(20px, 4vw, 40px);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 28px;
+}
+.welcome-auth .form-content {
+  padding: 0;
+}
+.welcome-auth .form-content h2 {
+  font-size: 32px;
+  margin-bottom: 16px;
+}
+.auth-setup-hint {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.65;
+  margin: 0 0 24px;
+  max-width: 420px;
+}
+.account-screen {
+  min-height: 100dvh;
+  padding: calc(28px + var(--safe-top)) clamp(20px, 5vw, 72px)
+    calc(35px + var(--safe-bottom));
+  background:
+    radial-gradient(
+      ellipse at 0 0,
+      color-mix(in srgb, var(--brand) 10%, transparent),
+      transparent 55%
+    ),
+    var(--bg);
+}
+.account-screen > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  max-width: 1200px;
+  margin: 0 auto 55px;
+}
+.account-screen > header .welcome-brand {
+  font-size: 36px;
+}
+.account-screen h1,
+.account-screen h2 {
+  outline: none;
+}
+.account-screen h1 {
+  font-size: clamp(32px, 4.5vw, 56px);
+  letter-spacing: -2px;
+  line-height: 1.08;
+}
+.account-screen h2 {
+  font-size: clamp(24px, 3vw, 33px);
+  letter-spacing: -1px;
+  margin: 0 0 24px;
+}
+.confirmation-card {
+  max-width: 570px;
+  padding: clamp(28px, 5vw, 55px);
+  margin: 8vh auto 0;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 30px;
+  text-align: center;
+}
+.confirmation-card h1 {
+  font-size: clamp(29px, 4vw, 42px);
+}
+.confirmation-card p {
+  color: var(--muted);
+  line-height: 1.7;
+  margin: 18px 0;
+  overflow-wrap: anywhere;
+}
+.confirmation-card strong {
+  color: var(--text);
+}
+.confirmation-card .field {
+  text-align: left;
+}
+.confirmation-card form {
+  display: grid;
+  gap: 16px;
+  margin-top: 24px;
+}
+.confirmation-card .button {
+  justify-content: center;
+}
+.confirmation-symbol {
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  border-radius: 24px;
+  margin: 0 auto 30px;
+  background: var(--primary-container);
+  color: var(--brand);
+}
+.setup-layout {
+  max-width: 1160px;
+  margin: auto;
+  display: grid;
+  grid-template-columns: minmax(240px, 0.8fr) minmax(0, 1.3fr);
+  align-items: start;
+  gap: clamp(35px, 7vw, 100px);
+}
+.setup-intro {
+  position: sticky;
+  top: calc(25px + var(--safe-top));
+}
+.setup-intro > p {
+  color: var(--muted);
+  line-height: 1.65;
+  margin: 22px 0;
+  max-width: 330px;
+}
+.setup-count {
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--brand);
+  margin-bottom: 22px;
+}
+.setup-stepper {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 22px;
+  margin: 40px 0;
+}
+.setup-stepper li {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  font-size: 14px;
+  color: var(--muted);
+}
+.setup-stepper li > span {
+  display: grid;
+  place-items: center;
+  height: 30px;
+  width: 30px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  font-size: 12px;
+}
+.setup-stepper li[aria-current] {
+  color: var(--text);
+  font-weight: 600;
+}
+.setup-stepper li[aria-current] > span {
+  background: var(--brand);
+  color: var(--on-brand);
+  border-color: transparent;
+}
+.setup-stepper li.done > span {
+  color: var(--brand);
+  background: var(--primary-container);
+  border-color: transparent;
+}
+.setup-content {
+  min-width: 0;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  padding: clamp(22px, 3.5vw, 40px);
+}
+.setup-content form {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.setup-content .field,
+.setup-content .colour-themes,
+.setup-content .viewing-settings {
+  margin: 0;
+}
+.setup-content fieldset {
+  min-width: 0;
+  border: 0;
+  padding: 0;
+}
+.setup-content legend {
+  margin-bottom: 14px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.setup-name-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.setup-content .avatar-choices {
+  grid-template-columns: repeat(auto-fit, minmax(55px, 1fr));
+  gap: 9px;
+}
+.setup-content .avatar-choices button {
+  min-height: 62px;
+  padding: 3px;
+  border-radius: 18px;
+}
+.setup-backgrounds {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.setup-backgrounds button {
+  height: 33px;
+  width: 33px;
+  min-height: 33px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+}
+.setup-backgrounds button[aria-pressed="true"] {
+  outline: 2px solid var(--text);
+  outline-offset: 3px;
+}
+.setup-content .colour-theme-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.setup-content .colour-themes > .fine {
+  display: none;
+}
+.setup-content .provider-choices {
+  max-height: 280px;
+  overflow-y: auto;
+}
+.setup-content .viewing-settings h2 {
+  display: none;
+}
+.setup-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  align-items: center;
+  border-top: 1px solid var(--line);
+  padding: 22px 0 0;
+  margin-top: 8px;
+}
+.setup-actions .button {
+  min-height: 50px;
+}
+.setup-movie {
+  display: grid;
+  grid-template-columns: minmax(100px, 0.65fr) minmax(0, 1fr);
+  gap: 20px;
+}
+.setup-movie-art {
+  aspect-ratio: 2 / 3;
+  position: relative;
+  background: var(--surface);
+  border-radius: 15px;
+  overflow: hidden;
+}
+.setup-movie-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.setup-movie-art > span:not(.setup-movie-count) {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  font-weight: 800;
+  font-size: 30px;
+  color: var(--brand);
+}
+.setup-movie-count {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  border-radius: 20px;
+  padding: 6px 11px;
+  color: #fff;
+  background: #08121de6;
+  font-size: 12px;
+}
+.setup-movie h3 {
+  font-size: clamp(24px, 2.8vw, 34px);
+  margin: 15px 0;
+  line-height: 1.12;
+  letter-spacing: -0.8px;
+}
+.setup-movie p {
+  line-height: 1.6;
+  font-size: 13px;
+}
+.setup-movie-summary {
+  color: var(--muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.setup-votes {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.setup-votes button {
+  justify-content: center;
+  min-height: 50px;
+  font-size: 13px;
+  padding: 12px;
+}
+.setup-votes .text-button {
+  grid-column: 1 / -1;
+  min-height: 36px;
+}
+.setup-votes-complete {
+  padding: 45px 15px;
+  text-align: center;
+  color: var(--brand);
+}
+.setup-votes-complete h3 {
+  margin: 20px 0 12px;
+  font-size: 24px;
+  color: var(--text);
+}
+.setup-votes-complete p {
+  color: var(--muted);
+}
+.setup-movie-loading {
+  min-height: 250px;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 20px;
+  color: var(--muted);
+}
+.setup-retry {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+.settings-setup {
+  margin: 0 0 28px;
+}
+@media (max-width: 760px) {
+  .welcome-entry {
+    padding: 26px 22px;
+    border-radius: 24px;
+  }
+  .welcome-auth {
+    padding: 24px 22px;
+    width: 100%;
+  }
+  .account-screen {
+    padding-inline: 18px;
+    padding-top: calc(22px + var(--safe-top));
+  }
+  .account-screen > header {
+    margin-bottom: 30px;
+  }
+  .account-screen > header .text-button {
+    font-size: 12px;
+  }
+  .setup-layout {
+    display: block;
+  }
+  .setup-intro {
+    position: static;
+  }
+  .setup-intro h1 {
+    font-size: 33px;
+    max-width: 330px;
+  }
+  .setup-count {
+    margin-bottom: 14px;
+  }
+  .setup-intro > p {
+    margin: 16px 0;
+    font-size: 14px;
+  }
+  .setup-intro > .preset-avatar {
+    display: none;
+  }
+  .setup-stepper {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    margin: 24px 0;
+  }
+  .setup-stepper li {
+    flex-direction: column;
+    gap: 8px;
+    font-size: 10px;
+    text-align: center;
+    flex: 1;
+  }
+  .setup-stepper li > span {
+    width: 27px;
+    height: 27px;
+  }
+  .setup-content {
+    padding: 23px 20px;
+    border-radius: 23px;
+  }
+  .setup-content form {
+    gap: 22px;
+  }
+  .setup-name-row {
+    grid-template-columns: 1fr;
+  }
+  .setup-content .avatar-choices {
+    grid-template-columns: repeat(auto-fit, minmax(52px, 1fr));
+  }
+  .setup-content .avatar-choices button {
+    min-width: 0;
+  }
+  .setup-movie {
+    gap: 14px;
+    grid-template-columns: minmax(90px, 0.7fr) minmax(0, 1fr);
+  }
+  .setup-movie h3 {
+    font-size: 23px;
+  }
+  .setup-movie p {
+    font-size: 12px;
+  }
+  .setup-movie-summary {
+    -webkit-line-clamp: 3;
+  }
+  .confirmation-card {
+    margin-top: 4vh;
+  }
+}

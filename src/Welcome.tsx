@@ -9,6 +9,7 @@ import {
   Bookmark,
   Check,
   Heart,
+  Mail,
   Play,
   Star,
 } from "./icons";
@@ -270,7 +271,7 @@ export default function Welcome({
         ) : mode === "confirm" ? (
           <section className="welcome-confirm" aria-live="polite">
             <span className="welcome-confirm-icon">
-              <Check size={30} />
+              <Mail size={30} />
             </span>
             <h1 ref={heading} tabIndex={-1}>
               {tr("Vérifiez votre boîte mail.")}
@@ -281,7 +282,9 @@ export default function Welcome({
               {tr(". Consultez aussi vos courriers indésirables.")}
             </p>
             <p className="muted">
-              {tr("Après confirmation, revenez ici pour vous connecter.")}
+              {tr(
+                "Le lien ouvrira la page de confirmation Vela. Vous pourrez ensuite configurer votre profil ou revenir vous connecter ici.",
+              )}
             </p>
             <button
               className="button primary"

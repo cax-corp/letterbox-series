@@ -1,3 +1,12 @@
+import { authReturn } from "./auth-return";
+import AuthConfirmation from "./AuthConfirmation";
+import AccountSetup from "./AccountSetup";
+import {
+  needsAccountSetup,
+  applySetupAnswers,
+  type SetupDraft,
+} from "./account-setup";
+import { syncAccountState } from "./account-state";
 import LanguageSelect from "./LanguageSelect";
 import { useLanguagePreference } from "./language-preferences";
 import { t as tr, getLanguage, useLanguage } from "./i18n";
@@ -151,6 +160,10 @@ function App() {
     useState(readWelcomeCompleted);
   const [authReady, setAuthReady] = useState(!cloud);
   const welcomeBack = useRef<() => boolean>(() => false);
+  const setupBack = useRef<() => boolean>(() => false);
+  const [confirmationOpen, setConfirmationOpen] = useState(Boolean(authReturn));
+  const [setupRequested, setSetupRequested] = useState(false);
+  const [setupDismissed, setSetupDismissed] = useState("");
   const [publicRoute, setPublicRoute] = useState(() => parsePublicRoute());
   const [shareDraft, setShareDraft] = useState<ShareDraft | null>(null);
   const titleSharing = useRef(false);
@@ -241,6 +254,30 @@ function App() {
   useEffect(() => {
     setShareDraft(null);
   }, [user?.id]);
+  const awaitingSetup = Boolean(
+    user &&
+    !publicRoute &&
+    (setupRequested || (needsAccountSetup(user) && setupDismissed !== user.id)),
+  );
+  const showSetup = awaitingSetup && accountSettings.ready;
+  function closeConfirmation(signIn = false) {
+    const url = new URL(location.href);
+    for (const key of [
+      "auth",
+      "code",
+      "error",
+      "error_code",
+      "error_description",
+    ])
+      url.searchParams.delete(key);
+    url.hash = "";
+    history.replaceState({}, "", url.pathname + url.search);
+    setConfirmationOpen(false);
+    if (signIn) {
+      finishWelcome();
+      setAuth(true);
+    }
+  }
   const light = theme === "system" ? systemLight : theme === "light";
   const preset = getColourTheme(colourTheme);
   const colors = preset[light ? "light" : "dark"];
@@ -367,6 +404,20 @@ function App() {
       .getSession()
       .then(({ data }) => {
         if (mounted) setUser(data.session?.user || null);
+        const restored = data.session;
+        if (restored && needsAccountSetup(restored.user)) {
+          void cloud!.auth
+            .getUser(restored.access_token)
+            .then(({ data }) => {
+              if (
+                mounted &&
+                data.user?.id === restored.user.id &&
+                activeAccount.current === restored.user.id
+              )
+                setUser(data.user);
+            })
+            .catch(() => {});
+        }
       })
       .catch(() => {
         /* The welcome screen remains available if session recovery fails. */
@@ -386,8 +437,8 @@ function App() {
     };
   }, []);
   useEffect(() => {
-    if (!needsWelcome) void load();
-  }, [needsWelcome, language]);
+    if (!needsWelcome && !awaitingSetup && !confirmationOpen) void load();
+  }, [needsWelcome, awaitingSetup, confirmationOpen, language]);
   useEffect(() => {
     const media = matchMedia("(prefers-color-scheme: light)");
     const onChange = () => setSystemLight(media.matches);
@@ -512,6 +563,26 @@ function App() {
       document.removeEventListener("keydown", onKey);
     };
   }, [selected, auth]);
+  async function commitSetupTastes(draft: SetupDraft) {
+    const account = user?.id;
+    if (!account) throw new Error("no account");
+    if (Object.values(draft.answers).some((a) => a !== "skip")) {
+      if (!(await backup.syncNow()) || activeAccount.current !== account)
+        throw new Error("backup failed");
+      const previous = local.current,
+        next = applySetupAnswers(previous, draft);
+      if (Object.keys(next).some((id) => next[id] !== previous[id])) {
+        write(next, account);
+        local.current = next;
+        setLibrary(next);
+        backupService.changed(account);
+        if (!(await backup.syncNow()) || activeAccount.current !== account)
+          throw new Error("backup failed");
+      }
+    }
+    await syncAccountState(account);
+    if (activeAccount.current !== account) throw new Error("account changed");
+  }
   function update(title: Title, patch: Partial<Entry>) {
     const previous = local.current[title.id] || empty(title);
     const now = new Date(
@@ -678,6 +749,11 @@ function App() {
   }, []);
   useEffect(() => {
     const back = () => {
+      if (confirmationOpen) {
+        closeConfirmation();
+        return true;
+      }
+      if (awaitingSetup) return setupBack.current() || true;
       if (needsWelcome) return welcomeBack.current();
       if (shareDraft) {
         setShareDraft(null);
@@ -708,6 +784,14 @@ function App() {
     (window as any).lumaHandleBack = back;
     const escape = (event: KeyboardEvent) => {
       if (event.key === "Escape" && !selected && !auth) {
+        if (confirmationOpen) {
+          closeConfirmation();
+          return;
+        }
+        if (awaitingSetup) {
+          setupBack.current();
+          return;
+        }
         if (needsWelcome) {
           welcomeBack.current();
           return;
@@ -722,7 +806,15 @@ function App() {
       delete (window as any).lumaHandleBack;
       document.removeEventListener("keydown", escape);
     };
-  }, [page, selected, auth, shareDraft, needsWelcome]);
+  }, [
+    page,
+    selected,
+    auth,
+    shareDraft,
+    needsWelcome,
+    awaitingSetup,
+    confirmationOpen,
+  ]);
   const entries = Object.values(library),
     watched = entries.filter((e) => e.watched),
     watchlist = entries.filter((e) => e.watchlist),
@@ -763,6 +855,8 @@ function App() {
   useEffect(() => {
     if (
       needsWelcome ||
+      awaitingSetup ||
+      confirmationOpen ||
       page !== "discover" ||
       !hero ||
       selected ||
@@ -781,6 +875,8 @@ function App() {
     homeVisit,
     user?.id,
     needsWelcome,
+    awaitingSetup,
+    confirmationOpen,
   ]);
   useEffect(() => {
     if (
@@ -827,6 +923,57 @@ function App() {
       </p>
     </button>
   );
+  if (confirmationOpen)
+    return (
+      <ThemeProvider theme={materialTheme}>
+        <AuthConfirmation
+          ready={authReady}
+          continueToApp={() => closeConfirmation()}
+          signIn={() => closeConfirmation(true)}
+        />
+      </ThemeProvider>
+    );
+  if (awaitingSetup && !accountSettings.ready)
+    return (
+      <ThemeProvider theme={materialTheme}>
+        <main
+          className="welcome-loading"
+          aria-label={tr("Chargement de votre profil")}
+        >
+          <Brand />
+          <LoaderCircle className="spin" />
+        </main>
+      </ThemeProvider>
+    );
+  if (showSetup && user)
+    return (
+      <ThemeProvider theme={materialTheme}>
+        <AccountSetup
+          key={user.id}
+          user={user}
+          profile={personal.profile}
+          viewing={viewing.value}
+          library={library}
+          palette={colourTheme}
+          theme={theme}
+          setPalette={setColourTheme}
+          setTheme={setTheme}
+          setLanguage={(code) => void languagePreference.save(code)}
+          commitTastes={commitSetupTastes}
+          backHandler={setupBack}
+          finish={() => {
+            setSetupRequested(false);
+            setSetupDismissed(user.id);
+            finishWelcome();
+          }}
+          postpone={() => {
+            setSetupRequested(false);
+            setSetupDismissed(user.id);
+            finishWelcome();
+          }}
+        />
+      </ThemeProvider>
+    );
   if (needsWelcome)
     return (
       <ThemeProvider theme={materialTheme}>
@@ -1013,6 +1160,12 @@ function App() {
             accountSettings={accountSettings}
             languagePreference={languagePreference}
             openTasteMap={openTasteMap}
+            openSetup={() => {
+              if (user) {
+                setSetupRequested(true);
+                setSelected(null);
+              } else setAuth(true);
+            }}
             close={closeSettings}
             signIn={() => setAuth(true)}
           />
@@ -1986,10 +2139,12 @@ function SettingsPage({
   backup,
   accountSettings,
   openTasteMap,
+  openSetup,
   languagePreference,
 }: {
   languagePreference: ReturnType<typeof useLanguagePreference>;
   openTasteMap: () => void;
+  openSetup: () => void;
   accountSettings: ReturnType<typeof useAccountSettings>;
   viewing: ReturnType<typeof useViewingPreferences>;
   backup: BackupController;
@@ -2026,6 +2181,10 @@ function SettingsPage({
       <h1 ref={heading} tabIndex={-1}>
         {tr("Réglages")}
       </h1>
+      <button className="button tonal settings-setup" onClick={openSetup}>
+        {tr("Configurer mon profil")}
+        <ArrowRight size={18} />
+      </button>
       <div className="form-content">
         <section
           className="language-settings"

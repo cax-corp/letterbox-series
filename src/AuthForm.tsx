@@ -2,7 +2,8 @@ import LanguageSelect from "./LanguageSelect";
 import { saveGuestLanguage } from "./language-preferences";
 import { t as tr, useLanguage } from "./i18n";
 import { useId, useState } from "react";
-import { Capacitor } from "@capacitor/core";
+import { confirmationUrl } from "./auth-urls";
+import { setupPending } from "./account-setup";
 import { ArrowRight, LoaderCircle } from "./icons";
 import { CountrySelect } from "./ViewingSettings";
 import { emptyViewing } from "./viewing-preferences";
@@ -29,6 +30,13 @@ export default function AuthForm({
   return (
     <div className="form-content">
       <h2>{signup ? tr("Créer un compte") : tr("Connexion")}</h2>
+      {signup && (
+        <p className="auth-setup-hint">
+          {tr(
+            "Après votre inscription : avatar, thème et cinq films pour commencer à vous connaître.",
+          )}
+        </p>
+      )}
       <LanguageSelect value={language} onChange={saveGuestLanguage} />
       <form
         onSubmit={async (event) => {
@@ -49,6 +57,7 @@ export default function AuthForm({
                   password,
                   options: {
                     data: {
+                      vela_setup: setupPending(),
                       vela_language: {
                         version: 1,
                         code: language,
@@ -60,9 +69,7 @@ export default function AuthForm({
                         updated: new Date().toISOString(),
                       },
                     },
-                    ...(!Capacitor.isNativePlatform()
-                      ? { emailRedirectTo: location.origin + location.pathname }
-                      : {}),
+                    emailRedirectTo: confirmationUrl(),
                   },
                 })
               : await cloud.auth.signInWithPassword({

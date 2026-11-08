@@ -97,6 +97,9 @@ export default function ViewingSettings({
             {tr("Rechercher un service")}
             <input
               type="search"
+              onKeyDown={(event) => {
+                if (event.key === "Enter") event.preventDefault();
+              }}
               placeholder="Netflix, Prime Video, Disney+…"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -110,7 +113,7 @@ export default function ViewingSettings({
           {error && (
             <div role="alert" className="error">
               {tr(error)}
-              <button onClick={() => setRetry((n) => n + 1)}>
+              <button type="button" onClick={() => setRetry((n) => n + 1)}>
                 {tr("Réessayer les services")}
               </button>
             </div>
@@ -143,7 +146,11 @@ export default function ViewingSettings({
             <p className="muted">{tr("Aucun service trouvé.")}</p>
           )}
           {!all && !query && shown.length > 12 && (
-            <button className="text-button" onClick={() => setAll(true)}>
+            <button
+              type="button"
+              className="text-button"
+              onClick={() => setAll(true)}
+            >
               {tr("Afficher tous les services (")}
               {shown.length})
             </button>

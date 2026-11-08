@@ -87,7 +87,7 @@ test("web : Pour vous présente son indisponibilité et un vrai téléchargement
       .getByRole("link", { name: "Télécharger pour Android", exact: true })
       .click(),
   ]);
-  expect(download.suggestedFilename()).toBe("Vela-2.7.3.apk");
+  expect(download.suggestedFilename()).toBe("Vela-2.8.0.apk");
   expect(await download.failure()).toBeNull();
   const { readFile } = await import("node:fs/promises");
   const apk = await readFile((await download.path())!);
@@ -141,7 +141,7 @@ test("web adaptatif : profil et réglages lisibles en PC, tablette et téléphon
     await page.getByRole("button", { name: "Retour", exact: true }).click();
   }
 });
-test("web : les e-mails de confirmation reviennent vers la base du site, sans modifier les liens de partage", async ({
+test("web : les e-mails de confirmation ouvrent la page dédiée, sans modifier les liens de partage", async ({
   page,
 }) => {
   await page.addInitScript(() =>
@@ -184,5 +184,5 @@ test("web : les e-mails de confirmation reviennent vers la base du site, sans mo
     .getByLabel("Pays de résidence", { exact: true })
     .selectOption("FR");
   await dialog.getByRole("button", { name: /Créer mon compte/ }).click();
-  await expect.poll(() => redirect).toBe("http://127.0.0.1:5173/");
+  await expect.poll(() => redirect).toBe("http://127.0.0.1:5173/?auth=confirm");
 });

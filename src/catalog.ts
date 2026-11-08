@@ -578,3 +578,37 @@ export async function titleById(
     source: "itunes",
   };
 }
+
+export async function setupMovies(signal?: AbortSignal): Promise<Title[]> {
+  if (!tmdbEnabled()) return movies(undefined, signal);
+  const groups = [
+    [28, 12, 878],
+    [18, 35, 10749],
+    [16, 27, 53, 14],
+  ];
+  const results = await Promise.allSettled(
+    groups.map((group) =>
+      tmdbRequest(
+        "/discover/movie",
+        {
+          sort_by: "popularity.desc",
+          "vote_count.gte": 1500,
+          include_adult: "false",
+          "primary_release_date.lte": new Date().toISOString().slice(0, 10),
+          with_genres: group[Math.floor(Math.random() * group.length)],
+          page: 1 + Math.floor(Math.random() * 3),
+        },
+        signal,
+      ),
+    ),
+  );
+  if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+  const titles = results.flatMap((r) =>
+    r.status === "fulfilled"
+      ? (r.value.results || []).map((x: any) => fromTmdb(x, "movie"))
+      : [],
+  );
+  if (!titles.length)
+    throw new Error(tr("Les films ne sont pas disponibles pour le moment."));
+  return titles;
+}

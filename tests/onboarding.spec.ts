@@ -34,6 +34,7 @@ async function setup(page: Page, signed = false, native = true) {
   const calls = {
     catalogue: 0,
     signups: [] as any[],
+    redirect: "",
     logins: 0,
     failLogin: false,
   };
@@ -87,6 +88,8 @@ async function setup(page: Page, signed = false, native = true) {
     const path = new URL(route.request().url()).pathname;
     if (path.endsWith("/signup")) {
       calls.signups.push(route.request().postDataJSON());
+      calls.redirect =
+        new URL(route.request().url()).searchParams.get("redirect_to") || "";
       return route.fulfill({ json: { user, session: null } });
     }
     if (path.endsWith("/token")) {
@@ -222,6 +225,11 @@ test("inscription : formulaire complet, pays obligatoire et confirmation avant c
     }),
   ).toBeVisible();
   expect(calls.signups).toHaveLength(1);
+  expect(calls.redirect).toBe("https://vela.thomasbarial.com/?auth=confirm");
+  expect(calls.signups[0].data.vela_setup).toMatchObject({
+    version: 1,
+    status: "pending",
+  });
   expect(calls.signups[0]).toMatchObject({
     email: user.email,
     data: { vela_viewing: { country: "FR" } },
