@@ -1,5 +1,6 @@
 import { t as tr } from "./i18n";
 import type { Title } from "./catalog";
+import { validProfilePhoto } from "./profile-photo";
 export const avatarOptions = [
   { id: "initial", label: "Votre initiale" },
   { id: "smile", label: "Sourire" },
@@ -61,6 +62,7 @@ export type Profile = {
   bio: string;
   avatar: AvatarId;
   background: BackgroundId;
+  photo?: string;
   featured: Title[];
   updated: string;
 };
@@ -99,6 +101,7 @@ export function validateProfile(value: unknown): Profile | null {
     const p = value as Profile;
     if (
       !p ||
+      (p.photo !== undefined && !validProfilePhoto(p.photo)) ||
       p.version !== 1 ||
       typeof p.displayName !== "string" ||
       p.displayName.length > 40 ||
@@ -121,6 +124,7 @@ export function validateProfile(value: unknown): Profile | null {
       bio: plain(p.bio),
       avatar: p.avatar,
       background: p.background,
+      ...(p.photo ? { photo: p.photo } : {}),
       featured,
       updated: new Date(p.updated).toISOString(),
     };

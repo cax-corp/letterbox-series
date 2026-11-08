@@ -1,6 +1,7 @@
 import type { User } from "@supabase/supabase-js";
 import type { Title } from "./catalog";
 import { avatarOptions, avatarBackgrounds, type Profile } from "./profile";
+import { uploadProfilePhoto, validProfilePhoto } from "./profile-photo";
 import { cloud, getConfig, empty, type Library } from "./store";
 import { getColourTheme } from "./colour-themes";
 import { validateViewing } from "./viewing-preferences";
@@ -73,6 +74,9 @@ export function readSetupDraft(user: User, defaults: SetupDraft): SetupDraft {
     avatarBackgrounds.some((a) => a.id === r.profile.background)
   ) {
     profile.avatar = r.profile.avatar;
+    profile.photo = validProfilePhoto(r.profile.photo)
+      ? r.profile.photo
+      : undefined;
     profile.background = r.profile.background;
     profile.displayName =
       typeof r.profile.displayName === "string"
@@ -151,11 +155,17 @@ export async function saveSetupProgress(
   const current = await cloud.auth.getSession();
   if (current.error || current.data.session?.user.id !== account)
     throw new Error("account changed");
-  const { titles: _titles, answers: _answers, ...progress } = value;
+  const profile = await uploadProfilePhoto(cloud, account, value.profile);
+  const active = await cloud.auth.getSession();
+  if (active.error || active.data.session?.user.id !== account)
+    throw new Error("account changed");
+  const stored = { ...value, profile };
+  cacheSetup(account, stored);
+  const { titles: _titles, answers: _answers, ...progress } = stored;
   const result = await cloud.auth.updateUser({
     data: {
       vela_setup: progress,
-      vela_profile: value.profile,
+      vela_profile: profile,
       first_name: value.firstName.trim(),
       last_name: value.lastName.trim(),
       vela_viewing: {
@@ -173,6 +183,7 @@ export async function saveSetupProgress(
     result.data.user.user_metadata?.vela_setup?.updated !== value.updated
   )
     throw new Error("setup not confirmed");
+  return profile;
 }
 export function chooseSetupTitles(
   pool: Title[],

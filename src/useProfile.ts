@@ -67,12 +67,14 @@ export function useProfile(user: User | null) {
       return profilePending(readCurrentProfile(account))
         ? ("local" as const)
         : ("cloud" as const);
-    } catch {
+    } catch (error) {
       if (owner.current === account)
         setError(
-          tr(
-            "Profil enregistré sur cet appareil. La synchronisation Supabase sera réessayée avec la sauvegarde.",
-          ),
+          error instanceof Error && error.message.includes("photo")
+            ? error.message
+            : tr(
+                "Profil enregistré sur cet appareil. La synchronisation Supabase sera réessayée avec la sauvegarde.",
+              ),
         );
       return "local" as const;
     } finally {

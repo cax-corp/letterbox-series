@@ -3,6 +3,7 @@ import type { User as AuthUser } from "@supabase/supabase-js";
 import { t as tr, useLanguage, type AppLanguage } from "./i18n";
 import { Brand } from "./Brand";
 import Avatar from "./Avatar";
+import ProfilePhotoPicker from "./ProfilePhotoPicker";
 import {
   avatarOptions,
   avatarBackgrounds,
@@ -169,7 +170,7 @@ export default function AccountSetup({
         profile: makeProfile(draft.profile, profile),
         status: "pending",
       };
-      await saveSetupProgress(user.id, next, language);
+      next.profile = await saveSetupProgress(user.id, next, language);
       if (!live.current) return;
       if (complete) {
         await commitTastes(next);
@@ -187,8 +188,15 @@ export default function AccountSetup({
         setDraft(next);
       }
     } catch {
+      const cached = readSetupDraft(user, draft);
       cacheSetup(user.id, {
         ...draft,
+        profile: {
+          ...draft.profile,
+          ...(cached.profile.photo && !cached.profile.photo.startsWith("data:")
+            ? { photo: cached.profile.photo }
+            : {}),
+        },
         updated: new Date(Date.now() + 1).toISOString(),
       });
       if (live.current)
@@ -303,6 +311,12 @@ export default function AccountSetup({
                     }
                   />
                 </label>
+                <ProfilePhotoPicker
+                  photo={draft.profile.photo}
+                  change={(photo) =>
+                    change({ profile: { ...draft.profile, photo } })
+                  }
+                />
                 <fieldset>
                   <legend>{tr("Choisissez votre avatar")}</legend>
                   <div className="avatar-choices">
@@ -311,18 +325,30 @@ export default function AccountSetup({
                         type="button"
                         key={a.id}
                         aria-label={tr(a.label)}
-                        aria-pressed={draft.profile.avatar === a.id}
+                        aria-pressed={
+                          !draft.profile.photo && draft.profile.avatar === a.id
+                        }
                         className={
-                          draft.profile.avatar === a.id ? "selected" : ""
+                          !draft.profile.photo && draft.profile.avatar === a.id
+                            ? "selected"
+                            : ""
                         }
                         onClick={() =>
                           change({
-                            profile: { ...draft.profile, avatar: a.id },
+                            profile: {
+                              ...draft.profile,
+                              avatar: a.id,
+                              photo: undefined,
+                            },
                           })
                         }
                       >
                         <Avatar
-                          profile={{ ...draft.profile, avatar: a.id }}
+                          profile={{
+                            ...draft.profile,
+                            avatar: a.id,
+                            photo: undefined,
+                          }}
                           name={draft.profile.displayName}
                           size={55}
                         />

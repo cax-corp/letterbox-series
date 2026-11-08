@@ -414,3 +414,59 @@ test("configuration en anglais : compte restauré, boutons traduits, écran adap
     "Nora cinema",
   );
 });
+
+test("configuration avec photo : transfert compressé avant les métadonnées, restauration sans base64 dans Auth", async ({
+  page,
+}) => {
+  const state = await setup(page);
+  let uploads = 0;
+  await page.route(project + "/storage/v1/object/vela-avatars/**", (r) => {
+    uploads++;
+    return r.fulfill({ status: 200, json: { Key: "photo" } });
+  });
+  await page.route(project + "/storage/v1/object/public/vela-avatars/**", (r) =>
+    r.fulfill({
+      contentType: "image/svg+xml",
+      body: '<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320"><rect width="320" height="320" fill="#63439b"/></svg>',
+    }),
+  );
+  await page.goto("/");
+  await page.getByLabel("Prénom", { exact: true }).fill("Nora");
+  await page.getByLabel("Nom affiché", { exact: true }).fill("Nora photo");
+  const png = await page.evaluate(() => {
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = 480;
+    const ctx = canvas.getContext("2d")!;
+    ctx.fillStyle = "#63439b";
+    ctx.fillRect(0, 0, 480, 480);
+    return canvas.toDataURL("image/png").split(",")[1];
+  });
+  await page
+    .getByLabel("Choisir une photo de profil", { exact: true })
+    .setInputFiles({
+      name: "portrait.png",
+      mimeType: "image/png",
+      buffer: Buffer.from(png, "base64"),
+    });
+  await page
+    .getByRole("dialog", { name: "Recadrer ma photo", exact: true })
+    .getByRole("button", { name: "Utiliser cette photo", exact: true })
+    .click();
+  await page.getByRole("button", { name: "Continuer", exact: true }).click();
+  await expect(
+    page.getByRole("heading", {
+      name: "Votre Vela, vos couleurs.",
+      exact: true,
+    }),
+  ).toBeVisible();
+  expect(uploads).toBe(1);
+  const metadata = state.user.user_metadata as any;
+  expect(metadata.vela_profile.photo).toContain(
+    "/storage/v1/object/public/vela-avatars/",
+  );
+  expect(metadata.vela_setup.profile.photo).toBe(metadata.vela_profile.photo);
+  expect(JSON.stringify(state.updates)).not.toContain("data:image");
+  await page.reload();
+  await expect(page.locator(".setup-intro .avatar-photo")).toBeVisible();
+  expect(uploads).toBe(1);
+});

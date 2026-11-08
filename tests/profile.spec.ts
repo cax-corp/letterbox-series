@@ -108,7 +108,7 @@ function client(remote: Profile | null = null) {
     },
   };
 }
-test("profil strict : identifiants d’avatars et fonds, quatre titres au maximum, aucun import d’image", () => {
+test("profil strict : identifiants d’avatars et fonds, quatre titres au maximum, photos validées et presets conservés", () => {
   const p = custom();
   expect(validateProfile(p)).toEqual(p);
   for (const avatar of avatarOptions)

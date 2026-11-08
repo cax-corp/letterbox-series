@@ -9,6 +9,7 @@ import {
 import type { Entry, Library } from "./store";
 import { profileStats } from "./profile-stats";
 import type { Title } from "./catalog";
+import { remoteProfilePhoto } from "./profile-photo";
 
 export type PublicStats = {
   watched: number;
@@ -46,6 +47,7 @@ function publicProfile(p: Profile, fallback: string): Profile {
     bio: p.bio,
     avatar: p.avatar,
     background: p.background,
+    ...(p.photo && remoteProfilePhoto(p.photo) ? { photo: p.photo } : {}),
     featured: p.featured.map(featuredTitle),
     updated: p.updated,
   };

@@ -1,4 +1,6 @@
 import { t as tr, getLanguage } from "./i18n";
+import { useEffect, useState } from "react";
+import "./profile-photo.css";
 import type { CSSProperties, ReactNode } from "react";
 import { avatarBackgrounds, type AvatarId, type Profile } from "./profile";
 
@@ -361,16 +363,18 @@ function FaceArt({ id }: { id: AvatarId }) {
   );
 }
 
-/** Original vector presets; no remote portrait, raster atlas or image upload. */
+/** Bundled vector presets, with an optional compressed profile photograph. */
 export default function Avatar({
   profile,
   name,
   size = 80,
 }: {
-  profile: Pick<Profile, "avatar" | "background">;
+  profile: Pick<Profile, "avatar" | "background" | "photo">;
   name: string;
   size?: number;
 }) {
+  const [failedPhoto, setFailedPhoto] = useState("");
+  useEffect(() => setFailedPhoto(""), [profile.photo]);
   const background =
     avatarBackgrounds.find((b) => b.id === profile.background) ||
     avatarBackgrounds[2];
@@ -389,7 +393,15 @@ export default function Avatar({
       aria-label={tr("Avatar de {0}", name || "Vela")}
       role="img"
     >
-      {profile.avatar === "initial" ? (
+      {profile.photo && failedPhoto !== profile.photo ? (
+        <img
+          className="avatar-photo"
+          src={profile.photo}
+          alt=""
+          decoding="async"
+          onError={() => setFailedPhoto(profile.photo || "")}
+        />
+      ) : profile.avatar === "initial" ? (
         <span
           className="avatar-initial"
           style={{ fontSize: size * 0.43 }}

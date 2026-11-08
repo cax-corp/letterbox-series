@@ -40,19 +40,33 @@ export async function prepareStoryAssets(
     clone.setAttribute("width", "100");
     clone.setAttribute("height", "100");
   }
-  const avatar = clone
-    ? imageFromBlob(
-        new Blob(
-          [
-            new XMLSerializer()
-              .serializeToString(clone)
-              .replace(/currentColor/g, ink)
-              .replace(/var\(--avatar-background\)/g, bg),
-          ],
-          { type: "image/svg+xml" },
-        ),
+  const avatar = draft.profile.photo
+    ? (draft.profile.photo.startsWith("data:")
+        ? imageFromBlob(
+            new Blob(
+              [
+                Uint8Array.from(atob(draft.profile.photo.slice(23)), (c) =>
+                  c.charCodeAt(0),
+                ),
+              ],
+              { type: "image/jpeg" },
+            ),
+          )
+        : artworkBlob(draft.profile.photo).then(imageFromBlob)
       ).catch(() => null)
-    : Promise.resolve(null);
+    : clone
+      ? imageFromBlob(
+          new Blob(
+            [
+              new XMLSerializer()
+                .serializeToString(clone)
+                .replace(/currentColor/g, ink)
+                .replace(/var\(--avatar-background\)/g, bg),
+            ],
+            { type: "image/svg+xml" },
+          ),
+        ).catch(() => null)
+      : Promise.resolve(null);
   const poster = draft.entry.title.image
     ? artworkBlob(draft.entry.title.image)
         .then(imageFromBlob)

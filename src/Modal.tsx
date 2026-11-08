@@ -72,6 +72,7 @@ export default function Modal({
       >
         <button
           className="modal-close surface"
+          type="button"
           aria-label={tr("Fermer")}
           onClick={close}
         >

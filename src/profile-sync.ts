@@ -1,5 +1,6 @@
 import { t as tr } from "./i18n";
 import { cloud, getConfig } from "./store";
+import { uploadProfilePhoto } from "./profile-photo";
 import {
   newerProfile,
   profileKey,
@@ -36,7 +37,7 @@ export function hydrateProfile(account: string, value: unknown) {
     writeProfileRecord(account, { profile: chosen, synced: remote.updated });
 }
 const flights = new Map<string, Promise<void>>();
-/** Only small user metadata is sent; avatar artwork remains bundled in the app. */
+/** The profile holds a small photo URL; image bytes go to Storage, never Auth metadata. */
 export async function syncUserProfile(
   account: string,
   client = cloud,
@@ -72,7 +73,19 @@ export async function syncUserProfile(
         });
         return;
       }
-      const sent = local.profile;
+      const sent = await uploadProfilePhoto(client, account, local.profile);
+      if (sent !== local.profile) {
+        const current = await client.auth.getSession();
+        if (current.error || current.data.session?.user.id !== account) return;
+        const latest = readCurrentProfile(account);
+        // A concurrent edit keeps its name/bio; a new photograph is never overwritten.
+        if (latest.profile.photo === local.profile.photo) {
+          writeProfileRecord(account, {
+            profile: { ...latest.profile, photo: sent.photo },
+            synced: latest.synced,
+          });
+        }
+      }
       const { data: result, error: updateError } = await client.auth.updateUser(
         { data: { vela_profile: sent } },
       );

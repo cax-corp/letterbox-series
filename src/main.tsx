@@ -753,6 +753,13 @@ function App() {
   }, []);
   useEffect(() => {
     const back = () => {
+      const photoClose = document.querySelector<HTMLButtonElement>(
+        ".photo-crop-overlay .modal-close",
+      );
+      if (photoClose) {
+        photoClose.click();
+        return true;
+      }
       if (confirmationOpen) {
         closeConfirmation();
         return true;

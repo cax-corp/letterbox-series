@@ -29,7 +29,7 @@ begin
     or p->'version' is distinct from '1'::jsonb then return false; end if;
   profile := p->'profile';
   if jsonb_typeof(profile) is distinct from 'object'
-    or profile - array['version','displayName','bio','avatar','background','featured','updated'] <> '{}'::jsonb
+    or profile - array['version','displayName','bio','avatar','background','photo','featured','updated'] <> '{}'::jsonb
     or profile->'version' is distinct from '1'::jsonb
     or jsonb_typeof(profile->'displayName') is distinct from 'string'
     or length(profile->>'displayName') not between 1 and 40
@@ -40,6 +40,11 @@ begin
     or jsonb_array_length(profile->'featured') > 4
     or jsonb_typeof(profile->'updated') is distinct from 'string'
     or length(profile->>'updated') > 40 then return false; end if;
+  if profile ? 'photo' and (
+    jsonb_typeof(profile->'photo') is distinct from 'string'
+    or length(profile->>'photo') > 1000
+    or (profile->>'photo') !~ '^https://[^/?#@[:space:]]+/storage/v1/object/public/vela-avatars/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.jpg$'
+  ) then return false; end if;
   for item in select value from jsonb_array_elements(profile->'featured') loop
     if not public.vela_shared_title_valid(item) then return false; end if;
   end loop;

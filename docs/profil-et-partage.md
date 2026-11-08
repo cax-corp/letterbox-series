@@ -1,6 +1,6 @@
-# Profils et liens publics — Vela 2.3
+# Profils et liens publics — Vela 2.9.1
 
-Le profil privé reste dans les métadonnées Auth Supabase (`vela_profile`) et dans la copie locale par compte/projet : nom affiché, bio, avatar embarqué, fond prédéfini, quatre incontournables. Aucun import de photo ni hébergement d’image n’est nécessaire. Les statistiques d’activité sont calculées depuis la collection locale.
+Le profil privé reste dans les métadonnées Auth Supabase (`vela_profile`) et dans la copie locale par compte/projet : nom affiché, bio, avatar embarqué, fond prédéfini, quatre incontournables. Une photo personnalisée peut aussi être importée : son JPEG compressé est stocké dans Supabase Storage et seule son URL entre dans les métadonnées Auth. Voir [Photos de profil](photos-de-profil.md). Les statistiques d’activité sont calculées depuis la collection locale.
 
 ## Partage par lien
 
@@ -10,13 +10,13 @@ Le partage transmet exclusivement `title`, `text` et `url` au système. Aucun PN
 
 Les URL utilisent des fragments compatibles avec GitHub Pages : `#/title/tmdb-movie-123`, `#/title/tmdb-series-123` et `#/s/UUID`. Elles se rouvrent directement et après rechargement sans configuration de réécriture serveur. Les anciennes sources iTunes/TVmaze ont aussi une résolution par identifiant. La lecture publique fonctionne sans session ; noter, ajouter à sa collection et publier un profil/avis nécessitent un compte dans la distribution préconfigurée.
 
-`VITE_PUBLIC_SITE_URL` peut définir l’URL HTTPS canonique (utile pour l’APK et un futur domaine personnalisé). Par défaut, Android partage `https://cax-corp.github.io/letterbox-series/` ; le site HTTPS partage son URL d’hébergement. Aucun jeton, clé API ou e-mail n’est inclus dans le lien.
+`VITE_PUBLIC_SITE_URL` peut définir l’URL HTTPS canonique (utile pour l’APK et un futur domaine personnalisé). Par défaut, Android partage `https://vela.thomasbarial.com/` ; le site HTTPS partage son URL d’hébergement. Aucun jeton, clé API ou e-mail n’est inclus dans le lien.
 
 ## Activation Supabase et contrôle d’accès
 
 Exécuter une fois [`supabase/public-sharing.sql`](../supabase/public-sharing.sql) dans le SQL Editor. Le script peut être rejoué. Il ne modifie pas les autorisations de `public.library` ni les métadonnées Auth.
 
-La table contient uniquement les publications explicites. Le profil partagé contient le nom public, la bio, le preset d’avatar et de fond, quatre favoris et quatre statistiques agrégées. Un avis partagé contient son titre, sa note, son texte, sa date et ce profil public. L’e-mail Auth, le pays, les abonnements, les refus, la collection et les autres critiques ne sont pas copiés. Les textes volontairement saisis dans la bio ou l’avis deviennent publics lors du partage.
+La table contient uniquement les publications explicites. Le profil partagé contient le nom public, la bio, le preset d’avatar et de fond, l’URL de la photo si elle est synchronisée, quatre favoris et quatre statistiques agrégées. Un avis partagé contient son titre, sa note, son texte, sa date et ce profil public. L’e-mail Auth, le pays, les abonnements, les refus, la collection et les autres critiques ne sont pas copiés. Les textes volontairement saisis dans la bio ou l’avis deviennent publics lors du partage.
 
 Le serveur valide une liste fermée de champs, les tailles, les identifiants de titres et les presets ; un champ `email` ajouté au payload ou au profil est refusé. Le rôle anonyme peut lire les colonnes `id,kind,payload,updated_at` des publications, jamais leur `owner_id`. Seul le propriétaire authentifié peut créer, modifier ou retirer ses publications (RLS). L’identifiant du lien est un UUID aléatoire ; les pages sont publiques, pas protégées par un secret de connexion.
 

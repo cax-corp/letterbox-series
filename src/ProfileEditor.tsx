@@ -1,6 +1,7 @@
 import { t as tr } from "./i18n";
 import { useEffect, useRef, useState } from "react";
 import Avatar from "./Avatar";
+import ProfilePhotoPicker from "./ProfilePhotoPicker";
 import {
   avatarBackgrounds,
   avatarOptions,
@@ -129,7 +130,11 @@ export default function ProfileEditor({
         <div className="profile-edit-preview">
           <Avatar profile={draft} name={draft.displayName} size={128} />
           <p>
-            {tr(avatarOptions.find((a) => a.id === draft.avatar)?.label || "")}{" "}
+            {draft.photo
+              ? tr("Photo personnalisée")
+              : tr(
+                  avatarOptions.find((a) => a.id === draft.avatar)?.label || "",
+                )}{" "}
             ·{" "}
             {tr(
               avatarBackgrounds.find((b) => b.id === draft.background)?.label ||
@@ -137,6 +142,10 @@ export default function ProfileEditor({
             )}
           </p>
         </div>
+        <ProfilePhotoPicker
+          photo={draft.photo}
+          change={(photo) => setDraft((d) => ({ ...d, photo }))}
+        />
         <label className="field">
           {tr("Nom affiché")}
           <input
@@ -164,7 +173,7 @@ export default function ProfileEditor({
           <legend>{tr("Choisissez votre avatar")}</legend>
           <p className="muted fine">
             {tr(
-              "28 visages et personnages, 10 fonds. Ou gardez votre initiale.",
+              "28 visages et personnages, 10 fonds. Ou utilisez votre photo.",
             )}
           </p>
           <div className="avatar-choices">
@@ -172,17 +181,21 @@ export default function ProfileEditor({
               <button
                 key={a.id}
                 type="button"
-                className={draft.avatar === a.id ? "selected" : ""}
-                aria-pressed={draft.avatar === a.id}
+                className={
+                  !draft.photo && draft.avatar === a.id ? "selected" : ""
+                }
+                aria-pressed={!draft.photo && draft.avatar === a.id}
                 aria-label={tr(a.label)}
-                onClick={() => setDraft((d) => ({ ...d, avatar: a.id }))}
+                onClick={() =>
+                  setDraft((d) => ({ ...d, avatar: a.id, photo: undefined }))
+                }
               >
                 <Avatar
-                  profile={{ ...draft, avatar: a.id }}
+                  profile={{ ...draft, avatar: a.id, photo: undefined }}
                   name={draft.displayName}
                   size={64}
                 />
-                {draft.avatar === a.id && (
+                {!draft.photo && draft.avatar === a.id && (
                   <span className="avatar-choice-check" aria-hidden="true">
                     <Check size={12} />
                   </span>
@@ -311,7 +324,7 @@ export default function ProfileEditor({
         <p className="muted fine">
           {connected
             ? tr(
-                "Votre nom, votre avatar et vos incontournables sont synchronisés avec votre compte Supabase. Les avatars sont inclus dans Vela. Hors connexion, vos choix attendent la prochaine sauvegarde.",
+                "Votre nom, votre avatar et vos incontournables sont synchronisés avec votre compte Supabase. Votre photo compressée est transférée lors de la sauvegarde. Hors connexion, vos choix attendent la prochaine sauvegarde.",
               )
             : tr(
                 "Votre profil reste sur cet appareil. Connectez-vous pour personnaliser et sauvegarder le profil de votre compte.",

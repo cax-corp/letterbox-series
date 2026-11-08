@@ -156,13 +156,13 @@ async function edit(page: Page) {
   await expect(editor).toBeVisible();
   return editor;
 }
-test("profil local : nom, avatars embarqués et fonds, quatre favoris ordonnés, stats et persistance sans import de photo", async ({
+test("profil local : nom, avatars embarqués et fonds, quatre favoris ordonnés, stats et persistance avec import de photo optionnel", async ({
   page,
 }) => {
   await setup(page);
   const editor = await edit(page);
   await expect(page).toHaveURL(/#profile\/edit$/);
-  await expect(editor.locator('input[type="file"]')).toHaveCount(0);
+  await expect(editor.locator('input[type="file"]')).toHaveCount(1);
   for (const width of [320, 390, 768, 1440]) {
     await page.setViewportSize({ width, height: 900 });
     expect(
@@ -593,4 +593,135 @@ test("partage Android : lien de fiche immédiat sans image ni écriture de fichi
   await expect(page.locator("body")).toHaveCSS("overflow", "hidden");
   await dialog.getByRole("button", { name: "Fermer", exact: true }).click();
   await expect(page.locator("body")).not.toHaveCSS("overflow", "hidden");
+});
+
+test("photo personnalisée : import, annulation, recadrage, compression, persistance et story", async ({
+  page,
+}, info) => {
+  await setup(page);
+  const editor = await edit(page);
+  await editor.getByLabel("Nom affiché", { exact: true }).fill("Nora");
+  const data = await page.evaluate(() => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 800;
+    canvas.height = 400;
+    const ctx = canvas.getContext("2d")!;
+    ctx.fillStyle = "#df3245";
+    ctx.fillRect(0, 0, 400, 400);
+    ctx.fillStyle = "#2870dc";
+    ctx.fillRect(400, 0, 400, 400);
+    return canvas.toDataURL("image/png").split(",")[1];
+  });
+  const file = {
+    name: "my-photo.png",
+    mimeType: "image/png",
+    buffer: Buffer.from(data, "base64"),
+  };
+  await editor
+    .getByLabel("Choisir une photo de profil", { exact: true })
+    .setInputFiles(file);
+  let crop = page.getByRole("dialog", {
+    name: "Recadrer ma photo",
+    exact: true,
+  });
+  await expect(crop).toBeVisible();
+  // The native back button dismisses cropping, without leaving or saving the editor.
+  expect(await page.evaluate(() => (window as any).lumaHandleBack())).toBe(
+    true,
+  );
+  await expect(crop).toHaveCount(0);
+  await expect(editor).toBeVisible();
+  await expect(
+    editor.locator(".profile-edit-preview .avatar-photo"),
+  ).toHaveCount(0);
+  await editor
+    .getByLabel("Choisir une photo de profil", { exact: true })
+    .setInputFiles(file);
+  crop = page.getByRole("dialog", { name: "Recadrer ma photo", exact: true });
+  await crop.getByLabel("Position horizontale", { exact: true }).focus();
+  await page.keyboard.press("Home");
+  await crop.screenshot({ path: info.outputPath("photo-crop-mobile.png") });
+  await crop
+    .getByRole("button", { name: "Utiliser cette photo", exact: true })
+    .click();
+  const photo = editor.locator(".profile-edit-preview .avatar-photo");
+  await expect(photo).toBeVisible();
+  const jpeg = await photo.getAttribute("src");
+  expect(jpeg).toMatch(/^data:image\/jpeg;base64,/);
+  expect(Buffer.from(jpeg!.split(",")[1], "base64").length).toBeLessThanOrEqual(
+    48 * 1024,
+  );
+  const pixels = await photo.evaluate((image: HTMLImageElement) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = 320;
+    const ctx = canvas.getContext("2d")!;
+    ctx.drawImage(image, 0, 0);
+    return {
+      dimensions: [image.naturalWidth, image.naturalHeight],
+      center: [...ctx.getImageData(160, 160, 1, 1).data],
+    };
+  });
+  expect(pixels.dimensions).toEqual([320, 320]);
+  expect(pixels.center[2]).toBeGreaterThan(pixels.center[0] + 80);
+  await editor
+    .getByRole("button", { name: "Enregistrer mon profil", exact: true })
+    .click();
+  await expect(editor).toHaveCount(0);
+  await expect(page.locator(".profile-head .avatar-photo")).toBeVisible();
+  await page.reload();
+  await page.getByRole("button", { name: "Profil", exact: true }).click();
+  await expect(page.locator(".profile-head .avatar-photo")).toBeVisible();
+  await page
+    .getByRole("region", { name: "Mes avis", exact: true })
+    .getByRole("button", { name: "Partager en story", exact: true })
+    .first()
+    .click();
+  const story = page.getByRole("dialog", {
+    name: "Partager en story",
+    exact: true,
+  });
+  await expect(story.locator(".story-preview img")).toBeVisible();
+  const avatarPixel = await story
+    .locator(".story-preview img")
+    .evaluate((image: HTMLImageElement) => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 1080;
+      canvas.height = 1920;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(image, 0, 0);
+      return [...ctx.getImageData(540, 242, 1, 1).data];
+    });
+  expect(avatarPixel[2]).toBeGreaterThan(avatarPixel[0] + 80);
+  await story.screenshot({ path: info.outputPath("story-custom-photo.png") });
+  await story.getByRole("button", { name: "Fermer", exact: true }).click();
+  const next = await edit(page);
+  await next
+    .getByRole("button", { name: "Retirer ma photo", exact: true })
+    .click();
+  await expect(next.locator(".profile-edit-preview .avatar-photo")).toHaveCount(
+    0,
+  );
+  await next.getByRole("button", { name: "Clin d’œil", exact: true }).click();
+  await next
+    .getByRole("button", { name: "Enregistrer mon profil", exact: true })
+    .click();
+  await expect(page.locator(".profile-head .avatar-art")).toBeVisible();
+});
+
+test("photo personnalisée : fichier refusé et annulation ne modifient pas le profil", async ({
+  page,
+}) => {
+  await setup(page);
+  const editor = await edit(page);
+  await editor
+    .getByLabel("Choisir une photo de profil", { exact: true })
+    .setInputFiles({
+      name: "fake.svg",
+      mimeType: "image/svg+xml",
+      buffer: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"/>'),
+    });
+  await expect(editor.getByRole("alert")).toContainText("JPEG, PNG ou WebP");
+  await expect(editor.locator(".avatar-photo")).toHaveCount(0);
+  await editor.getByRole("button", { name: "Annuler", exact: true }).click();
+  await expect(page.locator(".profile-head .avatar-photo")).toHaveCount(0);
 });
