@@ -52,6 +52,10 @@ body {
   background: var(--bg);
   color: var(--text);
 }
+html[data-native-platform="android"],
+html[data-native-platform="android"] body {
+  overscroll-behavior-y: none;
+}
 button,
 input,
 textarea {
@@ -2646,6 +2650,19 @@ body:has(.feed-ambience) {
   border-radius: 20px;
   padding: 20px;
   margin: 14px 0;
+}
+.profile-review-composer .stars.editable {
+  gap: 0;
+  margin: 4px 0;
+}
+.profile-review-composer .review-rating-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.profile-review-composer .review-composer-footer {
+  flex-wrap: wrap;
 }
 .review-heading {
   display: flex;

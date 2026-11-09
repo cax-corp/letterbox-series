@@ -2,7 +2,7 @@ import { Capacitor, registerPlugin } from "@capacitor/core";
 import { useEffect, useState } from "react";
 import { t as tr, getLanguage } from "./i18n";
 import { Download } from "./icons";
-export const appVersion = "2.10.0";
+export const appVersion = "2.10.1";
 type UpdateState = {
   available: boolean;
   version: string;

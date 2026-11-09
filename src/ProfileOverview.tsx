@@ -2,11 +2,17 @@ import { t as tr, getLanguage } from "./i18n";
 import { useMemo, useState } from "react";
 import Avatar from "./Avatar";
 import SpoilerText from "./SpoilerText";
+import ReviewEditor from "./ReviewEditor";
 import type { Profile } from "./profile";
 import { profileStats } from "./profile-stats";
-import { profileShare, reviewShare, type ShareDraft } from "./sharing";
+import {
+  profileShare,
+  reviewShare,
+  titleShare,
+  type ShareDraft,
+} from "./sharing";
 import type { StoryDraft } from "./story-image";
-import type { Library } from "./store";
+import type { Entry, Library } from "./store";
 import type { Title } from "./catalog";
 import { ShareIcon, Star, Film, Plus } from "./icons";
 export default function ProfileOverview({
@@ -20,9 +26,11 @@ export default function ProfileOverview({
   share,
   story,
   monthly,
+  update,
   protectSpoilers = true,
 }: {
   monthly: () => void;
+  update: (title: Title, patch: Partial<Entry>) => boolean;
   protectSpoilers?: boolean;
   profile: Profile;
   library: Library;
@@ -35,13 +43,14 @@ export default function ProfileOverview({
   story: (draft: StoryDraft) => void;
 }) {
   const stats = useMemo(() => profileStats(library), [library, getLanguage()]),
-    [reviewLimit, setReviewLimit] = useState(3);
+    [reviewLimit, setReviewLimit] = useState(3),
+    [editing, setEditing] = useState<string | null>(null);
   const name =
     profile.displayName ||
     email?.split("@")[0] ||
     tr("Le premier rôle, c’est vous.");
   const reviews = Object.values(library)
-    .filter((e) => e.review.trim())
+    .filter((e) => e.rating > 0 || e.review.trim())
     .sort((a, b) => Date.parse(b.updated) - Date.parse(a.updated));
   const max = Math.max(1, ...stats.months.map((m) => m.count));
   return (
@@ -216,12 +225,16 @@ export default function ProfileOverview({
         {!reviews.length ? (
           <p className="muted">
             {tr(
-              "Vos critiques apparaîtront ici. Écrivez votre premier avis depuis la fiche d’un film ou d’une série.",
+              "Vos notes et vos critiques apparaîtront ici. Notez un film ou une série depuis sa fiche.",
             )}
           </p>
         ) : (
           reviews.slice(0, reviewLimit).map((entry) => (
-            <article key={entry.title.id} className="profile-review surface">
+            <article
+              key={entry.title.id}
+              className="profile-review surface"
+              aria-label={tr("Avis sur {0}", entry.title.name)}
+            >
               <div className="review-heading">
                 <button onClick={() => open(entry.title)}>
                   <strong>{entry.title.name}</strong>
@@ -229,34 +242,66 @@ export default function ProfileOverview({
                 </button>
                 {entry.rating > 0 && (
                   <span className="review-rating">
-                    <Star size={16} />
+                    <Star size={16} fill="currentColor" />
                     {entry.rating}/5
                   </span>
                 )}
               </div>
-              <SpoilerText
-                key={entry.title.id + entry.updated}
-                text={entry.review}
-                spoiler={entry.spoiler}
-                protect={protectSpoilers}
-              />
-              <div className="review-actions">
-                <button
-                  className="text-button"
-                  onClick={() =>
-                    share(reviewShare(profile, entry, tr("Un regard sur Vela")))
-                  }
-                >
-                  <ShareIcon size={17} />
-                  {tr("Partager cet avis")}
-                </button>
-                <button
-                  className="text-button"
-                  onClick={() => story({ entry, profile })}
-                >
-                  <ShareIcon size={17} /> {tr("Partager en story")}
-                </button>
-              </div>
+              {editing === entry.title.id ? (
+                <ReviewEditor
+                  entry={entry}
+                  cancel={() => setEditing(null)}
+                  save={(patch) => {
+                    if (!update(entry.title, patch)) return;
+                    setEditing(null);
+                    toast(tr("Avis enregistré."));
+                  }}
+                />
+              ) : (
+                <>
+                  {Boolean(entry.review.trim()) && (
+                    <SpoilerText
+                      key={entry.title.id + entry.updated}
+                      text={entry.review}
+                      spoiler={entry.spoiler}
+                      protect={protectSpoilers}
+                    />
+                  )}
+                  <div className="review-actions">
+                    <button
+                      className="text-button"
+                      onClick={() => setEditing(entry.title.id)}
+                    >
+                      {tr("Modifier mon avis")}
+                    </button>
+                    <button
+                      className="text-button"
+                      onClick={() =>
+                        share(
+                          entry.review.trim()
+                            ? reviewShare(
+                                profile,
+                                entry,
+                                tr("Un regard sur Vela"),
+                              )
+                            : titleShare(entry.title),
+                        )
+                      }
+                    >
+                      <ShareIcon size={17} />
+                      {entry.review.trim()
+                        ? tr("Partager cet avis")
+                        : tr("Partager le film ou la série")}
+                    </button>
+                    <button
+                      className="text-button"
+                      onClick={() => story({ entry, profile })}
+                    >
+                      <ShareIcon size={17} /> {tr("Partager en story")}
+                    </button>
+                  </div>
+                </>
+              )}
             </article>
           ))
         )}

@@ -622,7 +622,7 @@ function App() {
       setLibrary(data);
     } catch {
       toast(tr("Stockage plein : exportez votre collection."));
-      return;
+      return false;
     }
     if (user) {
       try {
@@ -635,6 +635,7 @@ function App() {
         );
       }
     }
+    return true;
   }
 
   function navigate(p: Page) {
@@ -1716,6 +1717,7 @@ function App() {
                 share={requestShare}
                 story={setStoryDraft}
                 monthly={openMonthly}
+                update={update}
                 protectSpoilers={discovery.value.protectSpoilers}
               />
               {personal.error && <p className="muted fine">{personal.error}</p>}
@@ -2792,4 +2794,7 @@ function AuthModal({
     </Modal>
   );
 }
+// Stop Chromium's viewport stretch from deforming the fixed application chrome.
+if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === "android")
+  document.documentElement.dataset.nativePlatform = "android";
 createRoot(document.getElementById("root")!).render(<App />);

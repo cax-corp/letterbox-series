@@ -732,6 +732,13 @@ test("Android : couleur native et halo symétrique, aucune affiche ou surface fl
   // Other pages regain their existing surfaces; this change is scoped to the feed.
   await page.getByRole("button", { name: "Profil", exact: true }).click();
   await expect(page.locator("main")).not.toHaveClass("is-feed");
+  // The document no longer stretches the entire native WebView and its chrome.
+  await expect(page.locator("html")).toHaveAttribute(
+    "data-native-platform",
+    "android",
+  );
+  await expect(page.locator("html")).toHaveCSS("overscroll-behavior-y", "none");
+  await expect(page.locator("body")).toHaveCSS("overscroll-behavior-y", "none");
   for (const bar of bars) {
     expect(
       await bar.evaluate((el) => getComputedStyle(el).backdropFilter),
@@ -745,7 +752,9 @@ test("Android : couleur native et halo symétrique, aucune affiche ou surface fl
   for (const mode of ["dark", "light"] as const) {
     const currentMode = await page.locator("html").getAttribute("data-theme");
     if (currentMode !== mode)
-      await page.getByRole("button", { name: /^Passer en mode (clair|sombre)$/ }).click();
+      await page
+        .getByRole("button", { name: /^Passer en mode (clair|sombre)$/ })
+        .click();
     for (const bar of bars) {
       await expect(bar).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
       await expect(bar).toHaveCSS("backdrop-filter", "none");

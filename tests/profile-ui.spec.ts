@@ -42,6 +42,8 @@ async function setup(page: Page, signed = false) {
     puts = 0,
     libraryWrites = 0;
   const payloads: any[] = [];
+  const libraryPayloads: any[] = [];
+  const remoteLibrary = { ...initial };
   const storageCalls: string[] = [];
   const expiry = Math.floor(Date.now() / 1000) + 365 * 86400;
   const jwt = [
@@ -123,10 +125,13 @@ async function setup(page: Page, signed = false) {
   await page.route(project + "/rest/v1/library*", (r) => {
     if (r.request().method() !== "GET") {
       libraryWrites++;
+      const rows = r.request().postDataJSON();
+      libraryPayloads.push(...rows);
+      for (const row of rows) remoteLibrary[row.title_id] = row.entry;
       return r.fulfill({ status: 201, json: [] });
     }
     return r.fulfill({
-      json: Object.values(initial).map((entry) => ({ entry })),
+      json: Object.values(remoteLibrary).map((entry) => ({ entry })),
     });
   });
   await page.route(project + "/storage/**", (r) => {
@@ -143,6 +148,7 @@ async function setup(page: Page, signed = false) {
     metadata: () => metadata,
     storageCalls,
     libraryWrites: () => libraryWrites,
+    libraryPayloads,
   };
 }
 async function edit(page: Page) {
@@ -724,4 +730,204 @@ test("photo personnalisée : fichier refusé et annulation ne modifient pas le p
   await expect(editor.locator(".avatar-photo")).toHaveCount(0);
   await editor.getByRole("button", { name: "Annuler", exact: true }).click();
   await expect(page.locator(".profile-head .avatar-photo")).toHaveCount(0);
+});
+
+test("avis du profil : notes seules, édition enregistrée, annulation et synchronisation Supabase", async ({
+  page,
+}) => {
+  await page.addInitScript(
+    ({ id, initial }) => {
+      if (localStorage.getItem("luma-library-v1-" + id)) return;
+      const data = structuredClone(initial);
+      data["movie-3"] = {
+        ...data["movie-3"],
+        rating: 3,
+        updated: new Date().toISOString(),
+      };
+      localStorage.setItem("luma-library-v1-" + id, JSON.stringify(data));
+    },
+    { id, initial },
+  );
+  const state = await setup(page, true);
+  const reviews = page.getByRole("region", { name: "Mes avis", exact: true });
+  await expect(reviews.getByRole("article")).toHaveCount(3);
+  const note = reviews.getByRole("article", {
+    name: "Avis sur Film 3",
+    exact: true,
+  });
+  await expect(note).toContainText("3/5");
+  await expect(note.locator(".spoiler-content")).toHaveCount(0);
+  await note
+    .getByRole("button", { name: "Modifier mon avis", exact: true })
+    .click();
+  let form = note.getByRole("form");
+  await expect(form.getByLabel("Votre critique", { exact: true })).toBeEmpty();
+  await form
+    .getByRole("button", { name: "Noter 5 sur 5", exact: true })
+    .click();
+  await form
+    .getByLabel("Votre critique", { exact: true })
+    .fill("Un brouillon à oublier.");
+  await form.getByRole("button", { name: "Annuler", exact: true }).click();
+  await expect(note).toContainText("3/5");
+  await expect(note).not.toContainText("Un brouillon à oublier.");
+  await note
+    .getByRole("button", { name: "Modifier mon avis", exact: true })
+    .click();
+  form = note.getByRole("form");
+  await expect(
+    form.getByRole("button", { name: "Noter 3 sur 5", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await form
+    .getByRole("button", { name: "Noter 4 sur 5", exact: true })
+    .click();
+  await form
+    .getByLabel("Votre critique", { exact: true })
+    .fill("Une critique ajoutée depuis le profil.");
+  await form
+    .getByLabel("Cet avis contient des spoilers", { exact: true })
+    .check();
+  await form
+    .getByRole("button", { name: "Enregistrer mon avis", exact: true })
+    .click();
+  await expect(note).toContainText("4/5");
+  await expect(
+    note.getByText("Une critique ajoutée depuis le profil.", { exact: true }),
+  ).toHaveCount(0);
+  await note
+    .getByRole("button", { name: "Afficher l’avis", exact: true })
+    .click();
+  await expect(note).toContainText("Une critique ajoutée depuis le profil.");
+  await page.getByRole("button", { name: "Synchroniser", exact: true }).click();
+  await expect
+    .poll(
+      () =>
+        state.libraryPayloads.findLast((row) => row.title_id === "movie-3")
+          ?.entry.review,
+    )
+    .toBe("Une critique ajoutée depuis le profil.");
+  const saved = state.libraryPayloads.findLast(
+    (row) => row.title_id === "movie-3",
+  ).entry;
+  expect(saved).toMatchObject({ rating: 4, spoiler: true, watched: true });
+  // Keep edited content across a fresh app instance, without re-seeding the local library.
+  await page.reload();
+  await page.getByRole("button", { name: "Profil", exact: true }).click();
+  await note
+    .getByRole("button", { name: "Modifier mon avis", exact: true })
+    .click();
+  await expect(note.getByLabel("Votre critique", { exact: true })).toHaveValue(
+    saved.review,
+  );
+  await note.getByLabel("Votre critique", { exact: true }).fill("");
+  await note
+    .getByRole("button", { name: "Enregistrer mon avis", exact: true })
+    .click();
+  await expect(note).toBeVisible();
+  await expect(note).toContainText("4/5");
+  await expect(
+    note.getByText("Cet avis contient des spoilers", { exact: true }),
+  ).toHaveCount(0);
+  await note
+    .getByRole("button", { name: "Modifier mon avis", exact: true })
+    .click();
+  await note
+    .getByRole("button", { name: "Noter 4 sur 5", exact: true })
+    .click();
+  await note
+    .getByRole("button", { name: "Enregistrer mon avis", exact: true })
+    .click();
+  await expect(note).toHaveCount(0);
+});
+
+test("édition d’avis : lisible à 320 px et en anglais sur PC", async ({
+  page,
+}, info) => {
+  await setup(page);
+  const reviews = page.getByRole("region", { name: "Mes avis", exact: true });
+  const card = reviews.getByRole("article", {
+    name: "Avis sur Film 1",
+    exact: true,
+  });
+  await card
+    .getByRole("button", { name: "Modifier mon avis", exact: true })
+    .click();
+  for (const width of [320, 390, 1440]) {
+    await page.setViewportSize({ width, height: 844 });
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= innerWidth,
+      ),
+    ).toBe(true);
+    await expect(
+      card.getByRole("button", { name: "Enregistrer mon avis", exact: true }),
+    ).toBeVisible();
+  }
+  await card.screenshot({
+    path: info.outputPath("profile-review-edit-PC.png"),
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await card.screenshot({
+    path: info.outputPath("profile-review-edit-mobile.png"),
+  });
+  await card.getByRole("button", { name: "Annuler", exact: true }).click();
+  await page.getByRole("button", { name: "Réglages", exact: true }).click();
+  await page.getByLabel("Langue", { exact: true }).selectOption("en-US");
+  await page.reload();
+  await page.getByRole("button", { name: "Profile", exact: true }).click();
+  const english = page.getByRole("article", {
+    name: "Review of Film 1",
+    exact: true,
+  });
+  await english
+    .getByRole("button", { name: "Edit my review", exact: true })
+    .click();
+  await expect(
+    english.getByRole("form", { name: "Edit review of Film 1", exact: true }),
+  ).toBeVisible();
+});
+
+test("avis : un stockage plein conserve le brouillon et n’annonce pas une fausse sauvegarde", async ({
+  page,
+}) => {
+  await setup(page);
+  const card = page.getByRole("article", {
+    name: "Avis sur Film 1",
+    exact: true,
+  });
+  await card
+    .getByRole("button", { name: "Modifier mon avis", exact: true })
+    .click();
+  await card
+    .getByLabel("Votre critique", { exact: true })
+    .fill("Une modification à conserver.");
+  await page.evaluate(() => {
+    const original = Storage.prototype.setItem;
+    (window as any).restoreReviewStorage = () => {
+      Storage.prototype.setItem = original;
+    };
+    Storage.prototype.setItem = function (key, value) {
+      if (key === "luma-library-v1")
+        throw new DOMException("Storage full", "QuotaExceededError");
+      return original.call(this, key, value);
+    };
+  });
+  await card
+    .getByRole("button", { name: "Enregistrer mon avis", exact: true })
+    .click();
+  await expect(card.getByLabel("Votre critique", { exact: true })).toHaveValue(
+    "Une modification à conserver.",
+  );
+  expect(
+    await page.evaluate(
+      () =>
+        JSON.parse(localStorage.getItem("luma-library-v1")!)["movie-1"].review,
+    ),
+  ).toBe(initial["movie-1"].review);
+  await page.evaluate(() => (window as any).restoreReviewStorage());
+  await card
+    .getByRole("button", { name: "Enregistrer mon avis", exact: true })
+    .click();
+  await expect(card.getByRole("form")).toHaveCount(0);
+  await expect(card).toContainText("Une modification à conserver.");
 });

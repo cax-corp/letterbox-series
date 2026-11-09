@@ -43,7 +43,6 @@
   "Ajoutez des titres à votre collection depuis Explorer pour pouvoir les choisir ici.": "Add titles to your collection from Explore to select them here.",
   "Annulé": "Canceled",
   "Annuler": "Cancel",
-  "APK Android · Version 2.10.0. L’application n’est pas encore disponible sur Google Play ou l’App Store.": "Android APK · Version 2.10.0. The app is not available on Google Play or the App Store yet.",
   "Apparence": "Appearance",
   "Apprécié": "Liked",
   "Appréciés": "Liked",
@@ -860,5 +859,10 @@
   "Inclure quand même l’extrait": "Include the excerpt anyway",
   "Connectez-vous pour consulter votre bilan personnel.": "Sign in to view your personal recap.",
   "Aucun titre dans cette sélection": "No titles in this selection",
-  "Vos exclusions masquent cette sélection. Vous pouvez les modifier dans les réglages.": "Your exclusions hide this selection. You can adjust them in settings."
+  "Vos exclusions masquent cette sélection. Vous pouvez les modifier dans les réglages.": "Your exclusions hide this selection. You can adjust them in settings.",
+  "APK Android · Version 2.10.1. L’application n’est pas encore disponible sur Google Play ou l’App Store.": "Android APK · Version 2.10.1. The app is not available on Google Play or the App Store yet.",
+  "Modifier l’avis sur {0}": "Edit review of {0}",
+  "Avis sur {0}": "Review of {0}",
+  "Partager le film ou la série": "Share movie or TV show",
+  "Vos notes et vos critiques apparaîtront ici. Notez un film ou une série depuis sa fiche.": "Your ratings and reviews will appear here. Rate a movie or TV show from its details."
 }
