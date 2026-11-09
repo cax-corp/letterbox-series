@@ -6,7 +6,9 @@ Les avatars intégrés restent disponibles. En choisir un remplace la photograph
 
 ## Activer le stockage Supabase
 
-Dans le projet Supabase, ouvrir **SQL Editor → New query**, coller le contenu de [`supabase/profile-photos.sql`](../supabase/profile-photos.sql) puis **Run**. Cette opération crée le bucket `vela-avatars`, limite les fichiers aux JPEG de 64 Ko et autorise chaque compte à déposer des fichiers uniquement dans son propre dossier. Elle ajoute aussi le champ photo aux profils/avis partagés. Le script peut être exécuté plusieurs fois.
+Dans le projet Supabase, ouvrir **SQL Editor → New query**, coller le contenu de [`supabase/profile-photos.sql`](../supabase/profile-photos.sql) puis **Run**. Cette opération crée le bucket `vela-avatars`, limite les fichiers aux JPEG de 64 Ko et autorise chaque compte à déposer des fichiers uniquement dans son propre dossier. Elle ajoute aussi le champ photo aux profils/avis partagés. Le script peut être exécuté plusieurs fois. Il ne modifie pas la structure ni l’activation RLS de `storage.objects`, qui sont gérées par Supabase.
+
+Si une ancienne copie affiche `42501: must be owner of table objects`, retirer la ligne `alter table storage.objects enable row level security;` puis réexécuter **tout le script** corrigé. Dans le SQL Editor, utiliser le rôle `postgres`. Si l’éditeur conserve une transaction en échec (`25P02`), exécuter `rollback;` avant de relancer le script. Aucune nouvelle version de l’APK n’est nécessaire.
 
 Puis, dans Vela, cliquer sur **Sauvegarder maintenant**, ou enregistrer à nouveau le profil. Les photos déjà choisies hors connexion restent sur l’appareil jusqu’au transfert réussi. Tant que le script n’est pas exécuté, l’import local et les stories fonctionnent, mais la photo ne peut pas être restaurée sur un autre appareil.
 

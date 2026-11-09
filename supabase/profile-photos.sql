@@ -6,7 +6,7 @@ values ('vela-avatars', 'vela-avatars', true, 65536, array['image/jpeg'])
 on conflict (id) do update set public = excluded.public, file_size_limit = excluded.file_size_limit, allowed_mime_types = excluded.allowed_mime_types;
 
 -- The public image endpoint serves an avatar by its unguessable URL. Object listing and writes remain owner-only.
-alter table storage.objects enable row level security;
+-- Supabase owns storage.objects and already enables RLS. Do not ALTER this managed table.
 drop policy if exists "Vela avatars: read own objects" on storage.objects;
 create policy "Vela avatars: read own objects" on storage.objects for select to authenticated
 using (bucket_id = 'vela-avatars' and split_part(name, '/', 1) = (select auth.uid())::text);

@@ -195,7 +195,7 @@ test("PostgreSQL : bucket borné, dossiers isolés, pas de liste anonyme, photos
   const db = new PGlite();
   try {
     await db.exec(
-      `create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key);insert into auth.users values('${a}'),('${b}');create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema auth to authenticated;create schema storage;create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);create table storage.objects(id uuid primary key default gen_random_uuid(),bucket_id text,name text);grant usage on schema storage to anon,authenticated;grant select,insert,delete on storage.objects to anon,authenticated;`,
+      `create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key);insert into auth.users values('${a}'),('${b}');create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema auth to authenticated;create schema storage;create table storage.buckets(id text primary key,name text,public boolean,file_size_limit bigint,allowed_mime_types text[]);create table storage.objects(id uuid primary key default gen_random_uuid(),bucket_id text,name text);alter table storage.objects enable row level security;grant usage on schema storage to anon,authenticated;grant select,insert,delete on storage.objects to anon,authenticated;`,
     );
     await db.exec(
       readFileSync(
@@ -207,8 +207,26 @@ test("PostgreSQL : bucket borné, dossiers isolés, pas de liste anonyme, photos
       new URL("../supabase/profile-photos.sql", import.meta.url),
       "utf8",
     );
+    // Managed Storage already has RLS and rejects table-level alterations.
+    // Only policies may be configured by this migration.
+    await db.exec(`
+      create function public.protect_managed_storage_table() returns event_trigger language plpgsql as $$
+      begin raise exception 'must be owner of table objects' using errcode = '42501'; end $$;
+      create event trigger protect_managed_storage on ddl_command_start when tag in ('ALTER TABLE')
+      execute function public.protect_managed_storage_table();
+    `);
+    await expect(
+      db.exec("alter table storage.objects enable row level security"),
+    ).rejects.toThrow(/must be owner of table objects/);
     await db.exec(sql);
     await db.exec(sql);
+    expect(
+      (
+        await db.query<{ enabled: boolean }>(
+          "select relrowsecurity as enabled from pg_class where oid = 'storage.objects'::regclass",
+        )
+      ).rows[0].enabled,
+    ).toBe(true);
     expect(
       (
         await db.query<any>(
