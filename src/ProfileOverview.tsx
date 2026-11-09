@@ -1,6 +1,7 @@
 import { t as tr, getLanguage } from "./i18n";
 import { useMemo, useState } from "react";
 import Avatar from "./Avatar";
+import SpoilerText from "./SpoilerText";
 import type { Profile } from "./profile";
 import { profileStats } from "./profile-stats";
 import { profileShare, reviewShare, type ShareDraft } from "./sharing";
@@ -18,7 +19,11 @@ export default function ProfileOverview({
   pending,
   share,
   story,
+  monthly,
+  protectSpoilers = true,
 }: {
+  monthly: () => void;
+  protectSpoilers?: boolean;
   profile: Profile;
   library: Library;
   email?: string;
@@ -54,6 +59,9 @@ export default function ProfileOverview({
       <div className="profile-actions">
         <button className="button tonal" onClick={edit}>
           {tr("Modifier mon profil")}
+        </button>
+        <button className="button tonal" onClick={monthly}>
+          {tr("Bilan mensuel")}
         </button>
         <button
           className="button surface"
@@ -226,7 +234,12 @@ export default function ProfileOverview({
                   </span>
                 )}
               </div>
-              <p>{entry.review}</p>
+              <SpoilerText
+                key={entry.title.id + entry.updated}
+                text={entry.review}
+                spoiler={entry.spoiler}
+                protect={protectSpoilers}
+              />
               <div className="review-actions">
                 <button
                   className="text-button"

@@ -2,13 +2,16 @@ import { t as tr, getLanguage } from "./i18n";
 import { useEffect, useId, useRef, useState } from "react";
 import { ArrowRight, Bookmark, ChevronRight, ShareIcon, Star } from "./icons";
 import type { Entry } from "./store";
+import SpoilerText from "./SpoilerText";
 export default function TitleReview({
   entry,
   update,
   share,
   story,
   saved,
+  protectSpoilers = true,
 }: {
+  protectSpoilers?: boolean;
   entry: Entry;
   update: (patch: Partial<Entry>) => void;
   share: () => void;
@@ -16,7 +19,8 @@ export default function TitleReview({
   saved: () => void;
 }) {
   const [editing, setEditing] = useState(false),
-    [review, setReview] = useState(entry.review);
+    [review, setReview] = useState(entry.review),
+    [spoiler, setSpoiler] = useState(Boolean(entry.spoiler));
   const reviewId = useId();
   const textarea = useRef<HTMLTextAreaElement>(null),
     previous = useRef(entry.review);
@@ -66,12 +70,20 @@ export default function TitleReview({
       {!editing ? (
         <>
           {entry.review.trim() && (
-            <p className="review-excerpt">{entry.review}</p>
+            <SpoilerText
+              key={entry.updated}
+              text={entry.review}
+              spoiler={entry.spoiler}
+              protect={protectSpoilers}
+            />
           )}
           <div className="review-actions">
             <button
               className="text-button review-edit"
-              onClick={() => setEditing(true)}
+              onClick={() => {
+                setSpoiler(Boolean(entry.spoiler));
+                setEditing(true);
+              }}
             >
               {entry.review.trim()
                 ? tr("Modifier mon avis")
@@ -93,7 +105,7 @@ export default function TitleReview({
           className="review-composer"
           onSubmit={(e) => {
             e.preventDefault();
-            update({ review, watched: true });
+            update({ review, watched: true, spoiler });
             setEditing(false);
             saved();
           }}
@@ -116,6 +128,14 @@ export default function TitleReview({
                 Math.min(360, Math.max(120, field.scrollHeight)) + "px";
             }}
           />
+          <label className="preference-toggle">
+            <input
+              type="checkbox"
+              checked={spoiler}
+              onChange={(e) => setSpoiler(e.target.checked)}
+            />
+            {tr("Cet avis contient des spoilers")}
+          </label>
           <div className="review-composer-footer">
             <span className="muted">
               {review.length.toLocaleString(getLanguage())} / 5 000

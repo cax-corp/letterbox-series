@@ -184,8 +184,15 @@ export async function syncAccountState(
       return result;
     }
     try {
+      const tastesStampKey = `${accountStateKey(account)}:tastes-read`;
+      let lastTasteRead = 0;
+      try {
+        lastTasteRead = Number(localStorage.getItem(tastesStampKey) || 0);
+      } catch {}
+      const readTastes =
+        includeTastes || (readOnly && Date.now() - lastTasteRead > 10 * 60000);
       const remote = await request(
-        `vela_private_state?user_id=eq.${encodeURIComponent(account)}&select=key,payload,updated_at&limit=200${!includeTastes && !readOnly ? "&key=in.(palette,theme,backupFrequency,notifications)" : ""}`,
+        `vela_private_state?user_id=eq.${encodeURIComponent(account)}&select=key,payload,updated_at&limit=200${!readTastes ? "&key=in.(palette,theme,backupFrequency,notifications)" : ""}`,
       );
       const merged = mergePreferenceRecords(
         readAccountPreferences(account),
@@ -196,6 +203,10 @@ export async function syncAccountState(
         account,
         remote.filter((r) => r.key.startsWith("skip:")).map((r) => r.payload),
       );
+      if (readTastes)
+        try {
+          localStorage.setItem(tastesStampKey, String(Date.now()));
+        } catch {}
       const outgoing: PrivateRow[] = [];
       if (!readOnly) {
         for (const row of Object.values(merged))

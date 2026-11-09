@@ -1,3 +1,4 @@
+import { readRemoteUser } from "./remote-user";
 import { t as tr } from "./i18n";
 import { cloud, getConfig } from "./store";
 import { uploadProfilePhoto } from "./profile-photo";
@@ -52,7 +53,11 @@ export async function syncUserProfile(
         await client.auth.getSession();
       if (sessionError) throw sessionError;
       if (session.session?.user.id !== account) return;
-      const { data, error } = await client.auth.getUser();
+      const { data, error } = await readRemoteUser(
+        client,
+        account,
+        session.session?.access_token,
+      );
       if (error) throw error;
       if (data.user?.id !== account) return;
       const remote = validateProfile(data.user.user_metadata?.vela_profile),

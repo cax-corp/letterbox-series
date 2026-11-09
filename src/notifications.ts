@@ -1,3 +1,4 @@
+import { readDiscovery, readSaga, isExcluded } from "./discovery-preferences";
 import { t as tr, getLanguage } from "./i18n";
 import {
   Capacitor,
@@ -86,6 +87,9 @@ export function buildDailyPayload(
   fallback: Title[],
   account = "local",
 ): DailyPayload {
+  const prefs = readDiscovery(account),
+    sagaIds = new Set(prefs.sagas.flatMap((s) => readSaga(s.id)?.ids || [])),
+    sagasReady = prefs.sagas.every((s) => readSaga(s.id));
   const entries = Object.values(library),
     blocked = entries.filter(
       (entry) =>
@@ -100,6 +104,8 @@ export function buildDailyPayload(
   );
   const candidates = rankHomeTitles(library, [...fallback, ...cached]).filter(
     (title) =>
+      sagasReady &&
+      !isExcluded(title, prefs, sagaIds) &&
       title.kind === "movie" &&
       !seen(title) &&
       !blocked.some(

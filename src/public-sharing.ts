@@ -21,7 +21,13 @@ export type SharedPayload = {
   version: 1;
   profile: Profile;
   stats?: PublicStats;
-  review?: { title: Title; rating: number; text: string; updated: string };
+  review?: {
+    title: Title;
+    rating: number;
+    text: string;
+    updated: string;
+    spoiler?: boolean;
+  };
 };
 export type ShareDraft = {
   kind: "profile" | "review" | "title";
@@ -96,6 +102,7 @@ export function reviewDraft(
         title: featuredTitle(entry.title),
         rating: entry.rating,
         text: entry.review.trim(),
+        ...(entry.spoiler ? { spoiler: true } : {}),
         updated: entry.updated,
       },
     },
@@ -137,6 +144,7 @@ export function validateSharedPage(value: unknown): SharedPage | null {
       const r = v.payload.review;
       if (
         !r ||
+        (r.spoiler !== undefined && typeof r.spoiler !== "boolean") ||
         typeof r.text !== "string" ||
         !r.text.trim() ||
         r.text.length > 5000 ||
@@ -149,6 +157,7 @@ export function validateSharedPage(value: unknown): SharedPage | null {
       p.review = {
         title: featuredTitle(r.title),
         text: r.text,
+        ...(r.spoiler ? { spoiler: true } : {}),
         rating: r.rating,
         updated: r.updated,
       };

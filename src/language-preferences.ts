@@ -1,3 +1,4 @@
+import { readRemoteUser } from "./remote-user";
 import { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { cloud, getConfig } from "./store";
@@ -55,7 +56,7 @@ export function syncLanguagePreference(account: string): Promise<void> {
     if (error) throw error;
     const session = data.session;
     if (session?.user.id !== account) return;
-    const result = await cloud!.auth.getUser(session.access_token);
+    const result = await readRemoteUser(cloud!, account, session.access_token);
     if (result.error) throw result.error;
     if (result.data.user?.id !== account) return;
     let remote = validateLanguagePreference(
@@ -153,7 +154,7 @@ export function useLanguagePreference(user: User | null) {
       window.removeEventListener("storage", resume);
       document.removeEventListener("visibilitychange", resume);
     };
-  }, [account, user?.user_metadata?.vela_language]);
+  }, [account, user?.user_metadata?.vela_language?.updated]);
   async function save(code: AppLanguage) {
     const previous = readLanguagePreference(
       account,

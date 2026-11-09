@@ -745,7 +745,7 @@ test("Android : couleur native et halo symétrique, aucune affiche ou surface fl
   for (const mode of ["dark", "light"] as const) {
     const currentMode = await page.locator("html").getAttribute("data-theme");
     if (currentMode !== mode)
-      await page.locator(".header-actions button").first().click();
+      await page.getByRole("button", { name: /^Passer en mode (clair|sombre)$/ }).click();
     for (const bar of bars) {
       await expect(bar).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
       await expect(bar).toHaveCSS("backdrop-filter", "none");

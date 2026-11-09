@@ -1,6 +1,7 @@
 import { t as tr, useLanguage, getLanguage } from "./i18n";
 import { useEffect, useState } from "react";
 import Avatar from "./Avatar";
+import SpoilerText from "./SpoilerText";
 import { readSharedPage, uuidPattern, type SharedPage } from "./public-sharing";
 import { titleById, type Title } from "./catalog";
 import { Film, Star } from "./icons";
@@ -17,8 +18,10 @@ export default function PublicPage({
   route,
   renderTitle,
   open,
+  protectSpoilers = true,
 }: {
   route: PublicRoute;
+  protectSpoilers?: boolean;
   renderTitle: (title: Title) => React.ReactNode;
   open: (title: Title) => void;
 }) {
@@ -117,7 +120,12 @@ export default function PublicPage({
               {r.rating}/5
             </p>
           )}
-          <p>{r.text}</p>
+          <SpoilerText
+            key={page.id + page.updated_at}
+            text={r.text}
+            spoiler={r.spoiler}
+            protect={protectSpoilers}
+          />
         </article>
       ) : (
         p.featured.length > 0 && (

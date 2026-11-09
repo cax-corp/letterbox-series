@@ -36,6 +36,7 @@ export default function StoryShareDialog({
   close: () => void;
   toast: (text: string) => void;
 }) {
+  const [allowSpoiler, setAllowSpoiler] = useState(false);
   const [format, setFormat] = useState<StoryStyle>("poster"),
     [retry, setRetry] = useState(0);
   const [ready, setReady] = useState<{
@@ -167,12 +168,31 @@ export default function StoryShareDialog({
               <button
                 disabled={busy}
                 aria-pressed={format === "review"}
-                onClick={() => setFormat("review")}
+                onClick={() => {
+                  if (draft.entry.spoiler && !allowSpoiler)
+                    setAllowSpoiler(true);
+                  else setFormat("review");
+                }}
               >
                 {tr("Avec un extrait")}
               </button>
             )}
           </div>
+          {allowSpoiler && draft.entry.spoiler && format !== "review" && (
+            <div className="story-warning">
+              <p>
+                {tr(
+                  "Cet extrait contient des spoilers. Il sera visible dans l’image partagée.",
+                )}
+              </p>
+              <button
+                className="button tonal"
+                onClick={() => setFormat("review")}
+              >
+                {tr("Inclure quand même l’extrait")}
+              </button>
+            </div>
+          )}
           {ready?.truncated && (
             <p className="fine muted">
               {tr(

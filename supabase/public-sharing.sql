@@ -64,7 +64,8 @@ begin
   elsif k = 'review' then
     item := p->'review';
     if p ? 'stats' or jsonb_typeof(item) is distinct from 'object'
-      or item - array['title','rating','text','updated'] <> '{}'::jsonb
+      or item - array['title','rating','text','updated','spoiler'] <> '{}'::jsonb
+      or (item ? 'spoiler' and jsonb_typeof(item->'spoiler') is distinct from 'boolean')
       or not public.vela_shared_title_valid(item->'title')
       or jsonb_typeof(item->'text') is distinct from 'string'
       or length(btrim(item->>'text')) not between 1 and 5000

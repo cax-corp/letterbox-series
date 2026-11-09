@@ -1,5 +1,6 @@
 import { t as tr, getLanguage } from "./i18n";
 import { serviceDefaults } from "./service-config";
+import { catalogCache } from "./request-cache";
 export type Season = { number: number; name: string; count: number };
 export type Episode = {
   id: number;
@@ -28,6 +29,7 @@ export type Title = {
   score?: number;
   voteCount?: number;
   collectionId?: number;
+  collectionName?: string;
   duration?: string;
   url?: string;
   trailer?: string;
@@ -104,7 +106,7 @@ export async function request(url: string, signal?: AbortSignal) {
     );
   return r.json();
 }
-export async function tmdbRequest(
+async function loadTmdbRequest(
   path: string,
   params: Record<string, string | number> = {},
   signal?: AbortSignal,
@@ -155,6 +157,45 @@ export async function tmdbRequest(
     throw new DOMException("Language changed", "AbortError");
   return data;
 }
+export async function tmdbRequest(
+  path: string,
+  params: Record<string, string | number> = {},
+  signal?: AbortSignal,
+  credential = getTmdbCredential(),
+  useCache = true,
+): Promise<any> {
+  const language = getLanguage();
+  if (!useCache) return loadTmdbRequest(path, params, signal, credential);
+  let scope = 2166136261;
+  for (const char of credential)
+    scope = Math.imul(scope ^ char.charCodeAt(0), 16777619);
+  const key = JSON.stringify([
+    scope,
+    path,
+    language,
+    Object.entries(params).sort(([a], [b]) => a.localeCompare(b)),
+  ]);
+  const ttl = path.includes("watch/providers")
+    ? 6 * 3600000
+    : path.startsWith("/collection/")
+      ? 86400000
+      : /\/(movie|tv)\/\d+/.test(path)
+        ? 15 * 60000
+        : 5 * 60000;
+  const data = await catalogCache.get(
+    key,
+    (child) => {
+      if (language !== getLanguage())
+        throw new DOMException("Language changed", "AbortError");
+      return loadTmdbRequest(path, params, child, credential);
+    },
+    ttl,
+    signal,
+  );
+  if (language !== getLanguage())
+    throw new DOMException("Language changed", "AbortError");
+  return data;
+}
 export async function saveTmdbCredential(input: string) {
   const credential = input.trim().replace(/^Bearer\s+/i, "");
   if (
@@ -166,7 +207,7 @@ export async function saveTmdbCredential(input: string) {
         "Collez le jeton de lecture API TMDB ou la clé API v3 de 32 caractères.",
       ),
     );
-  await tmdbRequest("/configuration", {}, undefined, credential);
+  await tmdbRequest("/configuration", {}, undefined, credential, false);
   localStorage.setItem("luma-tmdb-token", credential);
   location.reload();
 }
@@ -207,7 +248,13 @@ function fromTmdb(x: any, kind: Title["kind"]): Title {
           .filter(Boolean),
     voteCount: x.vote_count,
     ...(Number.isSafeInteger(x.belongs_to_collection?.id)
-      ? { collectionId: x.belongs_to_collection.id }
+      ? {
+          collectionId: x.belongs_to_collection.id,
+          collectionName: String(x.belongs_to_collection.name || "").slice(
+            0,
+            100,
+          ),
+        }
       : {}),
     score: x.vote_count > 0 ? Math.round(x.vote_average * 10) / 10 : undefined,
     duration: x.runtime

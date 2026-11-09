@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   buildDailyPayload,
   dailyNative,
@@ -17,6 +17,15 @@ export function useNotificationPreference(
 ) {
   const latest = useRef({ library, fallback });
   latest.current = { library, fallback };
+  const [exclusionRevision, setExclusionRevision] = useState(0);
+  useEffect(() => {
+    const changed = (e: Event) => {
+      if ((e as CustomEvent).detail === account)
+        setExclusionRevision((n) => n + 1);
+    };
+    window.addEventListener("vela-discovery-state", changed);
+    return () => window.removeEventListener("vela-discovery-state", changed);
+  }, [account]);
   const identity = JSON.stringify(value);
   useEffect(() => {
     if (!ready || !dailySupported()) return;
@@ -44,8 +53,18 @@ export function useNotificationPreference(
       if (
         JSON.stringify(current) === JSON.stringify(wanted) &&
         !state.config.reliableAlarm
-      )
+      ) {
+        if (exclusionRevision > 0 && wanted.enabled && state.granted)
+          await dailyNative.updateContext({
+            context: buildDailyPayload(
+              { ...wanted, reliableAlarm: false },
+              latest.current.library,
+              latest.current.fallback,
+              account,
+            ),
+          });
         return;
+      }
       // OS permission belongs to this device. Restoring an account never prompts silently.
       if (wanted.enabled && !state.granted) return;
       await dailyNative.configure({
@@ -61,5 +80,5 @@ export function useNotificationPreference(
     return () => {
       live = false;
     };
-  }, [account, ready, identity]);
+  }, [account, ready, identity, exclusionRevision]);
 }

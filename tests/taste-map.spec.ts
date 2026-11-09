@@ -155,9 +155,7 @@ test("carte 3D : sélection, rotation, zoom, filtres et retour aux réglages sur
     path: testInfo.outputPath("Vela-carte-des-gouts-mobile.png"),
     fullPage: true,
   });
-  await page
-    .getByRole("button", { name: "Retour aux réglages", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Retour", exact: true }).click();
   await expect(page).toHaveURL(/#settings$/);
   await page
     .getByRole("button", { name: "Carte de mes goûts", exact: true })
@@ -263,9 +261,7 @@ test("terminal SF : lancement volontaire, intro accélérable, son local et reto
     "content",
     "#030916",
   );
-  await page
-    .getByRole("button", { name: "Retour aux réglages", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Retour", exact: true }).click();
   await expect(page.locator("body")).not.toHaveClass(/taste-terminal-active/);
   await expect(page.locator(".sidebar")).toBeVisible();
   await expect(page.locator('meta[name="theme-color"]')).not.toHaveAttribute(
@@ -307,9 +303,7 @@ test("terminal SF : lancement volontaire, intro accélérable, son local et reto
   await expect
     .poll(() => page.evaluate(() => (window as any).atlasAudio.contexts))
     .toBe(3);
-  await page
-    .getByRole("button", { name: "Retour aux réglages", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Retour", exact: true }).click();
   await expect
     .poll(() => page.evaluate(() => (window as any).atlasAudio.closed))
     .toBe(3);
@@ -337,9 +331,7 @@ test("terminal SF : fin naturelle, nettoyage audio et animations réduites sans 
     "ready",
   );
   await expect(page.getByRole("progressbar")).toHaveCount(0);
-  await page
-    .getByRole("button", { name: "Retour aux réglages", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Retour", exact: true }).click();
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page
     .getByRole("button", { name: "Carte de mes goûts", exact: true })

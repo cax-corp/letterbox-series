@@ -1,3 +1,4 @@
+import { defaultServices } from "./service-config";
 import { t as tr } from "./i18n";
 import { useEffect, useState } from "react";
 import { cloud } from "./store";
@@ -130,35 +131,39 @@ export default function PublicSharingSettings({
           {tr(message)}
         </p>
       )}
-      <details className="advanced-services">
-        <summary>{tr("Activer le partage sur votre projet Supabase")}</summary>
-        <p className="muted">
-          {tr(
-            "Dans le SQL Editor de votre projet, exécutez ce script une fois. Il ajoute les pages partagées sans rendre la bibliothèque privée accessible.",
-          )}
-        </p>
-        <button
-          className="button tonal"
-          onClick={async () => {
-            try {
-              await Clipboard.write({ string: sql });
-              setMessage(tr("Script SQL copié."));
-            } catch {
-              setMessage(
-                tr("La copie a échoué. Sélectionnez le script ci-dessous."),
-              );
-            }
-          }}
-        >
-          {tr("Copier le SQL du partage public")}
-        </button>
-        <textarea
-          aria-label={tr("Script SQL du partage public")}
-          readOnly
-          value={sql}
-          rows={8}
-        />
-      </details>
+      {!defaultServices.supabaseUrl && import.meta.env.DEV && (
+        <details className="advanced-services">
+          <summary>
+            {tr("Activer le partage sur votre projet Supabase")}
+          </summary>
+          <p className="muted">
+            {tr(
+              "Dans le SQL Editor de votre projet, exécutez ce script une fois. Il ajoute les pages partagées sans rendre la bibliothèque privée accessible.",
+            )}
+          </p>
+          <button
+            className="button tonal"
+            onClick={async () => {
+              try {
+                await Clipboard.write({ string: sql });
+                setMessage(tr("Script SQL copié."));
+              } catch {
+                setMessage(
+                  tr("La copie a échoué. Sélectionnez le script ci-dessous."),
+                );
+              }
+            }}
+          >
+            {tr("Copier le SQL du partage public")}
+          </button>
+          <textarea
+            aria-label={tr("Script SQL du partage public")}
+            readOnly
+            value={sql}
+            rows={8}
+          />
+        </details>
+      )}
     </section>
   );
 }

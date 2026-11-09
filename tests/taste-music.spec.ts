@@ -81,9 +81,7 @@ test("Spacewalk : aucun chargement avant ouverture, vrai MP3 complet, boucle et 
   await expect(page.locator(".stellar-help")).toContainText(
     "Spacewalk — Punch Deck",
   );
-  await page
-    .getByRole("button", { name: "Retour aux réglages", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Retour", exact: true }).click();
   await expect.poll(async () => (await track(page))?.paused).toBe(true);
   expect((await track(page))!.src).toBeNull();
   await page
@@ -138,9 +136,7 @@ test("Spacewalk : silence mémorisé, bouton commun et pause/reprise lors des ch
   await expect.poll(async () => (await track(page))?.paused).toBe(true);
   await page.evaluate(() => document.dispatchEvent(new Event("resume")));
   await expect.poll(async () => (await track(page))?.paused).toBe(false);
-  await page
-    .getByRole("button", { name: "Retour aux réglages", exact: true })
-    .click();
+  await page.getByRole("button", { name: "Retour", exact: true }).click();
   await page.evaluate(() => document.dispatchEvent(new Event("resume")));
   expect((await track(page))!.paused).toBe(true);
 });

@@ -1,3 +1,4 @@
+import { readRemoteUser } from "./remote-user";
 import { t as tr, getLanguage } from "./i18n";
 import { useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
@@ -78,7 +79,11 @@ export async function syncViewingPreferences(account: string) {
     const session = sessionData.session;
     if (session?.user.id !== account) return;
     // Bind writes to this account's token, even if the UI signs into another account meanwhile.
-    const { data, error } = await cloud.auth.getUser(session.access_token);
+    const { data, error } = await readRemoteUser(
+      cloud,
+      account,
+      session.access_token,
+    );
     if (error) throw error;
     if (data.user?.id !== account) return;
     let remote = validateViewing(data.user.user_metadata?.vela_viewing);
@@ -138,7 +143,7 @@ export function useViewingPreferences(user: User | null) {
     } catch {}
     setRevision((n) => n + 1);
     setMessage("");
-  }, [account, user?.user_metadata?.vela_viewing]);
+  }, [account, user?.user_metadata?.vela_viewing?.updated]);
   useEffect(() => {
     if (!user || navigator.onLine === false) return;
     let active = true;

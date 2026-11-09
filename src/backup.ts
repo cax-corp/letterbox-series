@@ -1,3 +1,4 @@
+import { syncDiscoveryPreferences } from "./discovery-preferences";
 import { syncLanguagePreference } from "./language-preferences";
 import { t as tr } from "./i18n";
 import { syncAccountState } from "./account-state";
@@ -196,9 +197,14 @@ export const backupService = createBackupService({
   write: (account, data) => write(data, account),
   sync,
   afterSync: async (account) => {
-    await syncUserProfile(account);
-    await syncViewingPreferences(account);
-    await syncLanguagePreference(account);
+    const results = await Promise.allSettled([
+      syncUserProfile(account),
+      syncViewingPreferences(account),
+      syncLanguagePreference(account),
+      syncDiscoveryPreferences(account),
+    ]);
+    const failed = results.find((result) => result.status === "rejected");
+    if (failed?.status === "rejected") throw failed.reason;
     await syncAccountState(account, true);
   },
   emit: (key) => {

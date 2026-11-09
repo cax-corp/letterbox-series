@@ -48,7 +48,7 @@ export function useProfile(user: User | null) {
   }, [account]);
   useEffect(() => {
     if (user) hydrateProfile(user.id, user.user_metadata?.vela_profile);
-  }, [user?.id, user?.user_metadata?.vela_profile]);
+  }, [user?.id, user?.user_metadata?.vela_profile?.updated]);
   async function save(draft: Omit<Profile, "version" | "updated">) {
     const previous = newerProfile(
       readCurrentProfile(account).profile,

@@ -12,6 +12,12 @@ export const test = base.extend<{
     await use([]);
   },
   page: async ({ page, privateState, privateWrites }, use) => {
+    await page.route("**/rest/v1/rpc/vela_library_fingerprints*", (route) =>
+      route.fulfill({
+        status: 404,
+        json: { code: "PGRST202", message: "Optional manifest not installed" },
+      }),
+    );
     await page.route("**/rest/v1/vela_private_state?**", (route) =>
       route.fulfill({ json: [...privateState.values()] }),
     );

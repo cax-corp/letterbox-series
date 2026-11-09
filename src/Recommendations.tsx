@@ -55,6 +55,7 @@ export default function Recommendations({
   configure,
   account = "local",
   paused = false,
+  exclude = () => false,
 }: {
   library: Record<string, Entry>;
   fallback: Title[];
@@ -63,6 +64,7 @@ export default function Recommendations({
   configure: () => void;
   account?: string;
   paused?: boolean;
+  exclude?: (title: Title) => boolean;
 }) {
   const ranker = useRef<LocalRanker | null>(null);
   const [session] = useState(() => readRecommendationSession(account));
@@ -149,6 +151,7 @@ export default function Recommendations({
   const visible = items.filter(({ title }) => {
     const entry = library[title.id];
     return (
+      !exclude(title) &&
       !entry?.watched &&
       !entry?.rating &&
       entry?.recommendationFeedback !== "dislike"
@@ -248,6 +251,7 @@ export default function Recommendations({
         const excludedToday = dailyExclusion(account);
         const candidates = pool.current.filter(
           (candidate) =>
+            !exclude(candidate.title) &&
             !excludedToday(candidate.title) &&
             !prefix.some((item) => sameMovie(item.title, candidate.title)),
         );
@@ -320,6 +324,7 @@ export default function Recommendations({
         const seenNow = dailyExclusion(account);
         ranked = ranked.filter(
           (item) =>
+            !exclude(item.title) &&
             !seenNow(item.title) &&
             !prefix.some((old) => sameMovie(old.title, item.title)),
         );
@@ -364,6 +369,7 @@ export default function Recommendations({
           const seenNow = dailyExclusion(account);
           cached = cached.filter(
             (item) =>
+              !exclude(item.title) &&
               !seenNow(item.title) &&
               !prefix.some((old) => sameMovie(old.title, item.title)),
           );

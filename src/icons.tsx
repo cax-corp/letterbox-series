@@ -27,6 +27,7 @@ import PersonOutlineRounded from "@mui/icons-material/PersonOutlineRounded";
 import ThumbUpOutlined from "@mui/icons-material/ThumbUpOutlined";
 import ThumbDownOutlined from "@mui/icons-material/ThumbDownOutlined";
 import NotificationsNoneRounded from "@mui/icons-material/NotificationsNoneRounded";
+import HubOutlined from "@mui/icons-material/HubOutlined";
 import CloseRounded from "@mui/icons-material/CloseRounded";
 type Props = { size?: number; fill?: string; className?: string };
 function icon(
@@ -44,6 +45,7 @@ function icon(
     );
   };
 }
+export const Galaxy = icon(HubOutlined);
 export const ShareIcon = icon(IosShareRounded);
 export const ArrowLeft = icon(ArrowBackRounded),
   ArrowRight = icon(ArrowForwardRounded),

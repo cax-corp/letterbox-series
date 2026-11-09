@@ -141,7 +141,7 @@ export default function TasteMap({
       <header className="atlas-header">
         <button className="text-button settings-back" onClick={close}>
           <ArrowLeft size={20} />
-          {tr("Retour aux réglages")}
+          {tr("Retour")}
         </button>
         <span className="atlas-wordmark" aria-hidden="true">
           vela<span>.</span> <small>/ STELLAR ATLAS</small>

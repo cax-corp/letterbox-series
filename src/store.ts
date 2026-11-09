@@ -1,3 +1,4 @@
+import { readLibraryManifest, compareManifest } from "./library-manifest";
 import { t as tr } from "./i18n";
 import { createClient } from "@supabase/supabase-js";
 import { serviceDefaults } from "./service-config";
@@ -8,6 +9,7 @@ export type Entry = {
   watched: boolean;
   rating: number;
   review: string;
+  spoiler?: boolean;
   favorite: boolean;
   updated: string;
   preferenceUpdated?: string;
@@ -55,6 +57,7 @@ export function parseCollection(json: string): Record<string, Entry> {
           !Number.isFinite(Date.parse(v.preferenceUpdated)))) ||
       (v.recommendationFeedback !== undefined &&
         !["like", "dislike"].includes(v.recommendationFeedback)) ||
+      (v.spoiler !== undefined && typeof v.spoiler !== "boolean") ||
       typeof v.review !== "string" ||
       v.review.length > 5000 ||
       !Number.isFinite(v.rating) ||
@@ -95,7 +98,7 @@ export const empty = (title: Title): Entry => ({
   review: "",
   favorite: false,
   updated: new Date().toISOString(),
-  watchedAt: new Date().toISOString().slice(0, 10),
+  watchedAt: new Date().toLocaleDateString("sv-SE"),
   episodes: [],
 });
 export function getConfig(): { url: string; key: string } {
@@ -176,28 +179,55 @@ export async function sync(
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 60000);
   try {
+    const manifest = await readLibraryManifest(client, user, controller.signal);
     const remote: Library = {};
-    const pageSize = 1000;
-    for (let offset = 0; ; offset += pageSize) {
-      const { data, error } = await client
-        .from("library")
-        .select("entry")
-        .eq("user_id", user)
-        .order("title_id", { ascending: true })
-        .range(offset, offset + pageSize - 1)
-        .abortSignal(controller.signal)
-        .retry(false);
-      if (error) throw error;
-      for (const row of data || []) {
-        const entry = row.entry as Entry;
-        if (!entry?.title?.id)
-          throw new Error(tr("Une entrée de la sauvegarde est invalide."));
-        Object.assign(
-          remote,
-          parseCollection(JSON.stringify({ [entry.title.id]: entry })),
-        );
+    if (manifest) {
+      const compared = await compareManifest(manifest, local);
+      Object.assign(remote, compared.matching);
+      for (let offset = 0; offset < compared.download.length; offset += 80) {
+        const ids = compared.download.slice(offset, offset + 80);
+        const { data, error } = await client
+          .from("library")
+          .select("entry")
+          .eq("user_id", user)
+          .in("title_id", ids)
+          .order("title_id", { ascending: true })
+          .abortSignal(controller.signal)
+          .retry(false);
+        if (error) throw error;
+        for (const row of data || []) {
+          const entry = row.entry as Entry;
+          if (!entry?.title?.id)
+            throw new Error(tr("Une entrée de la sauvegarde est invalide."));
+          Object.assign(
+            remote,
+            parseCollection(JSON.stringify({ [entry.title.id]: entry })),
+          );
+        }
       }
-      if (!data || data.length < pageSize) break;
+    } else {
+      const pageSize = 1000;
+      for (let offset = 0; ; offset += pageSize) {
+        const { data, error } = await client
+          .from("library")
+          .select("entry")
+          .eq("user_id", user)
+          .order("title_id", { ascending: true })
+          .range(offset, offset + pageSize - 1)
+          .abortSignal(controller.signal)
+          .retry(false);
+        if (error) throw error;
+        for (const row of data || []) {
+          const entry = row.entry as Entry;
+          if (!entry?.title?.id)
+            throw new Error(tr("Une entrée de la sauvegarde est invalide."));
+          Object.assign(
+            remote,
+            parseCollection(JSON.stringify({ [entry.title.id]: entry })),
+          );
+        }
+        if (!data || data.length < pageSize) break;
+      }
     }
     const merged = mergeCollections(local, remote);
     const changed = Object.values(merged).filter(

@@ -10,7 +10,10 @@ import { syncAccountState } from "./account-state";
 import LanguageSelect from "./LanguageSelect";
 import { useLanguagePreference } from "./language-preferences";
 import { t as tr, getLanguage, useLanguage } from "./i18n";
-import TasteMap from "./TasteMap";
+import { useDiscoveryPreferences, resolveSaga } from "./discovery-preferences";
+import DiscoverySettings from "./DiscoverySettings";
+import { useAppUpdates, UpdateBanner, UpdateSettings } from "./app-updates";
+import "./discovery.css";
 import { chooseHomeHero } from "./home-history";
 import { rememberHomeExposure } from "./home-history";
 import { useAccountSettings } from "./useAccountSettings";
@@ -65,6 +68,7 @@ import {
   Check,
   ChevronRight,
   Clapperboard,
+  Galaxy,
   Compass,
   Download,
   Film,
@@ -135,6 +139,8 @@ import {
 } from "./store";
 import "./style.css";
 import { exportCollection } from "./export";
+const TasteMap = React.lazy(() => import("./TasteMap"));
+const MonthlyReport = React.lazy(() => import("./MonthlyReport"));
 type Page =
   | "public"
   | "discover"
@@ -144,7 +150,8 @@ type Page =
   | "profile"
   | "settings"
   | "edit-profile"
-  | "taste-map";
+  | "taste-map"
+  | "monthly";
 const pageNames: Page[] = [
   "public",
   "discover",
@@ -155,6 +162,7 @@ const pageNames: Page[] = [
   "settings",
   "edit-profile",
   "taste-map",
+  "monthly",
 ];
 function App() {
   const language = useLanguage();
@@ -189,13 +197,15 @@ function App() {
   const [page, setPage] = useState<Page>(() =>
       parsePublicRoute()
         ? "public"
-        : location.hash === "#settings/tastes"
+        : ["#settings/tastes", "#tastes"].includes(location.hash)
           ? "taste-map"
-          : location.hash === "#settings"
-            ? "settings"
-            : location.hash === "#profile/edit"
-              ? "edit-profile"
-              : "discover",
+          : location.hash === "#profile/monthly"
+            ? "monthly"
+            : location.hash === "#settings"
+              ? "settings"
+              : location.hash === "#profile/edit"
+                ? "edit-profile"
+                : "discover",
     ),
     [kind, setKind] = useState<"all" | "movie" | "series">("all"),
     [filmList, setFilms] = useState<Title[]>([]),
@@ -254,6 +264,8 @@ function App() {
   const languagePreference = useLanguagePreference(user);
   const personal = useProfile(user);
   const viewing = useViewingPreferences(user);
+  const discovery = useDiscoveryPreferences(user);
+  const updates = useAppUpdates();
   useEffect(() => {
     setShareDraft(null);
     setStoryDraft(null);
@@ -638,7 +650,8 @@ function App() {
     if (
       (page === "settings" ||
         page === "edit-profile" ||
-        page === "taste-map") &&
+        page === "taste-map" ||
+        page === "monthly") &&
       p !== page
     )
       history.replaceState(
@@ -695,21 +708,41 @@ function App() {
     window.scrollTo({ top: 0, behavior: "instant" });
   }
   function openTasteMap() {
-    history.replaceState({ lumaPage: "settings" }, "", "#settings");
+    if (page === "taste-map") return;
+    history.replaceState({ lumaPage: page }, "", location.href);
     history.pushState(
       { lumaPage: "taste-map", velaTasteEntry: true },
       "",
-      "#settings/tastes",
+      "#tastes",
     );
+    setSelected(null);
     setPage("taste-map");
     window.scrollTo({ top: 0, behavior: "instant" });
   }
   function closeTasteMap() {
     if (history.state?.velaTasteEntry) history.back();
-    else {
+    else if (location.hash === "#settings/tastes") {
       history.replaceState({ lumaPage: "settings" }, "", "#settings");
       setPage("settings");
-    }
+    } else navigate("discover");
+  }
+  function openMonthly() {
+    history.replaceState(
+      { lumaPage: "profile" },
+      "",
+      location.pathname + location.search,
+    );
+    history.pushState(
+      { lumaPage: "monthly", velaMonthlyEntry: true },
+      "",
+      "#profile/monthly",
+    );
+    setPage("monthly");
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }
+  function closeMonthly() {
+    if (history.state?.velaMonthlyEntry) history.back();
+    else navigate("profile");
   }
   function closeSettings() {
     if (history.state?.lumaSettingsEntry) history.back();
@@ -735,13 +768,15 @@ function App() {
       setPage(
         pageNames.includes(target) && target !== "public"
           ? target
-          : location.hash === "#settings/tastes"
+          : ["#settings/tastes", "#tastes"].includes(location.hash)
             ? "taste-map"
-            : location.hash === "#settings"
-              ? "settings"
-              : location.hash === "#profile/edit"
-                ? "edit-profile"
-                : "discover",
+            : location.hash === "#profile/monthly"
+              ? "monthly"
+              : location.hash === "#settings"
+                ? "settings"
+                : location.hash === "#profile/edit"
+                  ? "edit-profile"
+                  : "discover",
       );
     };
     window.addEventListener("popstate", pop);
@@ -782,6 +817,10 @@ function App() {
         setAuth(false);
         return true;
       }
+      if (page === "monthly") {
+        closeMonthly();
+        return true;
+      }
       if (page === "taste-map") {
         closeTasteMap();
         return true;
@@ -817,7 +856,8 @@ function App() {
           welcomeBack.current();
           return;
         }
-        if (page === "taste-map") closeTasteMap();
+        if (page === "monthly") closeMonthly();
+        else if (page === "taste-map") closeTasteMap();
         else if (page === "settings") closeSettings();
         else if (page === "edit-profile") closeProfileEditor();
       }
@@ -859,8 +899,12 @@ function App() {
     ).candidates.map((candidate) => candidate.title);
     return personalizeHome(
       library,
-      [...filmList, ...cached],
-      showList,
+      discovery.ready
+        ? [...filmList, ...cached].filter((title) => !discovery.excluded(title))
+        : [],
+      discovery.ready
+        ? showList.filter((title) => !discovery.excluded(title))
+        : [],
       user?.id || "local",
     );
   }, [
@@ -871,9 +915,16 @@ function App() {
     user?.id,
     feedSession,
     homeVisit,
+    discovery.value.updated,
+    discovery.ready,
     language,
   ]);
   const hero = home.hero;
+  const selectionExcluded =
+    !loading &&
+    filmList.length + showList.length > 0 &&
+    !hero &&
+    discovery.value.genres.length + discovery.value.sagas.length > 0;
   useEffect(() => {
     if (
       needsWelcome ||
@@ -1035,12 +1086,13 @@ function App() {
               [Search, "search", tr("Explorer")],
               [Sparkles, "recommendations", tr("Pour vous")],
               [Bookmark, "library", tr("Ma collection")],
+              [Galaxy, "taste-map", tr("Carte des goûts")],
             ] as const
           ).map(([Icon, p, label]) => (
             <button
               key={p}
               className={page === p ? "nav-link active" : "nav-link"}
-              onClick={() => navigate(p)}
+              onClick={() => (p === "taste-map" ? openTasteMap() : navigate(p))}
             >
               <Icon size={19} />
               {label}
@@ -1110,6 +1162,14 @@ function App() {
           </div>
           <div className="header-actions">
             <button
+              className="icon-button map-shortcut"
+              aria-label={tr("Ouvrir la carte de mes goûts")}
+              title={tr("Carte des goûts")}
+              onClick={openTasteMap}
+            >
+              <Galaxy size={23} />
+            </button>
+            <button
               className="icon-button"
               aria-label={
                 light ? tr("Passer en mode sombre") : tr("Passer en mode clair")
@@ -1127,9 +1187,11 @@ function App() {
             </button>
           </div>
         </header>
+        <UpdateBanner updates={updates} />
         {page === "public" && publicRoute && (
           <PublicPage
             route={publicRoute}
+            protectSpoilers={discovery.value.protectSpoilers}
             open={openPublicTitle}
             renderTitle={(title) => (
               <Details
@@ -1142,6 +1204,7 @@ function App() {
                 toast={toast}
                 onShare={requestShare}
                 onStory={setStoryDraft}
+                discovery={discovery}
                 inline
                 readOnly={Boolean(cloud && !user)}
                 signIn={() => setAuth(true)}
@@ -1161,12 +1224,38 @@ function App() {
               signIn={() => setAuth(true)}
             />
           ) : (
-            <TasteMap
-              library={library}
-              account={user?.id || "local"}
-              close={closeTasteMap}
-              open={setSelected}
+            <React.Suspense
+              fallback={
+                <p className="page-section" role="status">
+                  {tr("Chargement de la carte…")}
+                </p>
+              }
+            >
+              <TasteMap
+                library={library}
+                account={user?.id || "local"}
+                close={closeTasteMap}
+                open={setSelected}
+              />
+            </React.Suspense>
+          ))}
+        {page === "monthly" &&
+          (cloud && !user ? (
+            <SignInRequired
+              title={tr("Bilan mensuel")}
+              message={tr(
+                "Connectez-vous pour consulter votre bilan personnel.",
+              )}
+              signIn={() => setAuth(true)}
             />
+          ) : (
+            <React.Suspense fallback={<p role="status">{tr("Chargement…")}</p>}>
+              <MonthlyReport
+                library={library}
+                close={closeMonthly}
+                open={setSelected}
+              />
+            </React.Suspense>
           ))}
         {page === "settings" && (
           <SettingsPage
@@ -1181,6 +1270,8 @@ function App() {
             account={user?.id || "local"}
             backup={backup}
             accountSettings={accountSettings}
+            discovery={discovery}
+            updates={updates}
             languagePreference={languagePreference}
             openTasteMap={openTasteMap}
             openSetup={() => {
@@ -1235,7 +1326,9 @@ function App() {
                   {hero?.name ||
                     (loading
                       ? tr("Chargement…")
-                      : tr("Catalogue indisponible"))}
+                      : selectionExcluded
+                        ? tr("Aucun titre dans cette sélection")
+                        : tr("Catalogue indisponible"))}
                 </h2>
                 {hero && (
                   <div className="hero-meta">
@@ -1261,10 +1354,19 @@ function App() {
                     ? hero.summary || tr("Synopsis indisponible.")
                     : loading
                       ? tr("Chargement des films et séries…")
-                      : tr(
-                          "Vérifiez votre connexion ou la configuration du catalogue.",
-                        )}
+                      : selectionExcluded
+                        ? tr(
+                            "Vos exclusions masquent cette sélection. Vous pouvez les modifier dans les réglages.",
+                          )
+                        : tr(
+                            "Vérifiez votre connexion ou la configuration du catalogue.",
+                          )}
                 </p>
+                {selectionExcluded && (
+                  <button className="button tonal" onClick={openSettings}>
+                    {tr("Gérer mes exclusions")}
+                  </button>
+                )}
                 <div className="hero-actions">
                   <button
                     className="button primary"
@@ -1303,6 +1405,11 @@ function App() {
                 </div>
               </div>
             </section>
+            <button className="atlas-home-entry surface" onClick={openTasteMap}>
+              <Galaxy size={24} />
+              <strong>{tr("Carte de mes goûts")}</strong>
+              <ArrowRight size={20} />
+            </button>
             <div className="section-bar">
               <div className="tabs surface">
                 {(["all", "movie", "series"] as const).map((k) => (
@@ -1502,10 +1609,20 @@ function App() {
                 )}
                 signIn={() => setAuth(true)}
               />
+            ) : !discovery.ready ? (
+              <div className="page-section">
+                <p role="status">
+                  {discovery.error || tr("Chargement des exclusions…")}
+                </p>
+                <button className="button tonal" onClick={openSettings}>
+                  {tr("Gérer mes exclusions")}
+                </button>
+              </div>
             ) : (
               <Recommendations
-                key={`${user?.id || "local"}:${feedSession}:${language}`}
+                key={`${user?.id || "local"}:${feedSession}:${language}:${discovery.value.updated}:${discovery.ready}`}
                 account={user?.id || "local"}
+                exclude={discovery.excluded}
                 paused={Boolean(selected || auth)}
                 library={library}
                 fallback={filmList}
@@ -1598,6 +1715,8 @@ function App() {
                 pending={Boolean(user && personal.pending)}
                 share={requestShare}
                 story={setStoryDraft}
+                monthly={openMonthly}
+                protectSpoilers={discovery.value.protectSpoilers}
               />
               {personal.error && <p className="muted fine">{personal.error}</p>}
               <div className="profile-panel surface">
@@ -1741,7 +1860,9 @@ function App() {
       <nav className="mobile-nav" aria-label={tr("Navigation principale")}>
         <BottomNavigation
           showLabels
-          value={page === "edit-profile" ? "profile" : page}
+          value={
+            page === "edit-profile" || page === "monthly" ? "profile" : page
+          }
           onChange={(_event, value) => navigate(value)}
           sx={{ height: 80, bgcolor: "transparent", width: "100%" }}
         >
@@ -1792,6 +1913,7 @@ function App() {
           signIn={() => setAuth(true)}
           onShare={requestShare}
           onStory={setStoryDraft}
+          discovery={discovery}
           viewing={viewing.value}
           settings={openSettings}
           profile={personal.profile}
@@ -1908,6 +2030,7 @@ function Details({
   profile,
   onShare,
   onStory,
+  discovery,
   inline = false,
   readOnly = false,
   signIn,
@@ -1916,6 +2039,7 @@ function Details({
 }: {
   onShare: (draft: ShareDraft) => void;
   onStory: (draft: StoryDraft) => void;
+  discovery: ReturnType<typeof useDiscoveryPreferences>;
   inline?: boolean;
   readOnly?: boolean;
   signIn?: () => void;
@@ -1935,7 +2059,8 @@ function Details({
     ),
     [detailError, setDetailError] = useState(""),
     [detailRetry, setDetailRetry] = useState(0),
-    [video, setVideo] = useState(false);
+    [video, setVideo] = useState(false),
+    [sagaBusy, setSagaBusy] = useState(false);
   const update = (patch: Partial<Entry>) => {
     // Cast portraits are fetched on demand, never copied into every backup entry.
     const { cast: _cast, ...savedTitle } = title;
@@ -2071,6 +2196,59 @@ function Details({
             </button>
           </div>
         )}
+        {title.collectionId && !readOnly && (
+          <div className="saga-exclusion">
+            <button
+              className="text-button"
+              disabled={sagaBusy}
+              onClick={async () => {
+                const existing = discovery.value.sagas.some(
+                  (s) => s.id === title.collectionId,
+                );
+                if (existing) {
+                  discovery.change({
+                    sagas: discovery.value.sagas.filter(
+                      (s) => s.id !== title.collectionId,
+                    ),
+                  });
+                  return;
+                }
+                if (discovery.value.sagas.length >= 12) {
+                  toast(tr("Vous pouvez exclure jusqu’à 12 sagas."));
+                  return;
+                }
+                setSagaBusy(true);
+                try {
+                  await resolveSaga(title.collectionId!);
+                  discovery.change({
+                    sagas: [
+                      ...discovery.value.sagas,
+                      {
+                        id: title.collectionId!,
+                        name: title.collectionName || title.name,
+                      },
+                    ],
+                  });
+                  toast(tr("Cette saga est exclue de vos recommandations."));
+                } catch {
+                  toast(
+                    tr(
+                      "Impossible de charger cette saga. Réessayez avec une connexion.",
+                    ),
+                  );
+                } finally {
+                  setSagaBusy(false);
+                }
+              }}
+            >
+              {sagaBusy
+                ? tr("Chargement…")
+                : discovery.value.sagas.some((s) => s.id === title.collectionId)
+                  ? tr("Réautoriser cette saga")
+                  : tr("Exclure cette saga des recommandations")}
+            </button>
+          </div>
+        )}
         <WhereToWatch title={title} preferences={viewing} settings={settings} />
         <h3>{tr("Synopsis")}</h3>
         <p className="synopsis">{title.summary}</p>
@@ -2078,6 +2256,7 @@ function Details({
           <TitleReview
             entry={entry}
             update={update}
+            protectSpoilers={discovery.value.protectSpoilers}
             share={() => share(true)}
             story={() => onStory({ entry: { ...entry, title }, profile })}
             saved={() => toast(tr("Avis enregistré."))}
@@ -2176,8 +2355,12 @@ function SettingsPage({
   openTasteMap,
   openSetup,
   languagePreference,
+  discovery,
+  updates,
 }: {
   languagePreference: ReturnType<typeof useLanguagePreference>;
+  discovery: ReturnType<typeof useDiscoveryPreferences>;
+  updates: ReturnType<typeof useAppUpdates>;
   openTasteMap: () => void;
   openSetup: () => void;
   accountSettings: ReturnType<typeof useAccountSettings>;
@@ -2284,6 +2467,7 @@ function SettingsPage({
         </div>
         <ColourThemePicker value={colourTheme} onChange={setColourTheme} />
         <hr />
+        <DiscoverySettings preferences={discovery} />
         <section className="taste-entry" aria-label={tr("Vos goûts")}>
           <div>
             <h2>{tr("Vos goûts")}</h2>
@@ -2342,6 +2526,8 @@ function SettingsPage({
           }
         />
         <hr />
+        <UpdateSettings updates={updates} />
+        <hr />
         <h2>{tr("Compte et catalogue")}</h2>
         <p className="muted">
           {cloud && tmdbEnabled()
@@ -2355,226 +2541,230 @@ function SettingsPage({
             {tr("Se connecter")}
           </button>
         )}
-        <details
-          className="advanced-services"
-          open={!defaultServices.supabaseUrl || repairNeeded}
-        >
-          <summary>{tr("Configuration avancée des services")}</summary>
-          <h2>{tr("Catalogue TMDB")}</h2>
-          <p className="muted">
-            {tr(
-              "Films et séries, titres français et originaux, affiches, fiches et épisodes. Une clé API gratuite est nécessaire pour un usage non commercial.",
-            )}
-          </p>
-          <ol className="catalog-help">
-            <li>
-              {tr("Créez un compte sur")}{" "}
-              <a
-                href="https://www.themoviedb.org/signup"
-                target="_blank"
-                rel="noreferrer"
-              >
-                themoviedb.org
-              </a>
-              .
-            </li>
-            <li>
-              {tr("Dans le navigateur, ouvrez")}{" "}
-              <a
-                href="https://www.themoviedb.org/settings/api"
-                target="_blank"
-                rel="noreferrer"
-              >
-                {tr("Paramètres → API")}
-              </a>
-              {tr(
-                ", puis demandez une clé développeur. Sur téléphone, activez au besoin « site pour ordinateur ».",
-              )}
-            </li>
-            <li>
-              {tr(
-                "Collez ici le jeton de lecture API ou la clé API v3. Ne les envoyez pas dans ChatGPT.",
-              )}
-            </li>
-          </ol>
-          <form
-            onSubmit={async (e) => {
-              e.preventDefault();
-              setCheckingTmdb(true);
-              setTmdbError("");
-              try {
-                await saveTmdbCredential(tmdbToken);
-              } catch (error) {
-                setTmdbError(
-                  error instanceof Error
-                    ? error.message
-                    : tr(
-                        "TMDB n’est pas joignable. Vérifiez la connexion et réessayez.",
-                      ),
-                );
-              } finally {
-                setCheckingTmdb(false);
-              }
-            }}
+        {!defaultServices.supabaseUrl && import.meta.env.DEV && (
+          <details
+            className="advanced-services"
+            open={!defaultServices.supabaseUrl || repairNeeded}
           >
-            <label className="field">
-              {tr("Jeton de lecture TMDB ou clé API")}
-              <input
-                type="password"
-                autoComplete="off"
-                spellCheck={false}
-                value={tmdbToken}
-                onChange={(e) => setTmdbToken(e.target.value)}
-                required
-                placeholder={tr("Jeton eyJ… ou clé API v3")}
-              />
-            </label>
-            <p className="muted fine">
+            <summary>{tr("Configuration avancée des services")}</summary>
+            <h2>{tr("Catalogue TMDB")}</h2>
+            <p className="muted">
               {tr(
-                "Enregistré uniquement sur cet appareil. Ce réglage est indépendant de Supabase ; vos listes et notes sont conservées.",
+                "Films et séries, titres français et originaux, affiches, fiches et épisodes. Une clé API gratuite est nécessaire pour un usage non commercial.",
               )}
             </p>
-            {tmdbError && (
-              <p className="error" role="alert">
-                {tmdbError}
-              </p>
-            )}
-            <button className="button primary" disabled={checkingTmdb}>
-              {checkingTmdb ? (
-                <>
-                  <LoaderCircle className="spin" size={18} />
-                  {tr("Vérification…")}
-                </>
-              ) : (
-                tr("Activer TMDB")
-              )}
-            </button>
-          </form>
-          {tmdbEnabled() && (
-            <button className="text-button disconnect" onClick={disableTmdb}>
-              {defaultServices.tmdbKey
-                ? tr("Utiliser la configuration Vela")
-                : tr("Revenir au catalogue limité")}
-            </button>
-          )}
-          <hr />
-          <h2>{tr("Connecter Supabase")}</h2>
-          <p className="muted">
-            {tr(
-              "Sans configuration, Vela garde vos données sur cet appareil. Pour synchroniser, créez un projet Supabase gratuit, exécutez le fichier",
-            )}{" "}
-            <code>supabase/schema.sql</code>{" "}
-            {tr(" et renseignez les identifiants publics du projet.")}
-          </p>
-          <details className="sql-guide" open={repairNeeded}>
-            <summary>{tr("Corriger l’erreur public.library")}</summary>
-            <ol>
+            <ol className="catalog-help">
               <li>
+                {tr("Créez un compte sur")}{" "}
+                <a
+                  href="https://www.themoviedb.org/signup"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  themoviedb.org
+                </a>
+                .
+              </li>
+              <li>
+                {tr("Dans le navigateur, ouvrez")}{" "}
+                <a
+                  href="https://www.themoviedb.org/settings/api"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {tr("Paramètres → API")}
+                </a>
                 {tr(
-                  "Ouvrez le projet Supabase dont l’URL est renseignée ci-dessous.",
+                  ", puis demandez une clé développeur. Sur téléphone, activez au besoin « site pour ordinateur ».",
                 )}
               </li>
               <li>
                 {tr(
-                  "Dans SQL Editor → New query, collez ce script puis appuyez sur Run.",
-                )}
-              </li>
-              <li>
-                {tr(
-                  "Revenez dans Profil et appuyez sur Synchroniser. Le site web n’a pas besoin d’être publié.",
+                  "Collez ici le jeton de lecture API ou la clé API v3. Ne les envoyez pas dans ChatGPT.",
                 )}
               </li>
             </ol>
-            <label className="field">
-              {tr("Script SQL de réparation")}
-              <textarea
-                aria-label={tr("Script SQL de réparation")}
-                readOnly
-                value={repairSql}
-                rows={8}
-              />
-            </label>
-            <button
-              className="button tonal"
-              onClick={async () => {
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setCheckingTmdb(true);
+                setTmdbError("");
                 try {
-                  await Clipboard.write({ string: repairSql });
-                  setCopyMessage(
-                    tr("Script copié. Collez-le dans SQL Editor de Supabase."),
+                  await saveTmdbCredential(tmdbToken);
+                } catch (error) {
+                  setTmdbError(
+                    error instanceof Error
+                      ? error.message
+                      : tr(
+                          "TMDB n’est pas joignable. Vérifiez la connexion et réessayez.",
+                        ),
                   );
-                } catch {
-                  setCopyMessage(
-                    tr(
-                      "Copie indisponible. Sélectionnez le script ci-dessus pour le copier.",
-                    ),
-                  );
+                } finally {
+                  setCheckingTmdb(false);
                 }
               }}
             >
-              {tr("Copier le script SQL")}
-            </button>
-            {copyMessage && (
-              <p className="muted" role="status">
-                {copyMessage}
+              <label className="field">
+                {tr("Jeton de lecture TMDB ou clé API")}
+                <input
+                  type="password"
+                  autoComplete="off"
+                  spellCheck={false}
+                  value={tmdbToken}
+                  onChange={(e) => setTmdbToken(e.target.value)}
+                  required
+                  placeholder={tr("Jeton eyJ… ou clé API v3")}
+                />
+              </label>
+              <p className="muted fine">
+                {tr(
+                  "Enregistré uniquement sur cet appareil. Ce réglage est indépendant de Supabase ; vos listes et notes sont conservées.",
+                )}
               </p>
-            )}
-          </details>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              try {
-                saveConfig(url, key);
-              } catch (e: any) {
-                setError(e.message);
-              }
-            }}
-          >
-            <label className="field">
-              {tr("URL du projet")}
-              <input
-                type="url"
-                required
-                placeholder="https://votre-projet.supabase.co"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-              />
-            </label>
-            <label className="field">
-              {tr("Clé publique (publishable ou anon)")}
-              <input
-                required
-                placeholder="sb_publishable_… ou eyJ…"
-                value={key}
-                onChange={(e) => setKey(e.target.value)}
-              />
-            </label>
-            <p className="muted fine">
-              {tr(
-                "N’utilisez jamais une clé secret ou service_role. Ces identifiants publics restent sur cet appareil. Les politiques de sécurité du schéma protègent votre collection.",
+              {tmdbError && (
+                <p className="error" role="alert">
+                  {tmdbError}
+                </p>
               )}
-            </p>
-            {error && (
-              <p className="error" role="alert">
-                {error}
-              </p>
+              <button className="button primary" disabled={checkingTmdb}>
+                {checkingTmdb ? (
+                  <>
+                    <LoaderCircle className="spin" size={18} />
+                    {tr("Vérification…")}
+                  </>
+                ) : (
+                  tr("Activer TMDB")
+                )}
+              </button>
+            </form>
+            {tmdbEnabled() && (
+              <button className="text-button disconnect" onClick={disableTmdb}>
+                {defaultServices.tmdbKey
+                  ? tr("Utiliser la configuration Vela")
+                  : tr("Revenir au catalogue limité")}
+              </button>
             )}
-            <button className="button primary">
-              {tr("Enregistrer et recharger ")}
-              <ArrowRight size={17} />
-            </button>
-          </form>
-          {config.url && (
-            <button
-              className="text-button disconnect"
-              onClick={() => {
-                localStorage.removeItem("luma-cloud");
-                location.reload();
+            <hr />
+            <h2>{tr("Connecter Supabase")}</h2>
+            <p className="muted">
+              {tr(
+                "Sans configuration, Vela garde vos données sur cet appareil. Pour synchroniser, créez un projet Supabase gratuit, exécutez le fichier",
+              )}{" "}
+              <code>supabase/schema.sql</code>{" "}
+              {tr(" et renseignez les identifiants publics du projet.")}
+            </p>
+            <details className="sql-guide" open={repairNeeded}>
+              <summary>{tr("Corriger l’erreur public.library")}</summary>
+              <ol>
+                <li>
+                  {tr(
+                    "Ouvrez le projet Supabase dont l’URL est renseignée ci-dessous.",
+                  )}
+                </li>
+                <li>
+                  {tr(
+                    "Dans SQL Editor → New query, collez ce script puis appuyez sur Run.",
+                  )}
+                </li>
+                <li>
+                  {tr(
+                    "Revenez dans Profil et appuyez sur Synchroniser. Le site web n’a pas besoin d’être publié.",
+                  )}
+                </li>
+              </ol>
+              <label className="field">
+                {tr("Script SQL de réparation")}
+                <textarea
+                  aria-label={tr("Script SQL de réparation")}
+                  readOnly
+                  value={repairSql}
+                  rows={8}
+                />
+              </label>
+              <button
+                className="button tonal"
+                onClick={async () => {
+                  try {
+                    await Clipboard.write({ string: repairSql });
+                    setCopyMessage(
+                      tr(
+                        "Script copié. Collez-le dans SQL Editor de Supabase.",
+                      ),
+                    );
+                  } catch {
+                    setCopyMessage(
+                      tr(
+                        "Copie indisponible. Sélectionnez le script ci-dessus pour le copier.",
+                      ),
+                    );
+                  }
+                }}
+              >
+                {tr("Copier le script SQL")}
+              </button>
+              {copyMessage && (
+                <p className="muted" role="status">
+                  {copyMessage}
+                </p>
+              )}
+            </details>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                try {
+                  saveConfig(url, key);
+                } catch (e: any) {
+                  setError(e.message);
+                }
               }}
             >
-              {tr("Réinitialiser la configuration locale")}
-            </button>
-          )}
-        </details>
+              <label className="field">
+                {tr("URL du projet")}
+                <input
+                  type="url"
+                  required
+                  placeholder="https://votre-projet.supabase.co"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                />
+              </label>
+              <label className="field">
+                {tr("Clé publique (publishable ou anon)")}
+                <input
+                  required
+                  placeholder="sb_publishable_… ou eyJ…"
+                  value={key}
+                  onChange={(e) => setKey(e.target.value)}
+                />
+              </label>
+              <p className="muted fine">
+                {tr(
+                  "N’utilisez jamais une clé secret ou service_role. Ces identifiants publics restent sur cet appareil. Les politiques de sécurité du schéma protègent votre collection.",
+                )}
+              </p>
+              {error && (
+                <p className="error" role="alert">
+                  {error}
+                </p>
+              )}
+              <button className="button primary">
+                {tr("Enregistrer et recharger ")}
+                <ArrowRight size={17} />
+              </button>
+            </form>
+            {config.url && (
+              <button
+                className="text-button disconnect"
+                onClick={() => {
+                  localStorage.removeItem("luma-cloud");
+                  location.reload();
+                }}
+              >
+                {tr("Réinitialiser la configuration locale")}
+              </button>
+            )}
+          </details>
+        )}
       </div>
       <SettingsFooter />
     </section>
