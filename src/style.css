@@ -6485,3 +6485,47 @@ body.taste-terminal-active > #root > .mobile-nav {
     margin-top: 4vh;
   }
 }
+
+button.cast-person {
+  text-align: start;
+}
+
+.person-details {
+  padding: 24px;
+  display: grid;
+  gap: 24px;
+}
+
+.person-heading {
+  display: flex;
+  align-items: center;
+  padding-inline-end: 44px;
+  gap: 16px;
+}
+
+.person-heading .cast-portrait {
+  width: 96px;
+  flex: none;
+}
+
+.person-heading h2 {
+  overflow-wrap: anywhere;
+}
+
+.cast-portrait > * {
+  grid-area: 1 / 1;
+}
+
+.cast-portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cast-portrait img[hidden] {
+  display: none;
+}
+
+.person-biography {
+  white-space: pre-line;
+}

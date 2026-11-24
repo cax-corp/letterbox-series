@@ -323,3 +323,104 @@ test("authentification v4 et paramètres français, sans repli silencieux après
   expect(sawAuth).toBe(true);
   expect(legacyRequests).toBe(0);
 });
+
+test("TMDB: recherche paginée de personnes et navigation entre les fiches", async ({
+  page,
+}) => {
+  await setup(page);
+  const actor = {
+    id: 31,
+    name: "Camille Exemple",
+    known_for_department: "Acting",
+  };
+  const director = {
+    id: 32,
+    name: "Dominique Exemple",
+    known_for_department: "Directing",
+  };
+  await page.route("https://api.themoviedb.org/3/search/person?*", (route) => {
+    const params = new URL(route.request().url()).searchParams;
+    expect(params.get("query")).toBe("Exemple");
+    return route.fulfill({
+      json: {
+        results: params.get("page") === "2" ? [director] : [actor],
+        total_pages: 2,
+        total_results: 2,
+      },
+    });
+  });
+  await page.route("https://api.themoviedb.org/3/person/*", (route) => {
+    const url = new URL(route.request().url());
+    expect(url.searchParams.get("append_to_response")).toBe("combined_credits");
+    return route.fulfill({
+      json: url.pathname.endsWith("/31")
+        ? {
+            ...actor,
+            biography: "Une biographie TMDB.",
+            combined_credits: {
+              cast: [
+                { ...tv, media_type: "tv" },
+                { ...tv, media_type: "tv" },
+              ],
+            },
+          }
+        : {
+            ...director,
+            combined_credits: {
+              crew: [{ ...movie, media_type: "movie", job: "Director" }],
+            },
+          },
+    });
+  });
+  await page.route("https://api.themoviedb.org/3/movie/1?*", (route) =>
+    route.fulfill({
+      json: {
+        ...movie,
+        credits: {
+          cast: [{ ...actor, character: "Le personnage" }],
+          crew: [{ ...director, job: "Director" }],
+        },
+      },
+    }),
+  );
+
+  await page.goto("/");
+  await page
+    .getByRole("button", { name: "Explorer", exact: true })
+    .first()
+    .click();
+  await page.getByRole("button", { name: "Personnes" }).click();
+  await page
+    .getByRole("textbox", { name: "Rechercher dans le catalogue" })
+    .fill("Exemple");
+  await expect(
+    page.getByRole("button", { name: /Camille Exemple/ }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Charger plus de résultats" }).click();
+  await page.getByRole("button", { name: /Dominique Exemple/ }).click();
+  const person = page.getByRole("dialog", { name: director.name });
+  await expect(
+    person.getByRole("heading", { name: "Réalisation" }),
+  ).toBeVisible();
+  await person.getByRole("button", { name: /Le Film Introuvable/ }).click();
+  const film = page.getByRole("dialog", { name: movie.title });
+  await film.getByText("Voir les acteurs", { exact: false }).click();
+  await film.getByRole("button", { name: /Camille Exemple/ }).click();
+  const actorDialog = page.getByRole("dialog", { name: actor.name });
+  await expect(actorDialog.getByText("Une biographie TMDB.")).toBeVisible();
+  await expect(
+    actorDialog.getByRole("heading", { name: "Interprétation" }),
+  ).toBeVisible();
+  await expect(
+    actorDialog.getByRole("button", { name: /La Série Introuvable/ }),
+  ).toHaveCount(1);
+  await page.keyboard.press("Escape");
+  await expect(
+    film.getByRole("button", { name: /Camille Exemple/ }),
+  ).toBeFocused();
+  await film.getByText("Voir la réalisation", { exact: false }).click();
+  await film.getByRole("button", { name: /Dominique Exemple/ }).click();
+  await person.getByRole("button", { name: "Fermer" }).click();
+  await film.getByRole("button", { name: "Fermer" }).click();
+  await expect(page.locator("body")).not.toHaveCSS("overflow", "hidden");
+});

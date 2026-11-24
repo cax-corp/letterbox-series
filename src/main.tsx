@@ -37,6 +37,7 @@ import {
 } from "./viewing-preferences";
 import WhereToWatch from "./WhereToWatch";
 import CastGallery from "./CastGallery";
+import PersonDetailsDialog, { PersonPortrait } from "./PersonDetails";
 import "@fontsource/dm-sans/latin-400.css";
 import { Brand, SettingsFooter } from "./Brand";
 import Avatar from "./Avatar";
@@ -108,6 +109,8 @@ import {
   movies,
   series,
   searchCatalog,
+  searchPeople,
+  type Person,
   getTitleDetails,
   tmdbEnabled,
   isTmdb,
@@ -208,9 +211,10 @@ function App() {
                 : "discover",
     ),
     [kind, setKind] = useState<"all" | "movie" | "series">("all"),
+    [searchingPeople, setSearchingPeople] = useState(false),
     [filmList, setFilms] = useState<Title[]>([]),
     [showList, setShows] = useState<Title[]>([]),
-    [results, setResults] = useState<Title[]>([]),
+    [results, setResults] = useState<(Title | Person)[]>([]),
     [query, setQuery] = useState(""),
     [loading, setLoading] = useState(true),
     [searching, setSearching] = useState(false),
@@ -220,6 +224,7 @@ function App() {
     [totalResults, setTotalResults] = useState(0),
     [error, setError] = useState(""),
     [selected, setSelected] = useState<Title | null>(null),
+    [person, setPerson] = useState<Person | null>(null),
     [library, setLibrary] = useState(() => read()),
     [notice, setNotice] = useState(""),
     [user, setUser] = useState<AuthUser | null>(null),
@@ -343,7 +348,7 @@ function App() {
   );
   const moreAbort = useRef<AbortController | null>(null);
   const searchIdentity = useRef("");
-  searchIdentity.current = `${page}|${kind}|${query}|${language}`;
+  searchIdentity.current = `${page}|${kind}|${searchingPeople}|${query}|${language}`;
   const local = useRef(library);
   local.current = library;
   const activeAccount = useRef(user?.id);
@@ -499,20 +504,27 @@ function App() {
     moreAbort.current?.abort();
     setLoadingMore(false);
     if (page !== "search") return;
+    if (searchingPeople && !tmdbEnabled()) {
+      setSearchingPeople(false);
+      return;
+    }
     const c = new AbortController();
     setHasMore(false);
     setSearchPage(1);
     setTotalResults(0);
+    setResults([]);
+    setSearching(Boolean(query.trim()));
+    setError("");
     const t = setTimeout(async () => {
       if (!query.trim()) {
         setResults([]);
         setSearching(false);
         return;
       }
-      setSearching(true);
-      setError("");
       try {
-        const result = await searchCatalog(query.trim(), kind, 1, c.signal);
+        const result = await (searchingPeople
+          ? searchPeople(query.trim(), 1, c.signal)
+          : searchCatalog(query.trim(), kind, 1, c.signal));
         if (c.signal.aborted) return;
         setResults(result.results);
         setHasMore(result.hasMore);
@@ -533,7 +545,7 @@ function App() {
       c.abort();
       moreAbort.current?.abort();
     };
-  }, [query, kind, page, language]);
+  }, [query, kind, searchingPeople, page, language]);
   async function loadMore() {
     if (loadingMore || !hasMore) return;
     const identity = searchIdentity.current;
@@ -542,12 +554,9 @@ function App() {
     setLoadingMore(true);
     setError("");
     try {
-      const result = await searchCatalog(
-        query.trim(),
-        kind,
-        searchPage + 1,
-        c.signal,
-      );
+      const result = await (searchingPeople
+        ? searchPeople(query.trim(), searchPage + 1, c.signal)
+        : searchCatalog(query.trim(), kind, searchPage + 1, c.signal));
       if (c.signal.aborted || searchIdentity.current !== identity) return;
       setResults((previous) => {
         const ids = new Set(previous.map((t) => t.id));
@@ -639,6 +648,7 @@ function App() {
   }
 
   function navigate(p: Page) {
+    setPerson(null);
     if (p === "discover" && p !== page) setHomeVisit((n) => n + 1);
     if (publicRoute) {
       history.pushState(
@@ -758,6 +768,7 @@ function App() {
   }
   useEffect(() => {
     const pop = (event: PopStateEvent | HashChangeEvent) => {
+      setPerson(null);
       const route = parsePublicRoute();
       setPublicRoute(route);
       if (route) {
@@ -810,6 +821,10 @@ function App() {
         setShareDraft(null);
         return true;
       }
+      if (person) {
+        setPerson(null);
+        return true;
+      }
       if (selected) {
         setSelected(null);
         return true;
@@ -841,6 +856,7 @@ function App() {
       if (
         event.key === "Escape" &&
         !selected &&
+        !person &&
         !auth &&
         !storyDraft &&
         !shareDraft
@@ -871,6 +887,7 @@ function App() {
   }, [
     page,
     selected,
+    person,
     auth,
     shareDraft,
     storyDraft,
@@ -965,7 +982,10 @@ function App() {
     <button
       key={title.id}
       className="poster-card"
-      onClick={() => setSelected(title)}
+      onClick={() => {
+        setPerson(null);
+        setSelected(title);
+      }}
       style={{ animationDelay: `${Math.min(i, 8) * 45}ms` }}
     >
       <div className="poster">
@@ -1211,6 +1231,7 @@ function App() {
                 signIn={() => setAuth(true)}
                 viewing={viewing.value}
                 settings={openSettings}
+                openPerson={setPerson}
               />
             )}
           />
@@ -1445,6 +1466,7 @@ function App() {
                       <button
                         className="text-button"
                         onClick={() => {
+                          setSearchingPeople(false);
                           setKind("movie");
                           navigate("search");
                         }}
@@ -1472,6 +1494,7 @@ function App() {
                       <button
                         className="text-button"
                         onClick={() => {
+                          setSearchingPeople(false);
                           setKind("series");
                           navigate("search");
                         }}
@@ -1502,9 +1525,11 @@ function App() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={
-                  tmdbEnabled()
-                    ? tr("Un titre français ou original…")
-                    : tr("Un titre de film ou de série…")
+                  searchingPeople
+                    ? tr("Un nom d’acteur ou de réalisateur…")
+                    : tmdbEnabled()
+                      ? tr("Un titre français ou original…")
+                      : tr("Un titre de film ou de série…")
                 }
                 aria-label={tr("Rechercher dans le catalogue")}
               />
@@ -1521,9 +1546,13 @@ function App() {
             <div className="tabs inline-tabs">
               {(["all", "movie", "series"] as const).map((k) => (
                 <button
-                  className={kind === k ? "selected" : ""}
+                  className={!searchingPeople && kind === k ? "selected" : ""}
                   key={k}
-                  onClick={() => setKind(k)}
+                  aria-pressed={!searchingPeople && kind === k}
+                  onClick={() => {
+                    setSearchingPeople(false);
+                    setKind(k);
+                  }}
                 >
                   {k === "all"
                     ? tr("Tout")
@@ -1532,6 +1561,15 @@ function App() {
                       : tr("Séries")}
                 </button>
               ))}
+              {tmdbEnabled() && (
+                <button
+                  className={searchingPeople ? "selected" : ""}
+                  aria-pressed={searchingPeople}
+                  onClick={() => setSearchingPeople(true)}
+                >
+                  {tr("Personnes")}
+                </button>
+              )}
             </div>
             {error && (
               <div className="error" role="alert">
@@ -1551,7 +1589,26 @@ function App() {
                   {totalResults > 1 ? "s" : ""}
                 </p>
                 <div className="poster-grid search-grid">
-                  {results.map(card)}
+                  {results.map((result, index) =>
+                    "kind" in result ? (
+                      card(result, index)
+                    ) : (
+                      <button
+                        key={result.id}
+                        className="cast-person"
+                        onClick={() => setPerson(result)}
+                      >
+                        <PersonPortrait person={result} />
+                        <strong>{result.name}</strong>
+                        {result.department === "Acting" && (
+                          <small>{tr("Interprétation")}</small>
+                        )}
+                        {result.department === "Directing" && (
+                          <small>{tr("Réalisation")}</small>
+                        )}
+                      </button>
+                    ),
+                  )}
                 </div>
                 {hasMore && (
                   <div className="load-more">
@@ -1572,31 +1629,39 @@ function App() {
                   </div>
                 )}
                 {!results.length && !error && (
-                  <Empty text={tr("Aucun résultat. Essayez un autre titre.")} />
+                  <Empty
+                    text={
+                      searchingPeople
+                        ? tr("Aucun résultat. Essayez un autre nom.")
+                        : tr("Aucun résultat. Essayez un autre titre.")
+                    }
+                  />
                 )}
               </>
             ) : (
-              <div className="search-suggestions">
-                <div>
-                  {[
-                    "Interstellar",
-                    "Severance",
-                    "Dune",
-                    "The Bear",
-                    "Le Voyage de Chihiro",
-                    "Breaking Bad",
-                  ].map((q) => (
-                    <button
-                      className="surface"
-                      onClick={() => setQuery(q)}
-                      key={q}
-                    >
-                      {q}
-                      <ArrowRight size={15} />
-                    </button>
-                  ))}
+              !searchingPeople && (
+                <div className="search-suggestions">
+                  <div>
+                    {[
+                      "Interstellar",
+                      "Severance",
+                      "Dune",
+                      "The Bear",
+                      "Le Voyage de Chihiro",
+                      "Breaking Bad",
+                    ].map((q) => (
+                      <button
+                        className="surface"
+                        onClick={() => setQuery(q)}
+                        key={q}
+                      >
+                        {q}
+                        <ArrowRight size={15} />
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )
             )}
           </section>
         )}
@@ -1922,7 +1987,16 @@ function App() {
           entry={library[selected.id] || empty(selected)}
           update={(p) => update(selected, p)}
           close={() => setSelected(null)}
+          openPerson={setPerson}
           toast={toast}
+        />
+      )}
+      {person && (
+        <PersonDetailsDialog
+          key={person.id}
+          person={person}
+          close={() => setPerson(null)}
+          renderTitle={card}
         />
       )}
       {shareDraft && (
@@ -2038,7 +2112,9 @@ function Details({
   signIn,
   viewing,
   settings,
+  openPerson,
 }: {
+  openPerson: (person: Person) => void;
   onShare: (draft: ShareDraft) => void;
   onStory: (draft: StoryDraft) => void;
   discovery: ReturnType<typeof useDiscoveryPreferences>;
@@ -2064,8 +2140,8 @@ function Details({
     [video, setVideo] = useState(false),
     [sagaBusy, setSagaBusy] = useState(false);
   const update = (patch: Partial<Entry>) => {
-    // Cast portraits are fetched on demand, never copied into every backup entry.
-    const { cast: _cast, ...savedTitle } = title;
+    // Credits are fetched on demand.
+    const { cast: _cast, directors: _directors, ...savedTitle } = title;
     onUpdate({ ...patch, title: savedTitle });
   };
   function share(reviewOnly = false) {
@@ -2264,7 +2340,8 @@ function Details({
             saved={() => toast(tr("Avis enregistré."))}
           />
         )}
-        <CastGallery cast={title.cast} />
+        <CastGallery cast={title.cast} openPerson={openPerson} />
+        <CastGallery cast={title.directors} directors openPerson={openPerson} />
         <div className="detail-links">
           {title.trailer && title.trailerKind === "youtube" && (
             <a

@@ -1,4 +1,13 @@
 {
+  "Personnes": "People",
+  "Fiche TMDB": "TMDB details",
+  "Un nom d’acteur ou de réalisateur…": "An actor or director’s name…",
+  "Interprétation": "Acting",
+  "Réalisation": "Directing",
+  "Voir la réalisation": "See directors",
+  "Voir plus de réalisateurs (": "See more directors (",
+  "Aucune filmographie disponible.": "No credits available.",
+  "Aucun résultat. Essayez un autre nom.": "No results. Try another name.",
   ", puis demandez une clé développeur. Sur téléphone, activez au besoin « site pour ordinateur ».": ", then request a developer API key. On your phone, enable “Desktop site” if needed.",
   ". Cette page présente le contenu publié par son auteur au moment du partage.": ". This page shows the content published by its author when it was shared.",
   ". Consultez aussi vos courriers indésirables.": ". Check your spam folder too.",

@@ -1,6 +1,9 @@
 import { t as tr } from "./i18n";
 import React, { useEffect, useRef } from "react";
 import { X } from "./icons";
+let openModals = 0;
+let previousOverflow = "";
+
 export default function Modal({
   children,
   close,
@@ -19,12 +22,14 @@ export default function Modal({
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const previous = document.activeElement as HTMLElement;
-    const overflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    if (openModals++ === 0) {
+      previousOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+    }
     ref.current?.focus({ preventScroll: true });
     return () => {
-      document.body.style.overflow = overflow;
-      previous?.focus();
+      if (--openModals === 0) document.body.style.overflow = previousOverflow;
+      if (previous?.isConnected) previous.focus({ preventScroll: true });
     };
   }, []);
   return (

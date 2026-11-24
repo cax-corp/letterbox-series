@@ -8,12 +8,17 @@ export type Episode = {
   number: number;
   name: string;
 };
-export type CastMember = {
+export type Person = {
   id: number;
   name: string;
-  character: string;
   image: string;
-  url: string;
+  department?: string;
+};
+export type CastMember = Person & { character: string };
+export type PersonDetails = Person & {
+  biography: string;
+  acting: Title[];
+  directing: Title[];
 };
 export type Title = {
   id: string;
@@ -38,6 +43,7 @@ export type Title = {
   imdbUrl?: string;
   seasons?: Season[];
   cast?: CastMember[];
+  directors?: Person[];
   episodeCount?: number;
 };
 export type CatalogPage = {
@@ -215,12 +221,42 @@ export function disableTmdb() {
   localStorage.removeItem("luma-tmdb-token");
   location.reload();
 }
+type TmdbPerson = {
+  id: number;
+  name: string;
+  profile_path?: string;
+  known_for_department?: string;
+};
+
+function validPerson(person: TmdbPerson) {
+  return (
+    Number.isSafeInteger(person.id) &&
+    person.id > 0 &&
+    typeof person.name === "string" &&
+    Boolean(person.name.trim())
+  );
+}
+
+function fromTmdbPerson(person: TmdbPerson): Person {
+  return {
+    id: person.id,
+    name: person.name,
+    image:
+      typeof person.profile_path === "string" &&
+      /^\/[\w.-]+$/.test(person.profile_path)
+        ? `https://image.tmdb.org/t/p/w185${person.profile_path}`
+        : "",
+    department: person.known_for_department,
+  };
+}
+
 function fromTmdb(x: any, kind: Title["kind"]): Title {
   const trailer = (x.videos?.results || []).find(
     (v: any) =>
       v.site === "YouTube" && v.type === "Trailer" && /^[\w-]+$/.test(v.key),
   );
   const imdb = x.external_ids?.imdb_id || x.imdb_id;
+  const crew = x.aggregate_credits?.crew || x.credits?.crew;
   return {
     id: `tmdb-${kind}-${x.id}`,
     source: "tmdb",
@@ -281,12 +317,9 @@ function fromTmdb(x: any, kind: Title["kind"]): Title {
     episodeCount: x.number_of_episodes,
     cast: (x.aggregate_credits?.cast || x.credits?.cast || [])
       .slice(0, 60)
-      .filter(
-        (p: any) => Number.isSafeInteger(p.id) && typeof p.name === "string",
-      )
+      .filter(validPerson)
       .map((p: any) => ({
-        id: p.id,
-        name: p.name,
+        ...fromTmdbPerson(p),
         character:
           p.character ||
           p.roles
@@ -295,13 +328,23 @@ function fromTmdb(x: any, kind: Title["kind"]): Title {
             .slice(0, 2)
             .join(" / ") ||
           "",
-        image:
-          typeof p.profile_path === "string" &&
-          /^\/[\w./-]+$/.test(p.profile_path)
-            ? `https://image.tmdb.org/t/p/w185${p.profile_path}`
-            : "",
-        url: `https://www.themoviedb.org/person/${p.id}`,
       })),
+    directors:
+      crew &&
+      Array.from(
+        new Map<number, Person>(
+          crew
+            .filter(
+              (p: any) =>
+                validPerson(p) &&
+                (p.job === "Director" ||
+                  p.jobs?.some(
+                    ({ job }: { job: string }) => job === "Director",
+                  )),
+            )
+            .map((p: TmdbPerson) => [p.id, fromTmdbPerson(p)]),
+        ).values(),
+      ),
   };
 }
 export async function movies(
@@ -378,6 +421,75 @@ export async function searchCatalog(
     page,
   };
 }
+export async function searchPeople(
+  query: string,
+  page: number,
+  signal?: AbortSignal,
+) {
+  const data = await tmdbRequest(
+    "/search/person",
+    { query, include_adult: "false", page },
+    signal,
+  );
+  return {
+    results: (data.results as TmdbPerson[])
+      .filter(validPerson)
+      .map(fromTmdbPerson),
+    total: data.total_results || 0,
+    hasMore: page < Math.min(data.total_pages || 0, 500),
+    page,
+  };
+}
+
+type TmdbPersonCredit = {
+  id: number;
+  media_type: string;
+  job?: string;
+  adult?: boolean;
+  popularity?: number;
+};
+
+function personFilmography(credits: TmdbPersonCredit[]) {
+  const titles = new Map<string, Title>();
+  for (const credit of [...credits].sort(
+    (a, b) => (b.popularity || 0) - (a.popularity || 0),
+  )) {
+    if (
+      credit.adult ||
+      !Number.isSafeInteger(credit.id) ||
+      (credit.media_type !== "movie" && credit.media_type !== "tv")
+    )
+      continue;
+    const title = fromTmdb(
+      credit,
+      credit.media_type === "movie" ? "movie" : "series",
+    );
+    if (!titles.has(title.id)) titles.set(title.id, title);
+  }
+  return [...titles.values()];
+}
+
+export async function getPersonDetails(
+  id: number,
+  signal?: AbortSignal,
+): Promise<PersonDetails> {
+  const data = await tmdbRequest(
+    `/person/${id}`,
+    { append_to_response: "combined_credits" },
+    signal,
+  );
+  return {
+    ...fromTmdbPerson(data),
+    biography: data.biography || "",
+    acting: personFilmography(data.combined_credits?.cast || []),
+    directing: personFilmography(
+      (data.combined_credits?.crew || []).filter(
+        (credit: TmdbPersonCredit) => credit.job === "Director",
+      ),
+    ),
+  };
+}
+
 export async function getTitleDetails(
   title: Title,
   signal?: AbortSignal,
