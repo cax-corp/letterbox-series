@@ -9,6 +9,12 @@ android/local.properties
 android/**/build/
 *.jks
 *.keystore
+*.p12
+*.pfx
+*-password.txt
+.vela-private/
+Vela-signature-privee.zip
+vela-release-base64.txt
 test-results/
 playwright-report/
 tests/*.png

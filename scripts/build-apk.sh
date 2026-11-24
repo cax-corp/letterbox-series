@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
+if [[ -z "${VELA_ANDROID_KEYSTORE_FILE:-}" || -z "${VELA_ANDROID_STORE_PASSWORD:-}" || -z "${VELA_ANDROID_KEY_ALIAS:-}" ]]; then
+  echo 'Signature persistante requise : VELA_ANDROID_KEYSTORE_FILE, VELA_ANDROID_STORE_PASSWORD, VELA_ANDROID_KEY_ALIAS. Voir docs/signature-android.md.' >&2
+  exit 1
+fi
 TOOLS_DIR="${LUMA_TOOLS_DIR:-/workspace/.luma-tools}"
 export JAVA_HOME="$TOOLS_DIR/jdk"
 export ANDROID_HOME="$TOOLS_DIR/android-sdk"
@@ -16,7 +20,7 @@ if [[ -n "${HTTPS_PROXY:-}" ]]; then
   extra_args+=("-Dhttps.proxyHost=${proxy_parts[0]}" "-Dhttps.proxyPort=${proxy_parts[1]}" "-Dhttp.proxyHost=${proxy_parts[0]}" "-Dhttp.proxyPort=${proxy_parts[1]}")
 fi
 if [[ -f /etc/ssl/certs/java/cacerts ]]; then extra_args+=("-Djavax.net.ssl.trustStore=/etc/ssl/certs/java/cacerts"); fi
-"$TOOLS_DIR/gradle/bin/gradle" -p android assembleDebug --no-daemon --max-workers=2 "${extra_args[@]}"
+"$TOOLS_DIR/gradle/bin/gradle" -p android assembleRelease --no-daemon --max-workers=2 "${extra_args[@]}"
 mkdir -p /workspace/artifacts
-cp android/app/build/outputs/apk/debug/app-debug.apk /workspace/artifacts/Vela.apk
-"$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose /workspace/artifacts/Vela.apk
+cp android/app/build/outputs/apk/release/app-release.apk /workspace/artifacts/Vela.apk
+node scripts/verify-apk-signature.mjs /workspace/artifacts/Vela.apk

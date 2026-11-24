@@ -1,7 +1,7 @@
-# APK proposé sur le site web
+# Téléchargements Vela
 
-`Vela-2.10.1.apk` est la version Android 2.10.1 déjà distribuée et testée, avec sa signature conservée. Le lien de téléchargement de la page web « Pour vous » pointe vers ce fichier.
+`Vela-2.11.0.apk` utilise la nouvelle signature release persistante. Le passage depuis 2.10.1 ou une version antérieure nécessite une réinstallation exceptionnelle après vérification des sauvegardes : voir `docs/signature-android.md` et la page `android-migration.html` du site.
 
-`npm run build:web` ajoute le fichier dans `dist/downloads` après la compilation Vite. Le workflow Pages utilise cette commande. Le build Android continue d’utiliser `npm run build` via `android:sync` : le téléchargement n’est pas ajouté aux ressources embarquées de l’APK.
+`Vela-2.10.1.apk` reste disponible avec l’ancienne signature, pour les installations historiques. Son manifeste `release.json` ne doit pas annoncer les APK du nouveau certificat. Les nouvelles installations et mises à jour signées de manière durable utilisent `release-stable.json`.
 
-Pour changer de version, mettre à jour ce fichier, le lien dans `src/WebRecommendationsNotice.tsx` et la copie dans `scripts/prepare-web-download.mjs`.
+Aucune clé privée ni aucun mot de passe ne doit être placé dans ce dossier.

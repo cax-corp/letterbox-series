@@ -2655,6 +2655,14 @@ body:has(.feed-ambience) {
   gap: 0;
   margin: 4px 0;
 }
+.android-migration-note {
+  margin: 20px 0;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  font-size: 14px;
+  line-height: 1.6;
+}
 .profile-review-composer .review-rating-row {
   display: flex;
   align-items: center;

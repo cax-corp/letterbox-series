@@ -161,9 +161,9 @@ Android 7+ (API 24), WebView récent recommandé. Le site est embarqué : aucune
 
 ### Télécharger depuis GitHub
 
-Exécuter **Actions → Build Android APK → Run workflow**. Télécharger l’artefact **Vela-Android-APK**, le décompresser puis ouvrir `app-debug.apk` sur le téléphone. Autoriser l’installation depuis cette source lorsqu’Android le demande. Cette version de test est signée par une clé de debug ; elle est installable sans compte Play Store.
+Configurer les secrets de signature persistante décrits dans [le guide Android](docs/signature-android.md), puis exécuter **Actions → Build Android APK → Run workflow**. Télécharger l’artefact **Vela-Android-APK**, le décompresser puis ouvrir `app-release.apk` sur le téléphone. Le workflow vérifie le certificat attendu et ne distribue aucune APK si les secrets manquent.
 
-Les runners GitHub peuvent utiliser une nouvelle clé de debug à chaque build. Pour des mises à jour durables sans désinstallation, configurer une signature release avec une clé conservée en lieu sûr avant distribution publique. Le workflow fourni n’est pas une publication Play Store.
+Depuis 2.11.0, la signature release est durable et doit être sauvegardée en privé. Le passage depuis 2.10.1 ou une version antérieure nécessite exceptionnellement une réinstallation après vérification des sauvegardes. Les prochaines mises à jour utilisent `release-stable.json` ; `release.json` reste réservé à l’ancienne signature. Voir [les étapes de migration](public/android-migration.html). Le workflow fourni n’est pas une publication Play Store.
 
 ### Compiler localement
 
@@ -173,10 +173,10 @@ Avec Android Studio, JDK 21 et SDK Android 36 :
 npm ci
 npm run android:sync
 cd android
-./gradlew assembleDebug --no-daemon --max-workers=2
+./gradlew assembleRelease --no-daemon --max-workers=2
 ```
 
-Résultat : `android/app/build/outputs/apk/debug/app-debug.apk`.
+Définir d’abord les variables de signature privées indiquées dans le guide. Résultat : `android/app/build/outputs/apk/release/app-release.apk`. Vérifier avec `node scripts/verify-apk-signature.mjs android/app/build/outputs/apk/release/app-release.apk`.
 
 Dans cet environnement cloud, les outils vérifiés sont conservés sous `/workspace/.luma-tools` et `bash scripts/build-apk.sh` reconstruit l’APK dans `/workspace/artifacts/Vela.apk` avec le proxy et la confiance TLS du système. `android/local.properties` est local et ignoré. L’APK peut s’installer avec `adb install -r Vela.apk` sur un appareil autorisé.
 

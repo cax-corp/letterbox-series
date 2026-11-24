@@ -27,6 +27,22 @@ export default function WebRecommendationsNotice({
             )}
           </p>
         )}
+        <aside className="android-migration-note">
+          <strong>
+            {tr("Passage depuis Vela 2.10.1 ou une version antérieure")}
+          </strong>
+          <p>
+            {tr(
+              "Cette version utilise une nouvelle signature Android. Sauvegardez et vérifiez vos données avant de désinstaller l’ancienne application, puis installez cette version et reconnectez-vous.",
+            )}
+          </p>
+          <a
+            className="text-button"
+            href={`${import.meta.env.BASE_URL}android-migration.html`}
+          >
+            {tr("Lire les étapes de migration")}
+          </a>
+        </aside>
         <div className="web-recommendations-actions">
           {signIn && (
             <button className="button primary" onClick={signIn}>
@@ -35,8 +51,8 @@ export default function WebRecommendationsNotice({
           )}
           <a
             className="button primary"
-            href={`${import.meta.env.BASE_URL}downloads/Vela-2.10.1.apk`}
-            download="Vela-2.10.1.apk"
+            href={`${import.meta.env.BASE_URL}downloads/Vela-2.11.0.apk`}
+            download="Vela-2.11.0.apk"
           >
             <Download size={19} /> {tr(" Télécharger pour Android")}
           </a>
@@ -47,7 +63,7 @@ export default function WebRecommendationsNotice({
         </div>
         <p className="fine">
           {tr(
-            "APK Android · Version 2.10.1. L’application n’est pas encore disponible sur Google Play ou l’App Store.",
+            "APK Android · Version 2.11.0. L’application n’est pas encore disponible sur Google Play ou l’App Store.",
           )}
         </p>
       </div>

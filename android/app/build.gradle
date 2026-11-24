@@ -1,5 +1,11 @@
 apply plugin: 'com.android.application'
 
+def velaKeystore = System.getenv('VELA_ANDROID_KEYSTORE_FILE')
+def velaStorePassword = System.getenv('VELA_ANDROID_STORE_PASSWORD')
+def velaKeyAlias = System.getenv('VELA_ANDROID_KEY_ALIAS')
+def velaKeyPassword = System.getenv('VELA_ANDROID_KEY_PASSWORD') ?: velaStorePassword
+def velaSigningReady = velaKeystore && velaStorePassword && velaKeyAlias && velaKeyPassword
+
 android {
     namespace = "app.luma.cinema"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -7,8 +13,8 @@ android {
         applicationId "app.luma.cinema"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 41
-        versionName "2.10.1"
+        versionCode 42
+        versionName "2.11.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -25,12 +31,35 @@ android {
             }
         }
     }
+    signingConfigs {
+        release {
+            if (velaSigningReady) {
+                storeFile file(velaKeystore)
+                storeType 'PKCS12'
+                storePassword velaStorePassword
+                keyAlias velaKeyAlias
+                keyPassword velaKeyPassword
+            }
+        }
+    }
     buildTypes {
         release {
+            signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+}
+
+def verifyVelaReleaseSigning = tasks.register('verifyVelaReleaseSigning') {
+    doLast {
+        if (!velaSigningReady || !file(velaKeystore).isFile()) {
+            throw new GradleException('A persistent Vela release keystore and its signing environment variables are required. See docs/signature-android.md.')
+        }
+    }
+}
+tasks.configureEach { task ->
+    if (task.name == 'preReleaseBuild') task.dependsOn(verifyVelaReleaseSigning)
 }
 
 repositories {

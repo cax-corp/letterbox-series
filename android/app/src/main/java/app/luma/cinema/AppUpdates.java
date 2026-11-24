@@ -22,6 +22,9 @@ import org.json.JSONObject;
 /** A tiny public release manifest, independent of the catalogue and account. */
 final class AppUpdates {
     static final String BASE="https://vela.thomasbarial.com/", CHANNEL="vela-updates", WORK="vela-update-check";
+    // The legacy manifest remains on the old certificate; it must never advertise
+    // an APK that existing installations cannot install in place.
+    static final String MANIFEST="release-stable.json";
     static final int NOTIFICATION_ID=4203;
     static SharedPreferences prefs(Context c){return c.getSharedPreferences("vela-updates",Context.MODE_PRIVATE);}
     static JSONObject validate(JSONObject value) throws Exception {
@@ -42,7 +45,7 @@ final class AppUpdates {
         SharedPreferences preferences=prefs(c);long now=System.currentTimeMillis();
         if(!force&&now-preferences.getLong("lastAttempt",0)<24*3600000L)return latest(c);
         preferences.edit().putLong("lastAttempt",now).apply();
-        HttpURLConnection connection=(HttpURLConnection)new URL(BASE+"release.json").openConnection();
+        HttpURLConnection connection=(HttpURLConnection)new URL(BASE+MANIFEST).openConnection();
         connection.setConnectTimeout(8000);connection.setReadTimeout(8000);connection.setInstanceFollowRedirects(false);
         String etag=preferences.getString("etag","");if(!etag.isEmpty()&&latest(c).has("apk"))connection.setRequestProperty("If-None-Match",etag);
         try{
