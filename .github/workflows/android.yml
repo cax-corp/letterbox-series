@@ -29,8 +29,25 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
           VITE_TMDB_READ_TOKEN: ${{ secrets.VITE_TMDB_READ_TOKEN }}
           VITE_TMDB_API_KEY: ${{ secrets.VITE_TMDB_API_KEY }}
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/vela-robolectric-sdks
+          key: robolectric-4.14.1-android-9-14-15-i7
+      - name: Prepare verified Android test runtimes
+        run: python3 scripts/prepare-robolectric-sdks.py --output "$RUNNER_TEMP/vela-robolectric"
       - run: bash ./gradlew testDebugUnitTest --no-daemon --max-workers=2
         working-directory: android
+        env:
+          VELA_ROBOLECTRIC_SDK_DIR: ${{ runner.temp }}/vela-robolectric
+      - name: Android test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Vela-Android-test-reports
+          path: |
+            android/app/build/reports/tests/testDebugUnitTest
+            android/app/build/test-results/testDebugUnitTest
+          if-no-files-found: ignore
       - name: Check persistent signing configuration
         id: signing
         env:

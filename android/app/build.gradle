@@ -26,6 +26,11 @@ android {
         unitTests.includeAndroidResources = true
         unitTests.all {
             systemProperty "robolectric.dependency.repo.url", "https://repo.maven.apache.org/maven2"
+            def verifiedSdkDirectory = System.getenv('VELA_ROBOLECTRIC_SDK_DIR')
+            if (verifiedSdkDirectory) {
+                systemProperty "robolectric.offline", "true"
+                systemProperty "robolectric.dependency.dir", verifiedSdkDirectory
+            }
             ["https.proxyHost","https.proxyPort","http.proxyHost","http.proxyPort","javax.net.ssl.trustStore"].each { property ->
                 if (System.getProperty(property) != null) systemProperty property, System.getProperty(property)
             }
